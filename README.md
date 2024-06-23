@@ -1,1 +1,4 @@
-# pmc-portal-be
+# PMC Portal Backend
+
+Contributor:
+Gordon Cheung
