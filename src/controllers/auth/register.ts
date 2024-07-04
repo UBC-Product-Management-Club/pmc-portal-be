@@ -14,6 +14,7 @@ const handleRegister = async (req: Request, res: Response) => {
             major, 
             why_PM, 
             returning_member }: registerReqBody= req.body
+    // do stuff with body
     return res.sendStatus(200)
 }
 

@@ -12,5 +12,9 @@ type registerReqBody = {
     returning_member: boolean
 }
 
+type loginReqBody = {
+    email: string
+    password: string
+}
 
-export { registerReqBody }
+export { registerReqBody ,loginReqBody }
