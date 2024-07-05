@@ -1,3 +1,4 @@
+import { UserRecord } from "firebase-admin/auth"
 
 type registerReqBody = {
     member_Id: string
@@ -13,8 +14,8 @@ type registerReqBody = {
 }
 
 type loginReqBody = {
-    email: string
-    password: string
+    user: UserRecord
+    idToken: string
 }
 
-export { registerReqBody ,loginReqBody }
+export { registerReqBody, loginReqBody }
