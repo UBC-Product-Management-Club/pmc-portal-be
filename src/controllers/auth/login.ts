@@ -11,11 +11,13 @@ import { auth } from "../../config/firebase"
 */
 const handleLogin = async (req: Request, res: Response) => {
     const { user, idToken }: loginReqBody = req.body
-    console.log(user.uid)
-    console.log(user.displayName)
-    console.log(user.email)
-    console.log(user.photoURL)
-    console.log(idToken)
+
+    // FOR DEGBUGGING
+    // console.log(user.uid)
+    // console.log(user.displayName)
+    // console.log(user.email)
+    // console.log(user.photoURL)
+    // console.log(idToken)
 
     const expiresIn = 60 * 60 * 1000
 

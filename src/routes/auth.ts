@@ -15,7 +15,7 @@ authRouter.get("/test", async (req,res) => {
     try {
         const sessionCookie = req.cookies.session || ''
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true)
-        console.log(decodedClaims)
+        // console.log(decodedClaims)
         return res.sendStatus(200)
     } catch (error) {
         return res.sendStatus(401)
