@@ -39,12 +39,8 @@ const handleLogin = async (req: Request, res: Response) => {
 }
 
 async function checkUserExists(userRef: DocumentReference) {
-    try {
-        await userRef.get();
-    } catch (error) {
-        return false;
-    }
-    return true;
+    const user = await userRef.get();
+    return user.exists
 }
 
 

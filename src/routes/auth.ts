@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { handleRegister } from "../controllers/auth/register";
+import { handleOnboarding } from "../controllers/auth/register";
 import { handleLogin } from "../controllers/auth/login";
 import { auth } from "../config/firebase";
 
 export const authRouter = Router()
 
-authRouter.post("/register", handleRegister) // unused?
+authRouter.post("/onboarding", handleOnboarding) // unused?
 authRouter.post("/login", handleLogin)
 
 

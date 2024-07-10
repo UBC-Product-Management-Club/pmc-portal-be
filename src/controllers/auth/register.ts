@@ -5,7 +5,7 @@ import { getFirestore } from "firebase-admin/firestore";
 
 
 
-const handleRegister = async (req: Request, res: Response) => {
+const handleOnboarding = async (req: Request, res: Response) => {
     const { uid, 
             first_name, 
             last_name, 
@@ -43,4 +43,4 @@ const handleRegister = async (req: Request, res: Response) => {
 }
 
 
-export { handleRegister }
+export { handleOnboarding }
