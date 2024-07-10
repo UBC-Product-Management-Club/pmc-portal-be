@@ -5,7 +5,7 @@ import { auth } from "../config/firebase";
 
 export const authRouter = Router()
 
-authRouter.post("/register", handleRegister)
+authRouter.post("/register", handleRegister) // unused?
 authRouter.post("/login", handleLogin)
 
 
