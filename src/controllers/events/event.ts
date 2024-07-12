@@ -11,8 +11,8 @@ const getEvents = async (): Promise<Event[]> => {
     }
 
     const events: Event[] = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data() as Omit<Event, 'id'>
+        event_Id: doc.id,
+        ...doc.data() as Omit<Event, 'event_Id'>
     }));
 
     return events;
@@ -28,13 +28,11 @@ const getEventById = async (id: string): Promise<Event | null> => {
     }
 
     const event: Event = {
-        ...doc.data() as Omit<Event, 'id'>
+        event_Id: id,
+        ...doc.data() as Omit<Event, 'event_Id'>
     };
 
     return event;
 };
-
-getEvents().then(events => console.log(events)).catch(console.error);
-getEventById('SodBmUY6as6qgI55L0bh').then(event => console.log(event)).catch(console.error);
 
 export { getEvents, getEventById };
