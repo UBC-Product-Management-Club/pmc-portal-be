@@ -27,7 +27,7 @@ jobs:
         id: create-json-1
         uses: jsdaniell/create-json@v1.2.2
         with:
-          name: "firebase_secret_key.json"
+          name: "pmc-portal-credential.json"
           json: ${{ secrets.GCLOUD_AUTH }}
           dir: ".secret/"
 
