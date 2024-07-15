@@ -36,10 +36,6 @@ jobs:
           touch .env
           echo ${{ secrets.ENV }} >> .env
 
-      - name: Debug
-        run: |
-          ls
-
       - name: Log into Google Cloud
         uses: "google-github-actions/auth@v1"
         with:
