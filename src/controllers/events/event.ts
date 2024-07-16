@@ -10,8 +10,6 @@ const getEvents = async (): Promise<Event[]> => {
     return [];
   }
 
-  console.log(process.env.ORIGIN);
-
   const events: Event[] = snapshot.docs.map((doc) => ({
     event_Id: doc.id,
     ...(doc.data() as Omit<Event, "event_Id">),

@@ -6,7 +6,7 @@ export const eventRouter = Router();
 eventRouter.get("/", async (req, res) => {
   try {
     const events = await getEvents();
-    res.status(200).json(process.env.ORIGIN);
+    res.status(200).json(events);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
