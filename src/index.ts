@@ -18,7 +18,7 @@ app.use(
   })
 );
 app.options(`${process.env.ORIGIN}`, cors());
-console.log(process.env.ORIGIN);
+
 app.use(cookieParser());
 app.use(express.json());
 
