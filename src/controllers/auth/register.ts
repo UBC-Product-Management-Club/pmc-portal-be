@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
 import { registerReqBody } from "./types";
-import { db }    from "../../config/firebase";
-import { getFirestore } from "firebase-admin/firestore";
-
+import { db } from "../../config/firebase";
 
 
 const handleOnboarding = async (req: Request, res: Response) => {
@@ -20,7 +18,7 @@ const handleOnboarding = async (req: Request, res: Response) => {
     // validate request?
 
     try {
-
+        // Add to firestore "users" collection with document id = user uid
         const docRef = db.collection("users").doc(uid)
         await docRef.set({
             first_name: first_name,
@@ -39,6 +37,7 @@ const handleOnboarding = async (req: Request, res: Response) => {
         return res.sendStatus(500);
     }
 
+    // continue to dashboard
     return res.sendStatus(200)
 }
 
