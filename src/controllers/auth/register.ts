@@ -7,7 +7,6 @@ const handleOnboarding = async (req: Request, res: Response) => {
     const { uid, 
             first_name, 
             last_name, 
-            email,
             student_id, 
             year, 
             faculty, 
@@ -18,12 +17,11 @@ const handleOnboarding = async (req: Request, res: Response) => {
     // validate request?
 
     try {
-        // Add to firestore "users" collection with document id = user uid
+        // Update user document with more info
         const docRef = db.collection("users").doc(uid)
-        await docRef.set({
+        await docRef.update({
             first_name: first_name,
             last_name: last_name,
-            email: email,
             student_id: student_id,
             year: year,
             faculty: faculty,
