@@ -11,7 +11,7 @@ import { DocumentReference } from "firebase-admin/firestore"
 */
 const handleLogin = async (req: Request, res: Response) => {
     const { user, idToken }: loginReqBody = req.body
-    const userRef: DocumentReference = db.collection('users').doc(user.uid)
+    const userRef: DocumentReference = db.collection("users").doc(user.uid)
 
     // FOR DEBUGGING
     // print({user, idToken})
@@ -33,11 +33,23 @@ const handleLogin = async (req: Request, res: Response) => {
         }
         res.sendStatus(200) // tells client to redirect to /dashboard
     } else {
-
-        res.sendStatus(302) // tells client to redirect to /registration
+        // If user doesn't exist, create a new user and save their displayName, email, and pfp
+        try {
+            await userRef.set({
+                displayName: user.displayName,
+                email: user.email,
+                pfp: user.photoURL
+            })
+        } catch (error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
+        // continue to registration
+        res.sendStatus(302)
     }
 }
 
+// Checks if the current userRef exists.
 async function checkUserExists(userRef: DocumentReference) {
     const user = await userRef.get();
     return user.exists
