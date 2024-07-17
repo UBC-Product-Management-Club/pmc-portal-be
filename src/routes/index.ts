@@ -1,10 +1,12 @@
 import { Router } from "express";
 import { authRouter } from "./auth";
-import { eventsRouter } from "./events";
+import { eventRouter } from "./event";
 
 export const apiRouter = Router()
 
 apiRouter.use("/auth", authRouter)
-apiRouter.use("/dashboard", eventsRouter)
+apiRouter.use("/events", eventRouter)
+
+
 
 // other routes go here
