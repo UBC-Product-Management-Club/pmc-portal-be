@@ -1,10 +1,10 @@
 import { UserRecord } from "firebase-admin/auth"
 
 type registerReqBody = {
-    member_Id: string
+    uid: string // from google
     first_name: string
     last_name: string
-    email: string
+    email: string // from google
     student_id: number
     year: number
     faculty: string

@@ -1,8 +1,8 @@
 import { Request, Response } from "express"
 import { loginReqBody } from "./types"
-import { auth } from "../../config/firebase"
-
-
+import { auth, db } from "../../config/firebase"
+import { UserRecord } from "firebase-admin/auth"
+import { DocumentReference } from "firebase-admin/firestore"
 
 /*
     Request Body must include:
@@ -11,30 +11,52 @@ import { auth } from "../../config/firebase"
 */
 const handleLogin = async (req: Request, res: Response) => {
     const { user, idToken }: loginReqBody = req.body
+    const userRef: DocumentReference = db.collection("users").doc(user.uid)
 
-    // FOR DEGBUGGING
-    // console.log(user.uid)
-    // console.log(user.displayName)
-    // console.log(user.email)
-    // console.log(user.photoURL)
-    // console.log(idToken)
-
-    const expiresIn = 60 * 60 * 1000
+    // FOR DEBUGGING
+    // print({user, idToken})
 
     // check if user exists. If yes, redirect to /dashboard and return session_id. If no, go to /onboarding
-
-    try {
-        // exchanges idToken for session cookie
-        const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn })
-        const options = { maxAge: expiresIn, httpOnly: true, secure: true}
-        res.cookie('session', sessionCookie, options)
-    } catch (error) {
-        console.log(error);
-        res.sendStatus(401)
+    if (await checkUserExists(userRef)) {
+        const expiresIn = 60 * 60 * 1000
+        // return session_id then client should redirect to dashboard
+        try {
+            // exchanges idToken for session cookie
+            // TODO:
+            //  - Implement CSRF
+            const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn })
+            const options = { maxAge: expiresIn, httpOnly: true, secure: true}
+            res.cookie('session', sessionCookie, options)
+        } catch (error) {
+            // Failed session cookie creation
+            res.status(500).json({
+                "message": "failed to create session cookie"
+            })
+        }
+        res.sendStatus(200) // tells client to redirect to /dashboard
+    } else {
+        // If user doesn't exist, create a new user and save their displayName, email, and pfp
+        try {
+            await userRef.set({
+                displayName: user.displayName,
+                email: user.email,
+                pfp: user.photoURL
+            })
+        } catch (error) {
+            // Failed setting user
+            return res.status(500).json({
+                "message": "user creation failed"
+            })
+        }
+        // continue to registration
+        res.sendStatus(302)
     }
+}
 
-
-    res.sendStatus(200)
+// Checks if the current userRef exists.
+async function checkUserExists(userRef: DocumentReference) {
+    const user = await userRef.get();
+    return user.exists
 }
 
 export { handleLogin }
