@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { db } from "../../config/firebase";
-import { User } from "../../schema/user";
+import { User } from "../../schema/User";
 
 const getProfile = async (req: Request, res: Response) => {
     const uid: string  = req.params.id
@@ -9,7 +9,7 @@ const getProfile = async (req: Request, res: Response) => {
         const userRef = await docRef.get()
         if (userRef.exists) {
             const user = userRef.data() as User
-            console.log({...user})
+            return res.send(200).json({...user})
         } else {
             throw Error()
         }
@@ -19,7 +19,6 @@ const getProfile = async (req: Request, res: Response) => {
             "message": "error retrieving profile"
         })
     }
-    return res.sendStatus(200)
 }
 
 export { getProfile }

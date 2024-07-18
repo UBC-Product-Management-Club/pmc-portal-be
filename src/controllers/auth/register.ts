@@ -32,7 +32,10 @@ const handleOnboarding = async (req: Request, res: Response) => {
 
     } catch (error) {
         // console.log(error);
-        return res.sendStatus(500);
+        // Updating User document failed
+        return res.status(500).json({
+            "message": "Updating user failed"
+        });
     }
 
     // continue to dashboard

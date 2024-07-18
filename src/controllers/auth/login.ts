@@ -28,8 +28,10 @@ const handleLogin = async (req: Request, res: Response) => {
             const options = { maxAge: expiresIn, httpOnly: true, secure: true}
             res.cookie('session', sessionCookie, options)
         } catch (error) {
-            console.log(error);
-            res.sendStatus(500)
+            // Failed session cookie creation
+            res.status(500).json({
+                "message": "failed to create session cookie"
+            })
         }
         res.sendStatus(200) // tells client to redirect to /dashboard
     } else {
@@ -41,8 +43,10 @@ const handleLogin = async (req: Request, res: Response) => {
                 pfp: user.photoURL
             })
         } catch (error) {
-            console.log(error)
-            res.sendStatus(500)
+            // Failed setting user
+            return res.status(500).json({
+                "message": "user creation failed"
+            })
         }
         // continue to registration
         res.sendStatus(302)
@@ -53,16 +57,6 @@ const handleLogin = async (req: Request, res: Response) => {
 async function checkUserExists(userRef: DocumentReference) {
     const user = await userRef.get();
     return user.exists
-}
-
-
-// FOR DEGBUGGING
-function print({user, idToken}: loginReqBody) {
-    console.log(user.uid)
-    console.log(user.displayName)
-    console.log(user.email)
-    console.log(user.photoURL)
-    console.log(idToken)
 }
 
 export { handleLogin }
