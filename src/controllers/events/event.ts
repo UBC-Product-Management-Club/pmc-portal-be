@@ -35,4 +35,13 @@ const getEventById = async (id: string): Promise<Event | null> => {
     return event;
 };
 
-export { getEvents, getEventById };
+const addEvent = async (event_Id: string, event: Event): Promise<void> => {
+    try {
+        await db.collection('events').doc(event_Id).set(event);
+    } catch (error) {
+        console.error('Error adding event to database: ', error);
+        throw new Error('Failed to add event');
+    }
+};
+
+export { getEvents, getEventById, addEvent };
