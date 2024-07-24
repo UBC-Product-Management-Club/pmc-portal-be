@@ -11,6 +11,7 @@ type registerReqBody = {
     major: string
     why_PM: string // might change to drop down 
     returning_member: boolean
+    attendee_ids: string[]
 }
 
 type loginReqBody = {

@@ -24,10 +24,10 @@ eventRouter.get('/:id', async (req, res) => {
 });
 
 eventRouter.post('/addEvent', async (req, res) => {
-    const event_Id = uuidv4(); // generate a unique event ID
+    const event_Id = uuidv4(); // generate a unique event ID -- do i need this or does firestore does it for me?
     const { name, date, location, description, media, price, attendees, member_only } = req.body;
 
-    // need placeholders in frontend to request user input for these
+    // need placeholders in frontend to request user input for these?
     if (!name || !date || !location || !description || !media || !price || !attendees || !member_only) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -41,3 +41,4 @@ eventRouter.post('/addEvent', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+

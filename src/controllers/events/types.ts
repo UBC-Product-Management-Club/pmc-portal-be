@@ -7,8 +7,15 @@ type Event = {
     description: string
     media: string[]
     price: number
-    attendees: string[]
+    attendees: Attendee[]
     member_only: boolean
 }
 
-export { Event }
+type Attendee = {
+    attendee_Id: string
+    is_member: boolean
+    member_Id: string
+    event_Id: string
+}
+
+export { Event, Attendee }
