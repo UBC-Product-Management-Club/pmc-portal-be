@@ -1,21 +1,34 @@
-import { UserRecord } from "firebase-admin/auth"
 
-type registerReqBody = {
-    uid: string // from google
+type userDocument = {
     first_name: string
     last_name: string
     email: string // from google
+    displayName: string // from Google
     student_id: number
-    year: number
+    year: string // "5+"
     faculty: string
     major: string
     why_PM: string
     returning_member: boolean
 }
 
+type onboardingReqBody = {
+    creds: loginReqBody
+    userDoc: userDocument
+}
+
 type loginReqBody = {
-    user: UserRecord
+    userUID: string
     idToken: string
 }
 
-export { registerReqBody, loginReqBody }
+type loginResponse = {
+    sessionCookie: string
+    options: {
+        maxAge: number
+        httpOnly: boolean
+        secure: boolean
+    }
+}
+
+export { onboardingReqBody, loginReqBody, loginResponse, userDocument }
