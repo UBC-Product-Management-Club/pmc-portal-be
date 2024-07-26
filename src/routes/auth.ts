@@ -8,10 +8,15 @@ export const authRouter = Router()
 authRouter.post("/onboarding", async (req: Request, res: Response) => {
     const { creds, userDoc }: onboardingReqBody = req.body
     try{
-        const session = await handleOnboarding(creds, userDoc)
+        // Add the user to the database (throws errors)
+        await handleOnboarding(creds, userDoc)
+
+        // Login (throws errors)
+        const session = await handleLogin(creds.userUID, creds.idToken)
+
         return res
             .status(200)
-            .cookie('session', session.sessionCookie, session.options)
+            .cookie('session', session!.sessionCookie, session!.options)
             .json({
                 message: "Login success. New user created"
             })
@@ -27,7 +32,16 @@ authRouter.post("/onboarding", async (req: Request, res: Response) => {
 authRouter.post("/login", async (req: Request, res: Response) => {
     const { userUID, idToken }: loginReqBody = req.body
     try{
-        const session: loginResponse = await handleLogin(userUID, idToken)
+        const session: loginResponse | undefined = await handleLogin(userUID, idToken)
+
+        // If user doesn't exist, return 302 to redirect
+        if (!session) {
+            return res
+                .status(302)
+                .json({
+                    message: "User doesn't exist, redirecting to onboarding"
+                })
+        }
         return res
             .status(200)
             .cookie('session', session.sessionCookie, session.options)
