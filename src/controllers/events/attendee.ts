@@ -1,5 +1,6 @@
 import { db } from "../../config/firebase";
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { FieldValue } from 'firebase-admin/firestore';
 import { Attendee } from "../../schema/Event";
 
@@ -20,25 +21,33 @@ import { Attendee } from "../../schema/Event";
 //     return attendees;
 // };
 =======
+=======
+import { FieldValue } from 'firebase-admin/firestore';
+>>>>>>> be898ec (updated the attendee and event registration API to insert attendee ID into array of attendees in Event)
 import { Attendee } from "./types";
 
-const getAttendees = async (): Promise<Attendee[]> => {
-    const attendeesCollection = db.collection('events');
-    const snapshot = await attendeesCollection.get();
+// const getAttendees = async (): Promise<Attendee[]> => {
+//     const attendeesCollection = db.collection('events');
+//     const snapshot = await attendeesCollection.get();
 
-    if (snapshot.empty) {
-        console.log('No matching attendees.');
-        return [];
-    }
+//     if (snapshot.empty) {
+//         console.log('No matching attendees.');
+//         return [];
+//     }
 
-    const attendees: Attendee[] = snapshot.docs.map(doc => ({
-        attendee_Id: doc.id,
-        ...doc.data() as Omit<Attendee, 'attendee_Id'>
-    }));
+//     const attendees: Attendee[] = snapshot.docs.map(doc => ({
+//         attendee_Id: doc.id,
+//         ...doc.data() as Omit<Attendee, 'attendee_Id'>
+//     }));
 
+<<<<<<< HEAD
     return attendees;
 };
 >>>>>>> 97812a6 (added the Attendee POST and GET methods)
+=======
+//     return attendees;
+// };
+>>>>>>> be898ec (updated the attendee and event registration API to insert attendee ID into array of attendees in Event)
 
 const getAttendeeById = async (id: string): Promise<Attendee | null> => {
     const attendeeDoc = db.collection('attendees').doc(id);
@@ -57,6 +66,7 @@ const getAttendeeById = async (id: string): Promise<Attendee | null> => {
     return attendee;
 };
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 
 const addAttendee = async (attendee: Attendee): Promise<void> => {
@@ -97,6 +107,16 @@ const addAttendee = async (attendee_Id: string, attendee: Attendee): Promise<voi
     try {
         await db.collection('attendees').doc(attendee_Id).set(attendee);
 >>>>>>> 97812a6 (added the Attendee POST and GET methods)
+=======
+const addAttendee = async (attendee_Id: string, attendee: Attendee, eventId: string): Promise<void> => {
+    const eventIDAttendee = db.collection('events').doc(attendee.event_Id);
+
+    try {
+        await db.collection('attendees').doc(attendee_Id).set(attendee);
+        await eventIDAttendee.update({
+            attendees: FieldValue.arrayUnion(attendee_Id)
+        });
+>>>>>>> be898ec (updated the attendee and event registration API to insert attendee ID into array of attendees in Event)
     } catch (error) {
         console.error('Error adding a new attendee to database: ', error);
         throw new Error('Failed to add a new attendee');
@@ -104,7 +124,11 @@ const addAttendee = async (attendee_Id: string, attendee: Attendee): Promise<voi
 };
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 export { getAttendeeById, addAttendee };
 =======
 export { getAttendeeById, getAttendees, addAttendee };
 >>>>>>> 97812a6 (added the Attendee POST and GET methods)
+=======
+export { getAttendeeById, addAttendee };
+>>>>>>> be898ec (updated the attendee and event registration API to insert attendee ID into array of attendees in Event)

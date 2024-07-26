@@ -1,7 +1,11 @@
 import { Router } from "express";
 import { getAttendeeById, addAttendee } from "../controllers/events/attendee";
+<<<<<<< HEAD
 import { Attendee } from "../schema/Event"
 import { User } from "../schema/User";
+=======
+import { Attendee } from "../controllers/events/types"
+>>>>>>> be898ec (updated the attendee and event registration API to insert attendee ID into array of attendees in Event)
 import { v4 as uuidv4 } from 'uuid';
 import { firestore } from "firebase-admin";
 
@@ -17,7 +21,11 @@ attendeeRouter.get('/:id', async (req, res) => {
     }
 });
 
+<<<<<<< HEAD
 attendeeRouter.get('/:eventId', async (req, res) => {
+=======
+attendeeRouter.get('/attendee/:eventId', async (req, res) => {
+>>>>>>> be898ec (updated the attendee and event registration API to insert attendee ID into array of attendees in Event)
     try {
         const { eventId } = req.params;
         if (!eventId) {
@@ -34,6 +42,10 @@ attendeeRouter.post('/addAttendee', async (req, res) => {
     const attendee_Id = uuidv4(); // might create a new field in the collection
     const requiredFields = [
         'is_member',
+<<<<<<< HEAD
+=======
+        'member_Id',
+>>>>>>> be898ec (updated the attendee and event registration API to insert attendee ID into array of attendees in Event)
         'event_Id',
         'first_name',
         'last_name',
@@ -55,10 +67,17 @@ attendeeRouter.post('/addAttendee', async (req, res) => {
     }
     const { is_member, member_Id, event_Id, first_name, last_name, student_num, email, year_level, major, faculty, familiarity, found_out, dietary } = req.body;
 
+<<<<<<< HEAD
     const newAttendee: Attendee = { attendee_Id, ...req.body };
 
     try {
         await addAttendee(newAttendee);
+=======
+    const newAttendee: Attendee = { attendee_Id, is_member, member_Id, event_Id, first_name, last_name, student_num, email, year_level, major, faculty, familiarity, found_out, dietary };
+
+    try {
+        await addAttendee(attendee_Id, newAttendee, event_Id);
+>>>>>>> be898ec (updated the attendee and event registration API to insert attendee ID into array of attendees in Event)
         res.status(201).json({ message: `Attendee with ID ${attendee_Id} has been created successfully.` });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
