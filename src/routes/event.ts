@@ -29,6 +29,7 @@ eventRouter.get('/:id', async (req, res) => {
 
 eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
     const event_Id = uuidv4(); // generate a unique event ID -- do i need this or does firestore does it for me?
+<<<<<<< HEAD
     const { name,
         date,
         description,
@@ -47,6 +48,16 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         })
     }
 
+=======
+    const { name, date, location, description, media, member_price, non_member_price, attendees, member_only } = req.body;
+
+    // need placeholders in frontend to request user input for these?
+    if (!name || !date || !location || !description || !media || !member_price || !non_member_price || !attendees || !member_only) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const newEvent: Event = { event_Id, name, date, location, description, media, member_price, non_member_price, attendees, member_only };
+>>>>>>> 972a131 (updated the minor changes)
 
     try {
         const media = await uploadEventMedia(event_Id, mediaFiles) // upload media and get download links
