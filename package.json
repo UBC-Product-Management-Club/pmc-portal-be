@@ -30,10 +30,6 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "firebase-admin": "^12.2.0",
-<<<<<<< HEAD
-=======
-    "uuid": "^10.0.0",
->>>>>>> 972a131 (updated the minor changes)
     "jest": "^29.7.0",
     "multer": "^1.4.5-lts.1",
     "stripe": "^16.8.0",

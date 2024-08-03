@@ -8,7 +8,7 @@ type userDocument = {
     year: string // "5+"
     faculty: string
     major: string
-    why_PM: string // might change to drop down 
+    why_PM: string
     returning_member: boolean
     attendee_ids: string[]
 }
