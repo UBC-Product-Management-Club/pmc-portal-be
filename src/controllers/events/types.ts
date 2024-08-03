@@ -6,7 +6,8 @@ type Event = {
     location: string
     description: string
     media: string[]
-    price: number
+    member_price: number
+    non_member_price: number
     attendees: Attendee[]
     member_only: boolean
 }

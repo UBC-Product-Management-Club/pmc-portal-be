@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getAttendeeById, addAttendee } from "../controllers/events/attendee";
 import { Attendee } from "../controllers/events/types"
+import { User } from "../schema/User";
 import { v4 as uuidv4 } from 'uuid';
 import { firestore } from "firebase-admin";
 
@@ -16,7 +17,7 @@ attendeeRouter.get('/:id', async (req, res) => {
     }
 });
 
-attendeeRouter.get('/attendee/:eventId', async (req, res) => {
+attendeeRouter.get('/:eventId', async (req, res) => {
     try {
         const { eventId } = req.params;
         if (!eventId) {
@@ -33,7 +34,6 @@ attendeeRouter.post('/addAttendee', async (req, res) => {
     const attendee_Id = uuidv4(); // might create a new field in the collection
     const requiredFields = [
         'is_member',
-        'member_Id',
         'event_Id',
         'first_name',
         'last_name',
@@ -55,10 +55,10 @@ attendeeRouter.post('/addAttendee', async (req, res) => {
     }
     const { is_member, member_Id, event_Id, first_name, last_name, student_num, email, year_level, major, faculty, familiarity, found_out, dietary } = req.body;
 
-    const newAttendee: Attendee = { attendee_Id, is_member, member_Id, event_Id, first_name, last_name, student_num, email, year_level, major, faculty, familiarity, found_out, dietary };
+    const newAttendee: Attendee = { attendee_Id, ...req.body };
 
     try {
-        await addAttendee(attendee_Id, newAttendee, event_Id);
+        await addAttendee(newAttendee);
         res.status(201).json({ message: `Attendee with ID ${attendee_Id} has been created successfully.` });
     } catch (error: any) {
         res.status(500).json({ error: error.message });

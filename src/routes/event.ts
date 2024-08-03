@@ -28,7 +28,7 @@ eventRouter.post('/addEvent', async (req, res) => {
     const { name, date, location, description, media, member_price, non_member_price, attendees, member_only } = req.body;
 
     // need placeholders in frontend to request user input for these?
-    if (!name || !date || !location || !description || !media || !member_price || !non_member_price || !attendees || !member_only) {
+    if (!name || !date || !location || !description || !media || !member_price || !non_member_price || !attendees || member_only == undefined) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
