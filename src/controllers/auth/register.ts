@@ -1,45 +1,22 @@
-import { Request, Response } from "express";
-import { registerReqBody } from "./types";
+import { loginReqBody, loginResponse, onboardingReqBody, userDocument } from "./types";
 import { db } from "../../config/firebase";
+import { handleLogin } from "./login";
+import { checkUserExists } from "./utils";
 
 
-const handleOnboarding = async (req: Request, res: Response) => {
-    const { uid, 
-            first_name, 
-            last_name, 
-            student_id, 
-            year, 
-            faculty, 
-            major, 
-            why_PM, 
-            returning_member }: registerReqBody = req.body
-
-    // validate request?
-
-    try {
-        // Update user document with more info
-        const docRef = db.collection("users").doc(uid)
-        await docRef.update({
-            first_name: first_name,
-            last_name: last_name,
-            student_id: student_id,
-            year: year,
-            faculty: faculty,
-            major: major,
-            why_PM: why_PM,
-            returning_member: returning_member
-        })
-
-    } catch (error) {
-        // console.log(error);
-        // Updating User document failed
-        return res.status(500).json({
-            "message": "Updating user failed"
-        });
+// Handles initial user onboarding and login.
+const handleOnboarding = async (creds: loginReqBody, userDoc: userDocument): Promise<void> => {
+    if (await checkUserExists(creds.userUID)) {
+        throw Error("User already exists.")
     }
 
-    // continue to dashboard
-    return res.sendStatus(200)
+    // Create a new document with given UID
+    const docRef = db.collection("users").doc(creds.userUID)
+    try {
+        await docRef.set(userDoc)
+    } catch (error) {
+        throw Error("Error creating user")
+    }
 }
 
 
