@@ -1,6 +1,5 @@
 import { loginReqBody, loginResponse, onboardingReqBody, userDocument } from "./types";
 import { db } from "../../config/firebase";
-import { handleLogin } from "./login";
 import { checkUserExists } from "./utils";
 
 
