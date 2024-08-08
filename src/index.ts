@@ -11,13 +11,33 @@ const app = express();
 
 // SET MIDDLEWARE
 
+// app.use(
+//   cors({
+//     origin: process.env.ORIGIN,
+//     credentials: true,
+//   })
+// );
+
+const allowedOrigins = process.env.ORIGIN ? process.env.ORIGIN.split(',') : '*';
+
 app.use(
   cors({
-    origin: process.env.ORIGIN,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins === '*' || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    allowedHeaders: "Content-Type,Authorization"
   })
 );
-app.options(`${process.env.ORIGIN}`, cors());
+
+// app.options(`${process.env.ORIGIN}`, cors());
+app.options('*', cors());
+
 
 app.use(cookieParser());
 app.use(express.json());
