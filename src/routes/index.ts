@@ -8,13 +8,11 @@ import { verifyIdToken } from "../middleware/auth";
 export const apiRouter = Router()
 
 apiRouter.use("/auth", authRouter)
-apiRouter.use("/events", eventRouter)
-apiRouter.use("/attendee", attendeeRouter)
 apiRouter.use("/profile", profileRouter)
 
 // Protected
 apiRouter.use("/profile", verifyIdToken, profileRouter)
-apiRouter.use("/events", verifyIdToken, eventRouter)
+apiRouter.use("/events", eventRouter)
 
 
 // other routes go here
