@@ -1,15 +1,16 @@
 
+//  some are "| string" since FormData only accepts strings
 type Event = {
     event_Id: string // generated
     name: string // from request
-    date: Date // from request
+    date: Date | string // from request
     location: string // from request
     description: string // from request
     media: string[] // generated
-    member_price: number // from request
-    non_member_price: number // from request
-    attendee_Ids: string[] 
-    member_only: boolean // from request
+    member_price: number | string// from request
+    non_member_price: number |string // from request
+    attendee_Ids: string[] | string
+    member_only: boolean | string // from request
 }
 
 type Attendee = {
