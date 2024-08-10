@@ -20,7 +20,9 @@ app.use(
 app.options(`${process.env.ORIGIN}`, cors());
 
 app.use(cookieParser());
-app.use(express.json());
+// app.use(express.json());
+app.use(express.urlencoded({extended: true}))
+
 
 // SET ROUTES
 app.use("/api/v1", apiRouter);
