@@ -1,6 +1,6 @@
 import { db } from "../../config/firebase";
 import { FieldValue } from 'firebase-admin/firestore';
-import { Attendee } from "./types";
+import { Attendee } from "../../schema/Event";
 
 // const getAttendees = async (): Promise<Attendee[]> => {
 //     const attendeesCollection = db.collection('events');
