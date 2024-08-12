@@ -38,22 +38,30 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             member_only,
             attendee_Ids
     } = JSON.parse(JSON.stringify(req.body)) 
-    const mediaFiles = req.files as Express.Multer.File[]
+    const mediaFiles = req.files as Express.Multer.File[] 
 
-    // can replace with below so missing values are coerced to undefined and throws an error when uploading to firestore.
-    const eventDetails = { event_Id, name, date, description, location, member_price, non_member_price, member_only, attendee_Ids } 
-
-    // this doesn't work??? The error is caught later on but this should work. Might have to check each field manually...
-    // if (Object.values(eventDetails).every((x) => x)) {
-    //     return res.status(400).json({
-    //         message: "Invalid Event. Required fields are missing"
-    //     })
-    // }
+     // need placeholders in frontend to request user input for these?
+     if (!name || !date || !location || !description || !mediaFiles || !member_price || !non_member_price || !attendee_Ids || member_only == undefined || mediaFiles.length == 0) {
+        return res.status(400).json({
+            message: "Invalid Event. Required fields are missing"
+        })
+    }
 
 
     try {
         const media = await uploadEventMedia(event_Id, mediaFiles) // upload media and get download links
-        const event: Event = {media,...eventDetails}
+        const event: Event = {
+            event_Id,
+            name,
+            date,
+            description,
+            location,
+            media,
+            member_price: parseInt(member_price as string) as number, 
+            non_member_price: parseInt(non_member_price as string) as number,
+            member_only: Boolean(JSON.parse(member_only as string)),
+            attendee_Ids: JSON.parse(attendee_Ids as string)
+        }
         await addEvent(event_Id, event);
         res.status(201).json({
              message: `Event with ID ${event_Id} has been added successfully.`,

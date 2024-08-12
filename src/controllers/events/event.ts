@@ -39,15 +39,7 @@ const getEventById = async (id: string): Promise<Event | null> => {
 
 const addEvent = async (event_Id: string, event: Event): Promise<void> => {
     try {
-        // enforce types in firestore
-        const eventJson: Event = {
-            ...event, 
-            attendee_Ids: JSON.parse(event.attendee_Ids as string),
-            member_price: parseInt(event.member_price as string) as number, 
-            non_member_price: parseInt(event.non_member_price as string) as number,
-            member_only: Boolean(JSON.parse(event.member_only as string))
-        }
-        await db.collection('events').doc(event_Id).set(eventJson);
+        await db.collection('events').doc(event_Id).set(event);
     } catch (error) {
         console.error('Error adding event to database: ', error);
         throw new Error('Failed to add event');
