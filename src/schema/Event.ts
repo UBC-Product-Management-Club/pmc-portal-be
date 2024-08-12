@@ -3,7 +3,7 @@
 type Event = {
     event_Id: string // generated
     name: string // from request
-    date: Date | string // from request
+    date: Date | string // from request. We should standardize a date format.
     location: string // from request
     description: string // from request
     media: string[] // generated
