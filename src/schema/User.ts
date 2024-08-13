@@ -1,4 +1,3 @@
-import { Timestamp } from "firebase-admin/firestore"
 
 interface User {
     displayName: string
@@ -12,7 +11,6 @@ interface User {
     student_id: number
     why_pm: string
     returning_member: boolean
-    date_joined: Timestamp
 }
 
 export type { User }

@@ -1,5 +1,7 @@
 import { db } from "../../config/firebase";
-import { Event } from "./types";
+import { Event } from "../../schema/Event";
+import { storage } from "../../config/firebase";
+import { getStorage, getDownloadURL } from "firebase-admin/storage"
 
 const getEvents = async (): Promise<Event[]> => {
     const eventsCollection = db.collection('events');
@@ -44,4 +46,24 @@ const addEvent = async (event_Id: string, event: Event): Promise<void> => {
     }
 };
 
-export { getEvents, getEventById, addEvent };
+const uploadEventMedia = async (eventId: string, media: Express.Multer.File[]) : Promise<string[]> => {
+    const bucketName = process.env.BUCKET_NAME!;
+    const downloadURLs: string[] = [];
+    for (const file of media) {
+        const filePath = `events/${eventId}/media/${file.originalname}`;
+        try{
+            // upload file to Cloud Storage and get download url
+            await storage.bucket(bucketName).file(filePath).save(file.buffer);
+            const fileRef = getStorage().bucket(bucketName).file(filePath);
+            const downloadURL = await getDownloadURL(fileRef);
+            downloadURLs.push(downloadURL);
+        } catch (error) {
+            throw error
+        }
+    }
+    return downloadURLs
+}
+
+
+
+export { getEvents, getEventById, addEvent, uploadEventMedia };

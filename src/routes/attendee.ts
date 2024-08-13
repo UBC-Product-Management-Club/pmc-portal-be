@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getAttendeeById, addAttendee } from "../controllers/events/attendee";
-import { Attendee } from "../controllers/events/types"
+import { Attendee } from "../schema/Event"
 import { User } from "../schema/User";
 import { v4 as uuidv4 } from 'uuid';
 import { firestore } from "firebase-admin";

@@ -9,12 +9,11 @@ export const apiRouter = Router()
 
 apiRouter.use("/auth", authRouter)
 apiRouter.use("/events", eventRouter)
-apiRouter.use("/attendee", attendeeRouter)
 apiRouter.use("/profile", profileRouter)
+apiRouter.use("/attendee", attendeeRouter)
 
 // Protected
-apiRouter.use("/profile", verifyIdToken, profileRouter)
-apiRouter.use("/events", verifyIdToken, eventRouter)
+// apiRouter.use("/profile", verifyIdToken, profileRouter)
 
 
 // other routes go here
