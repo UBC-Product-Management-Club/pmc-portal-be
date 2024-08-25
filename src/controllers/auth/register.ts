@@ -1,4 +1,4 @@
-import { loginReqBody, loginResponse, onboardingReqBody, userDocument } from "./types";
+import { loginReqBody, userDocument } from "./types";
 import { db } from "../../config/firebase";
 import { checkUserExists } from "./utils";
 
