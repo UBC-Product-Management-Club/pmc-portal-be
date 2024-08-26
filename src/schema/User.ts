@@ -5,6 +5,8 @@ interface User {
     faculty: string
     first_name: string
     last_name: string
+    pronouns: string
+    university: string
     year: number
     major: string
     pfp: string
