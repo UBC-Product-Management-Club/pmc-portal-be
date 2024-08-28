@@ -60,8 +60,6 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 })
 
 
-
-
 // for testing authentication. Will probably need to be middleware later
 // authRouter.get("/test", async (req,res) => {
 //     // console.log(req.cookies)
