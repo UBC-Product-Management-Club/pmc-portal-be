@@ -36,12 +36,13 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         member_price,
         non_member_price,
         member_only,
-        attendee_Ids
+        attendee_Ids,
+        maxAttendee
     } = JSON.parse(JSON.stringify(req.body))
     const mediaFiles = req.files as Express.Multer.File[]
 
     // need placeholders in frontend to request user input for these?
-    if (!name || !date || !location || !description || !mediaFiles || !member_price || !non_member_price || !attendee_Ids || member_only == undefined || mediaFiles.length == 0) {
+    if (!name || !date || !location || !description || !mediaFiles || !member_price || !non_member_price || !attendee_Ids || member_only == undefined || mediaFiles.length == 0 || !maxAttendee) {
         return res.status(400).json({
             message: "Invalid Event. Required fields are missing"
         })
@@ -60,7 +61,8 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             member_price: parseInt(member_price as string) as number,
             non_member_price: parseInt(non_member_price as string) as number,
             member_only: Boolean(JSON.parse(member_only as string)),
-            attendee_Ids: JSON.parse(attendee_Ids as string)
+            attendee_Ids: JSON.parse(attendee_Ids as string),
+            maxAttendee: parseInt(maxAttendee as string) as number
         }
         await addEvent(event_Id, event);
         res.status(201).json({

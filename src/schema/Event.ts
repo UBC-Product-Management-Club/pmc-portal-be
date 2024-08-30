@@ -8,9 +8,10 @@ type Event = {
     description: string // from request
     media: string[] // generated
     member_price: number | string// from request
-    non_member_price: number |string // from request
+    non_member_price: number | string // from request
     attendee_Ids: string[] | string
     member_only: boolean | string // from request
+    maxAttendee: number
 }
 
 type Attendee = {
