@@ -46,18 +46,17 @@ attendeeRouter.post('/addAttendee', async (req, res) => {
     // need to figure how to pass in event ID and member ID dynamically? 
     // so when users click register, it sends their current member ID (through session) and the event ID it clicked
     if (req.body['ubc_student'] == "yes" || req.body['ubc_student'] == "no, other uni") {
-        requiredFields.push('year_level', 'faculty', 'major');
+        requiredFields.push('year', 'faculty', 'major');
     } else if (req.body['ubc_student'] == "yes") {
         requiredFields.push('student_num');
     }
 
     for (const field of requiredFields) {
         if (!req.body.hasOwnProperty(field)) {
+            console.error(`Missing required field: ${field}`);
             return res.status(400).json({ error: `Missing required field: ${field}` });
         }
     }
-    const { is_member, member_Id, event_Id, first_name, last_name, student_num, email, year_level, major, faculty, familiarity, found_out, dietary } = req.body;
-
     const newAttendee: Attendee = { attendee_Id, ...req.body };
 
     try {
