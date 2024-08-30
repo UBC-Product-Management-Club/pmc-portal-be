@@ -34,7 +34,7 @@ attendeeRouter.post('/addAttendee', async (req, res) => {
     const attendee_Id = uuidv4(); // might create a new field in the collection
     const requiredFields = [
         'is_member',
-        'event_Id',
+        'event_id',
         'first_name',
         'last_name',
         'student_num',
