@@ -1,4 +1,5 @@
 import { db } from "../../config/firebase";
+<<<<<<< HEAD
 import { FieldValue } from 'firebase-admin/firestore';
 import { Attendee } from "../../schema/Event";
 
@@ -18,6 +19,26 @@ import { Attendee } from "../../schema/Event";
 
 //     return attendees;
 // };
+=======
+import { Attendee } from "./types";
+
+const getAttendees = async (): Promise<Attendee[]> => {
+    const attendeesCollection = db.collection('events');
+    const snapshot = await attendeesCollection.get();
+
+    if (snapshot.empty) {
+        console.log('No matching attendees.');
+        return [];
+    }
+
+    const attendees: Attendee[] = snapshot.docs.map(doc => ({
+        attendee_Id: doc.id,
+        ...doc.data() as Omit<Attendee, 'attendee_Id'>
+    }));
+
+    return attendees;
+};
+>>>>>>> 97812a6 (added the Attendee POST and GET methods)
 
 const getAttendeeById = async (id: string): Promise<Attendee | null> => {
     const attendeeDoc = db.collection('attendees').doc(id);
@@ -36,6 +57,7 @@ const getAttendeeById = async (id: string): Promise<Attendee | null> => {
     return attendee;
 };
 
+<<<<<<< HEAD
 
 const addAttendee = async (attendee: Attendee): Promise<void> => {
     const eventIDAttendee = db.collection('events').doc(attendee.event_Id);
@@ -70,10 +92,19 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
         await eventIDAttendee.update({
             attendees: FieldValue.arrayUnion(attendee.attendee_Id)
         });
+=======
+const addAttendee = async (attendee_Id: string, attendee: Attendee): Promise<void> => {
+    try {
+        await db.collection('attendees').doc(attendee_Id).set(attendee);
+>>>>>>> 97812a6 (added the Attendee POST and GET methods)
     } catch (error) {
         console.error('Error adding a new attendee to database: ', error);
         throw new Error('Failed to add a new attendee');
     }
 };
 
+<<<<<<< HEAD
 export { getAttendeeById, addAttendee };
+=======
+export { getAttendeeById, getAttendees, addAttendee };
+>>>>>>> 97812a6 (added the Attendee POST and GET methods)
