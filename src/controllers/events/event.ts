@@ -46,12 +46,12 @@ const addEvent = async (event_Id: string, event: Event): Promise<void> => {
     }
 };
 
-const uploadEventMedia = async (eventId: string, media: Express.Multer.File[]) : Promise<string[]> => {
+const uploadEventMedia = async (eventId: string, media: Express.Multer.File[]): Promise<string[]> => {
     const bucketName = process.env.BUCKET_NAME!;
     const downloadURLs: string[] = [];
     for (const file of media) {
         const filePath = `events/${eventId}/media/${file.originalname}`;
-        try{
+        try {
             // upload file to Cloud Storage and get download url
             await storage.bucket(bucketName).file(filePath).save(file.buffer);
             const fileRef = getStorage().bucket(bucketName).file(filePath);
