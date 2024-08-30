@@ -7,7 +7,7 @@ import multer from "multer"
 export const eventRouter = Router()
 
 const memStorage = multer.memoryStorage()
-const upload = multer({storage: memStorage})
+const upload = multer({ storage: memStorage })
 
 eventRouter.get('/', async (req, res) => {
     try {
@@ -30,18 +30,18 @@ eventRouter.get('/:id', async (req, res) => {
 eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
     const event_Id = uuidv4(); // generate a unique event ID -- do i need this or does firestore does it for me?
     const { name,
-            date,
-            description,
-            location,
-            member_price,
-            non_member_price,
-            member_only,
-            attendee_Ids
-    } = JSON.parse(JSON.stringify(req.body)) 
-    const mediaFiles = req.files as Express.Multer.File[] 
+        date,
+        description,
+        location,
+        member_price,
+        non_member_price,
+        member_only,
+        attendee_Ids
+    } = JSON.parse(JSON.stringify(req.body))
+    const mediaFiles = req.files as Express.Multer.File[]
 
-     // need placeholders in frontend to request user input for these?
-     if (!name || !date || !location || !description || !mediaFiles || !member_price || !non_member_price || !attendee_Ids || member_only == undefined || mediaFiles.length == 0) {
+    // need placeholders in frontend to request user input for these?
+    if (!name || !date || !location || !description || !mediaFiles || !member_price || !non_member_price || !attendee_Ids || member_only == undefined || mediaFiles.length == 0) {
         return res.status(400).json({
             message: "Invalid Event. Required fields are missing"
         })
@@ -57,14 +57,14 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             description,
             location,
             media,
-            member_price: parseInt(member_price as string) as number, 
+            member_price: parseInt(member_price as string) as number,
             non_member_price: parseInt(non_member_price as string) as number,
             member_only: Boolean(JSON.parse(member_only as string)),
             attendee_Ids: JSON.parse(attendee_Ids as string)
         }
         await addEvent(event_Id, event);
         res.status(201).json({
-             message: `Event with ID ${event_Id} has been added successfully.`,
+            message: `Event with ID ${event_Id} has been added successfully.`,
         });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
