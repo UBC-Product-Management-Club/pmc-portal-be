@@ -8,7 +8,7 @@ type Event = {
     media: string[]
     member_price: number
     non_member_price: number
-    attendees: Attendee[]
+    attendees_Ids: Attendee[]
     member_only: boolean
 }
 
