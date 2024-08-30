@@ -5,7 +5,7 @@ import { getStorage, getDownloadURL } from "firebase-admin/storage"
 
 const getEvents = async (): Promise<Event[]> => {
     const eventsCollection = db.collection('events');
-    const snapshot = await eventsCollection.get();
+    const snapshot = await eventsCollection.orderBy('date').get();
 
     if (snapshot.empty) {
         console.log('No matching documents.');
