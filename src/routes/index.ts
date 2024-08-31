@@ -3,7 +3,7 @@ import { authRouter } from "./auth";
 import { eventRouter } from "./event";
 import { attendeeRouter } from "./attendee";
 import { profileRouter } from "./profile";
-import { verifyIdToken } from "../middleware/auth";
+// import { verifyIdToken } from "../middleware/auth";
 import { paymentRouter } from "./payments";
 
 export const apiRouter = Router()
