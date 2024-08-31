@@ -27,7 +27,7 @@ profileRouter.get("/:id/events", async (req: Request, res: Response) => {
     if (events) {
         return res.status(200).json({
             exists: true,
-            ...events
+            events
         })
     } else {
         return res.status(404).json({
