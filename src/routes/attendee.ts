@@ -1,9 +1,7 @@
 import { Router } from "express";
 import { getAttendeeById, addAttendee } from "../controllers/events/attendee";
 import { Attendee } from "../schema/Event";
-import { User } from "../schema/User";
 import { v4 as uuidv4 } from "uuid";
-import { firestore } from "firebase-admin";
 
 export const attendeeRouter = Router();
 
@@ -52,7 +50,7 @@ attendeeRouter.post("/addAttendee", async (req, res) => {
   }
 
   if (req.body["ubc_student"] == "yes") {
-    requiredFields.push("student_num");
+    requiredFields.push("student_id");
   }
 
   for (const field of requiredFields) {
