@@ -48,7 +48,7 @@ attendeeRouter.post("/addAttendee", async (req, res) => {
     req.body["ubc_student"] == "yes" ||
     req.body["ubc_student"] == "no, other uni"
   ) {
-    requiredFields.push("year_level", "faculty", "major");
+    requiredFields.push("year", "faculty", "major");
   }
 
   if (req.body["ubc_student"] == "yes") {
