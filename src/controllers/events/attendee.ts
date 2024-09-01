@@ -68,7 +68,7 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
 
         await db.collection('attendees').doc(attendee.attendee_Id).set(attendee);
         await eventIDAttendee.update({
-            attendees: FieldValue.arrayUnion(attendee.attendee_Id)
+            attendee_Ids: FieldValue.arrayUnion(attendee.attendee_Id)
         });
     } catch (error) {
         console.error('Error adding a new attendee to database: ', error);
