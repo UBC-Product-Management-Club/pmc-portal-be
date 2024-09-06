@@ -1,6 +1,6 @@
 import { db } from "../../config/firebase";
 import { FieldValue } from 'firebase-admin/firestore';
-import { Attendee } from "../../schema/Event";
+import { Attendee, Event } from "../../schema/Event";
 
 // const getAttendees = async (): Promise<Attendee[]> => {
 //     const attendeesCollection = db.collection('events');
@@ -60,11 +60,12 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
         if (attendee.member_Id) {
             await checkMemberId(attendee.member_Id);
         }
-        // const memberRef = await db.collection('users').doc(attendee.member_Id).get();
-        // if (!memberRef.exists) {
-        //     throw new Error('Member ID does not exist');
-        // }
-        // await checkMemberId(attendee.member_Id);
+        
+        const eventData = eventDoc.data() as Event;
+
+        if (eventData.attendee_Ids.length >= eventData.maxAttendee) {
+            throw new Error('The event has reached the maximum number of attendees');
+        }
 
         await db.collection('attendees').doc(attendee.attendee_Id).set(attendee);
         await eventIDAttendee.update({
@@ -72,7 +73,7 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
         });
     } catch (error) {
         console.error('Error adding a new attendee to database: ', error);
-        throw new Error('Failed to add a new attendee');
+        throw new Error(`Failed to add a new attendee: ${error}`);
     }
 };
 

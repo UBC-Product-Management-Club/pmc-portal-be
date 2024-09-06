@@ -13,6 +13,7 @@ type userDocument = {
     why_PM: string
     returning_member: boolean
     attendee_ids: string[]
+    paymentVerified?: boolean
 }
 
 type onboardingReqBody = {
