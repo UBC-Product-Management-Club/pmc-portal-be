@@ -60,11 +60,15 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
         if (attendee.member_Id) {
             await checkMemberId(attendee.member_Id);
         }
-        
+
         const eventData = eventDoc.data() as Event;
 
         if (eventData.attendee_Ids.length >= eventData.maxAttendee) {
             throw new Error('The event has reached the maximum number of attendees');
+        }
+
+        if (eventData.attendee_Ids.includes(attendee.member_Id)) {
+            throw new Error('You have signed up for this event before. We can only reserve 1 spot for you. Please contact tech@ubcpmc.com if you have any concerns.');
         }
 
         await db.collection('attendees').doc(attendee.attendee_Id).set(attendee);
