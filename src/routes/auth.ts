@@ -11,12 +11,8 @@ authRouter.post("/onboarding", async (req: Request, res: Response) => {
         // Add the user to the database (throws errors)
         await handleOnboarding(creds, userDoc)
 
-        // Login (throws errors)
-        const session = await handleLogin(creds.userUID, creds.idToken)
-
         return res
             .status(200)
-            .cookie('session', session!.sessionCookie, session!.options)
             .json({
                 message: "Login success. New user created"
             })
