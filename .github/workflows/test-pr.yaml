@@ -31,6 +31,14 @@ jobs:
           echo STRIPE_SECRET=${{ secrets.STRIPE_SECRET }} >> .env
           echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_DATABASE_ID }} >> .env
 
+      - name: Create Credential JSON
+        id: create-json-1
+        uses: jsdaniell/create-json@v1.2.2
+        with:
+          name: "pmc-portal-credential.json"
+          json: ${{ secrets.GCLOUD_AUTH }}
+          dir: ".secret/"
+
       - name: Build the Docker image
         run: |
             set -e
