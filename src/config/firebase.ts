@@ -14,7 +14,7 @@ initializeApp({
 });
 
 const auth = getAuth();
-const db: Firestore = getFirestore("pmc-portal-db");
+const db: Firestore = getFirestore(process.env.FIRESTORE_DATABASE_ID!);
 const storage = new Storage({
   keyFilename: ".secret/pmc-portal-credential.json"
 })

@@ -1,0 +1,63 @@
+name: Build Image on PR
+
+on:
+  pull_request:
+    branches:
+        - "*"
+
+jobs:
+
+  # run tests
+
+  # run linting
+
+  build-verify-image:
+    name: build-verify-image
+    runs-on: ubuntu-latest
+    environment: testing
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .secret folder
+        run: mkdir .secret
+
+      - name: Create env file
+        run: |
+          touch .secret/.env
+          echo ORIGIN=${{ secrets.ORIGIN }} >> .env
+          echo BUCKET_NAME=${{ secrets.BUCKET_NAME }} >> .env
+          echo STRIPE_SECRET=${{ secrets.STRIPE_SECRET }} >> .env
+          echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_DATABASE_ID }} >> .env
+
+      - name: Create Credential JSON
+        id: create-json-1
+        uses: jsdaniell/create-json@v1.2.2
+        with:
+          name: "pmc-portal-credential.json"
+          json: ${{ secrets.GCLOUD_AUTH }}
+          dir: ".secret/"
+
+      - name: Build the Docker image
+        run: |
+            set -e
+            echo "Building Docker image."
+            docker build -t pmc-portal-fe:${{ github.event.pull_request.number }} .
+            echo "Docker image successfully created."
+            
+      - name: Verify Docker image
+        run: |
+            set -e
+            echo "Verifying Docker image exists..."    
+            docker images pmc-portal-fe:${{ github.event.pull_request.number }}
+            echo "Docker image verified."
+
+      - name: Remove Docker image
+        run: |
+            set -e
+            echo "Deleting Docker image..."
+            docker rmi pmc-portal-fe:${{ github.event.pull_request.number }}
+            echo "Docker image deleted."
+            
+
