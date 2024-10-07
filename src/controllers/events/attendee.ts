@@ -53,6 +53,7 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
 
     try {
         const eventDoc = await eventIDAttendee.get();
+        const non_members_emails = db.collection('users');
         if (!eventDoc.exists) {
             throw new Error('Event ID does not exist');
         }
