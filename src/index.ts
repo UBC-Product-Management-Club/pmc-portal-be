@@ -18,16 +18,8 @@ const app = express();
 //   })
 // );
 
-const allowedOrigins = [process.env.ORIGIN];
-
 const corsOptions = {
-  origin: function (origin: any, callback: any) {
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: process.env.ORIGIN,
   optionsSuccessStatus: 200,
   credentials: true,
 };
