@@ -5,7 +5,7 @@ import express from "express";
 import { apiRouter } from "./routes";
 
 // CONFIGURE .env
-dotenv.config({ path: "./.secret/.env" });
+dotenv.config();
 
 const app = express();
 
@@ -20,9 +20,7 @@ const app = express();
 
 const corsOptions = {
   origin: function (origin: any, callback: any) {
-    console.log("env", process.env.ORIGIN);
-    console.log("origin", origin);
-    if (process.env.ORIGIN === origin || !origin || origin === undefined) {
+    if (process.env.ORIGIN === origin || !origin) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
