@@ -19,7 +19,14 @@ const app = express();
 // );
 
 const corsOptions = {
-  origin: process.env.ORIGIN,
+  origin: function (origin: any, callback: any) {
+    console.log(origin, process.env.ORIGIN, origin === process.env.ORIGIN)
+    if (process.env.ORIGIN === origin || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   optionsSuccessStatus: 200,
   credentials: true,
 };
