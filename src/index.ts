@@ -18,19 +18,19 @@ const app = express();
 //   })
 // );
 
-const corsOptions = {
-  origin: function (origin: any, callback: any) {
-    if (process.env.ORIGIN === origin || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  optionsSuccessStatus: 200,
-  credentials: true,
-};
+// const corsOptions = {
+//   origin: function (origin: any, callback: any) {
+//     if (process.env.ORIGIN === origin || !origin) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error("Not allowed by CORS"));
+//     }
+//   },
+//   optionsSuccessStatus: 200,
+//   credentials: true,
+// };
 
-app.use(cors(corsOptions))
+app.use(cors())
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({extended: true}))
