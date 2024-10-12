@@ -20,8 +20,6 @@ const app = express();
 
 const allowedOrigins = process.env.ORIGIN ? process.env.ORIGIN.split(',') : '*';
 
-console.log(allowedOrigins)
-
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -31,15 +29,12 @@ app.use(
         callback(new Error('Not allowed by CORS'));
       }
     },
+    optionsSuccessStatus: 200,
     credentials: true,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     allowedHeaders: "Content-Type,Authorization"
   })
 );
-
-// app.options(`${process.env.ORIGIN}`, cors());
-app.options('*', cors());
-
 
 app.use(cookieParser());
 app.use(express.json());
