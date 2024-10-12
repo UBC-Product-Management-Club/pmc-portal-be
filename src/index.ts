@@ -23,7 +23,7 @@ const allowedOrigins = process.env.ORIGIN ? process.env.ORIGIN.split(',') : '*';
 app.use(
   cors({
     origin: (origin, callback) => {
-      console.log(!origin, allowedOrigins === '*', allowedOrigins.includes(origin!))
+      console.log(origin, allowedOrigins, allowedOrigins === '*', allowedOrigins.includes(origin!))
       if (!origin || allowedOrigins === '*' || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
