@@ -20,7 +20,8 @@ const app = express();
 
 const corsOptions = {
   origin: function (origin: any, callback: any) {
-    console.log(origin, process.env.ORIGIN, origin === undefined)
+    console.log("env", process.env.ORIGIN);
+    console.log("origin", origin);
     if (process.env.ORIGIN === origin || !origin || origin === undefined) {
       callback(null, true);
     } else {
