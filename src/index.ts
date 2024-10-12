@@ -24,8 +24,10 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins === '*' || allowedOrigins.indexOf(origin) !== -1) {
+        console.log("running1")
         callback(null, true);
       } else {
+        console.log("running2")
         callback(new Error('Not allowed by CORS'));
       }
     },
