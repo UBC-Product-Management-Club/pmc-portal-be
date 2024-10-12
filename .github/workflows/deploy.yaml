@@ -37,7 +37,7 @@ jobs:
           echo ORIGIN=${{ secrets.ORIGIN }} >> .env
           echo BUCKET_NAME=${{ secrets.BUCKET_NAME }} >> .env
           echo STRIPE_SECRET=${{ secrets.STRIPE_SECRET }} >> .env
-          echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_DATABASE_ID }} > .env
+          echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_DATABASE_ID }} >> .env
 
       - name: Log into Google Cloud
         uses: "google-github-actions/auth@v1"

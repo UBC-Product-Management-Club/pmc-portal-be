@@ -18,11 +18,15 @@ const app = express();
 //   })
 // );
 
+const allowedOrigins = [
+  process.env.ORIGIN,
+]
+
+console.log("env", process.env.ORIGIN)
 const corsOptions = {
   origin: function (origin: any, callback: any) {
-    console.log("env", process.env.ORIGIN)
     console.log("origin", origin)
-    if (process.env.ORIGIN === origin || !origin) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
