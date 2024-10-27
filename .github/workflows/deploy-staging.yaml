@@ -34,7 +34,7 @@ jobs:
       - name: Create env file
         run: |
           touch .env
-          echo ORIGIN=${{ secrets.ORIGIN }} >> .env
+          echo ORIGIN=${{ secrets.STAGING_ORIGIN }} >> .env
           echo BUCKET_NAME=${{ secrets.BUCKET_NAME }} >> .env
           echo STRIPE_SECRET=${{ secrets.STRIPE_SECRET }} >> .env
           echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_STAGING_DATABASE_ID }} >> .env
