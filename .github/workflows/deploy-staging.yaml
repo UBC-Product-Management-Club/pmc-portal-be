@@ -1,0 +1,58 @@
+name: Build and Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - staging
+
+env:
+  PROJECT_ID: ${{ secrets.PROJECT_ID }}
+  APP_NAME: ${{ secrets.STAGING_APP_NAME }}
+  REGION: us-west1
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: staging 
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create .secret folder
+        run: mkdir .secret
+
+      - name: Create Credential JSON
+        id: create-json-1
+        uses: jsdaniell/create-json@v1.2.2
+        with:
+          name: "pmc-portal-credential.json"
+          json: ${{ secrets.GCLOUD_AUTH }}
+          dir: ".secret/"
+
+      - name: Create env file
+        run: |
+          touch .env
+          echo ORIGIN=${{ secrets.ORIGIN }} >> .env
+          echo BUCKET_NAME=${{ secrets.BUCKET_NAME }} >> .env
+          echo STRIPE_SECRET=${{ secrets.STRIPE_SECRET }} >> .env
+          echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_STAGING_DATABASE_ID }} >> .env
+        #   echo STAGING=TRUE >> .env
+
+      - name: Log into Google Cloud
+        uses: "google-github-actions/auth@v1"
+        with:
+          credentials_json: "${{ secrets.GCLOUD_AUTH }}"
+
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
+
+      - name: Run Cloud Build
+        run: |
+          gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.STAGING_APP_NAME }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud config set project ${{ env.PROJECT_ID }}
+          gcloud run deploy ${{ env.STAGING_APP_NAME }} --image gcr.io/${{ env.PROJECT_ID }}/${{ env.STAGING_APP_NAME }} --region ${{ env.REGION }} --allow-unauthenticated --set-env-vars $(cat .env | tr '\n' ',' | sed 's/,$//')
