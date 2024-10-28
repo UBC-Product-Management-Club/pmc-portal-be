@@ -12,7 +12,7 @@ dotenv.config({ path: "./.secret/.env" });
 initializeApp({
   credential: cert(serviceAccount as ServiceAccount)
 });
-console.log("database id: ", process.env.FIRESTORE_DATABASE_ID)
+console.log("Database ID: ", process.env.FIRESTORE_DATABASE_ID!)
 const auth = getAuth();
 const db: Firestore = getFirestore(process.env.FIRESTORE_DATABASE_ID!);
 const storage = new Storage({
