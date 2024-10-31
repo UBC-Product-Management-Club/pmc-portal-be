@@ -53,9 +53,9 @@ paymentRouter.post("/event/:event_id", async (req, res) => {
         // If the request was submitted with a UID, then they are a member
         // If not, then they are a guest
         if (uid) {
-            paymentIntent = await createPaymentIntent(100 * +event.member_price)
+            paymentIntent = await createPaymentIntent(+event.member_price)
         } else {
-            paymentIntent = await createPaymentIntent(100 * +event.non_member_price)
+            paymentIntent = await createPaymentIntent(+event.non_member_price)
         }
         return res.status(200).json({
             payment_secret: paymentIntent.client_secret
