@@ -1,8 +1,8 @@
-import { Router } from "express";
-import { addTransaction } from "../controllers/payments/add";
-import { createPaymentIntent } from "../controllers/payments/create";
-import { getEventById } from "../controllers/events/event";
-import { Event } from "../schema/Event";
+import {Router} from "express";
+import {addTransaction} from "../controllers/payments/add";
+import {createPaymentIntent} from "../controllers/payments/create";
+import {getEventById} from "../controllers/events/event";
+import {Event} from "../schema/Event";
 
 
 export const paymentRouter = Router()
@@ -17,7 +17,7 @@ paymentRouter.post("/add-transaction", async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             message: "Failed to add transaction"
-        }) 
+        })
     }
 })
 
@@ -40,7 +40,7 @@ paymentRouter.post("/event/:event_id", async (req, res) => {
     // Create PaymentIntent for given event_id
     // req must include: user uid, user member status
     const eventId: string = req.params.event_id
-    const { uid } = req.body
+    const {uid} = req.body
     const event: Event | null = await getEventById(eventId)
     if (!event) {
         return res.status(500).json({
@@ -50,14 +50,16 @@ paymentRouter.post("/event/:event_id", async (req, res) => {
 
     try {
         let paymentIntent
+        // If the request was submitted with a UID, then they are a member
+        // If not, then they are a guest
         if (uid) {
-            paymentIntent = await createPaymentIntent(event.member_price as number)
+            paymentIntent = await createPaymentIntent(+event.member_price)
         } else {
-            paymentIntent = await createPaymentIntent(event.non_member_price as number)
+            paymentIntent = await createPaymentIntent(+event.non_member_price)
         }
         return res.status(200).json({
             payment_secret: paymentIntent.client_secret
-        }) 
+        })
     } catch (error) {
         return res.status(500).json({
             message: "Error creating PaymentIntent"
