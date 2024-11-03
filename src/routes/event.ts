@@ -36,9 +36,6 @@ eventRouter.post('/registered', async (req, res) => {
             attendeeInfo: Attendee,
             paymentInfo: addTransactionBody
         } = req.body
-        console.log(attendeeInfo)
-        console.log()
-        console.log(paymentInfo)
         addAttendee(attendeeInfo) // should add attendee to firestore
         addTransaction(paymentInfo) // should add transaction to firestore
         res.status(200).json({
