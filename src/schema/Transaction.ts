@@ -8,8 +8,8 @@ type paymentInfo = {
 
 type addTransactionBody = {
     type: "membership" | "event"
-    member_id?: string
-    attendee_id?: string
+    member_id: string
+    attendee_id: string
     payment: paymentInfo
 }
 
