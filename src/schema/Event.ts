@@ -1,4 +1,3 @@
-
 //  some are "| string" since FormData only accepts strings
 type Event = {
     event_Id: string // generated
@@ -12,6 +11,7 @@ type Event = {
     attendee_Ids: string[] | string
     member_only: boolean | string // from request
     maxAttendee: number
+    eventForm: string | undefined
 }
 
 type Attendee = {
@@ -32,4 +32,4 @@ type Attendee = {
 }
 
 
-export type { Event, Attendee }
+export type {Event, Attendee}

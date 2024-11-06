@@ -1,13 +1,13 @@
-import {getEvents} from "../controllers/events/event";
 import {Router} from "express";
+import {getEventForm} from "../controllers/eventForm/get";
 
 
 export const eventFormRouter = Router()
 
-eventFormRouter.get('/', async (req, res) => {
+eventFormRouter.get('/:id', async (req, res) => {
     try {
-        const events = await getEvents();
-        res.status(200).json(events);
+        const form = await getEventForm(req.params.id);
+        res.status(200).json(form);
     } catch (error: any) {
         res.status(500).json({error: error.message});
     }

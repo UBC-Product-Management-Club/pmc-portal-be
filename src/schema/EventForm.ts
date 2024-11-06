@@ -8,9 +8,9 @@ const QuestionSchema = z.object({
     required: z.boolean().optional() // Optional, indicates if the question is mandatory
 });
 
-const EventFormSchema = z.object({
+export const EventFormSchema = z.object({
     title: z.string(),
     questions: z.array(QuestionSchema),
 });
 
-type EventForm = z.infer<typeof EventFormSchema>;
+export type EventForm = z.infer<typeof EventFormSchema>;
