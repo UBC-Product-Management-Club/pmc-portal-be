@@ -51,7 +51,6 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
         });
     };
 
-
     try {
         const eventDoc = await eventIDAttendee.get();
         if (!eventDoc.exists) {
