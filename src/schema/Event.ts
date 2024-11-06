@@ -36,4 +36,4 @@ type Attendee = {
 }
 
 
-export type { Event, Attendee }
+export type {Event, Attendee}
