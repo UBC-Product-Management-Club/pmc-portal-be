@@ -1,20 +1,20 @@
-import { Router } from "express";
-import { getEvents, getEventById, addEvent, uploadEventMedia } from "../controllers/events/event";
-import { Event } from "../schema/Event"
-import { v4 as uuidv4 } from 'uuid';
+import {Router} from "express";
+import {addEvent, getEventById, getEvents, uploadEventMedia} from "../controllers/events/event";
+import {Event} from "../schema/Event"
+import {v4 as uuidv4} from 'uuid';
 import multer from "multer"
 
 export const eventRouter = Router()
 
 const memStorage = multer.memoryStorage()
-const upload = multer({ storage: memStorage })
+const upload = multer({storage: memStorage})
 
 eventRouter.get('/', async (req, res) => {
     try {
         const events = await getEvents();
         res.status(200).json(events);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
 
@@ -23,13 +23,14 @@ eventRouter.get('/:id', async (req, res) => {
         const eventByID = await getEventById(req.params.id);
         res.status(200).json(eventByID);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
 
 eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
     const event_Id = uuidv4(); // generate a unique event ID -- do i need this or does firestore does it for me?
-    const { name,
+    const {
+        name,
         date,
         description,
         location,
@@ -37,7 +38,8 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         non_member_price,
         member_only,
         attendee_Ids,
-        maxAttendee
+        maxAttendee,
+        eventForm
     } = JSON.parse(JSON.stringify(req.body))
     const mediaFiles = req.files as Express.Multer.File[]
 
@@ -62,13 +64,14 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             non_member_price: parseInt(non_member_price as string) as number,
             member_only: Boolean(JSON.parse(member_only as string)),
             attendee_Ids: JSON.parse(attendee_Ids as string),
-            maxAttendee: parseInt(maxAttendee as string) as number
+            maxAttendee: parseInt(maxAttendee as string) as number,
+            eventForm: JSON.parse(eventForm as string)
         }
         await addEvent(event_Id, event);
         res.status(201).json({
             message: `Event with ID ${event_Id} has been added successfully.`,
         });
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
