@@ -12,7 +12,7 @@ type Event = {
     attendee_Ids: string[] | string
     member_only: boolean | string // from request
     maxAttendee: number
-    isDisabled: boolean
+    isDisabled: boolean // manually write default as "false" when adding new event
 }
 
 type Attendee = {

@@ -37,18 +37,30 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         non_member_price,
         member_only,
         attendee_Ids,
-        maxAttendee,
-        isDisabled
+        maxAttendee
     } = JSON.parse(JSON.stringify(req.body))
     const mediaFiles = req.files as Express.Multer.File[]
 
-    // need placeholders in frontend to request user input for these?
-    if (!name || !date || !location || !description || !mediaFiles || !member_price || !non_member_price || !attendee_Ids || member_only == undefined || mediaFiles.length == 0 || !maxAttendee) {
-        return res.status(400).json({
-            message: "Invalid Event. Required fields are missing"
-        })
+    const requiredFields = [name, date, location, description, mediaFiles, member_price, non_member_price, attendee_Ids, maxAttendee];
+    const checkUndefinedFields = [member_only];
+
+    // Check for missing required fields or empty `mediaFiles`
+    for (const field of requiredFields) {
+        if (!field || (field === mediaFiles && mediaFiles.length === 0)) {
+            return res.status(400).json({
+                message: "Invalid Event. Required fields are missing"
+            });
+        }
     }
 
+    // Check if `member_only` is undefined
+    for (const field of checkUndefinedFields) {
+        if (field === undefined) {
+            return res.status(400).json({
+                message: "Invalid Event. Required fields are missing"
+            });
+        }
+    }
 
     try {
         const media = await uploadEventMedia(event_Id, mediaFiles) // upload media and get download links
@@ -64,7 +76,7 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             member_only: Boolean(JSON.parse(member_only as string)),
             attendee_Ids: JSON.parse(attendee_Ids as string),
             maxAttendee: parseInt(maxAttendee as string) as number,
-            isDisabled: Boolean(JSON.parse(isDisabled as string))
+            isDisabled: false
         }
         await addEvent(event_Id, event);
         res.status(201).json({
