@@ -1,7 +1,12 @@
 import {Router} from "express";
 import {addEvent, getEventById, getEvents, uploadEventMedia} from "../controllers/events/event";
+<<<<<<< HEAD
 import { Attendee, Event } from "../schema/Event"
 import { v4 as uuidv4 } from 'uuid';
+=======
+import {Event} from "../schema/Event"
+import {v4 as uuidv4} from 'uuid';
+>>>>>>> 5cce8bf (Handle error)
 import multer from "multer"
 import { addAttendee } from "../controllers/events/attendee";
 import { addTransaction } from "../controllers/payments/add";
@@ -12,14 +17,14 @@ import { checkIsRegistered } from "../controllers/events/attendee";
 export const eventRouter = Router()
 
 const memStorage = multer.memoryStorage()
-const upload = multer({ storage: memStorage })
+const upload = multer({storage: memStorage})
 
 eventRouter.get('/', async (req, res) => {
     try {
         const events = await getEvents();
         res.status(200).json(events);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
 
@@ -28,7 +33,7 @@ eventRouter.get('/:id', async (req, res) => {
         const eventByID = await getEventById(req.params.id);
         res.status(200).json(eventByID);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
 
@@ -53,7 +58,8 @@ eventRouter.post('/:id/registered', async (req, res) => {
 
 eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
     const event_Id = uuidv4(); // generate a unique event ID -- do i need this or does firestore does it for me?
-    const { name,
+    const {
+        name,
         date,
         start_time,
         end_time,
@@ -113,7 +119,7 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             message: `Event with ID ${event_Id} has been added successfully.`,
         });
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
 
