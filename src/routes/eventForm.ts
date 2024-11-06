@@ -1,7 +1,6 @@
 import {Router} from "express";
 import {getEventForm} from "../controllers/eventForm/get";
 
-
 export const eventFormRouter = Router()
 
 eventFormRouter.get('/:id', async (req, res) => {
