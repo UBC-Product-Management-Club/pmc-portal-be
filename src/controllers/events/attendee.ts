@@ -62,7 +62,7 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
 
         const eventData = eventDoc.data() as Event;
 
-        if (eventData.maxAttendee !== -1 && eventData.attendee_Ids.length >= eventData.maxAttendee) {
+        if (eventData.isDisabled === true || (eventData.maxAttendee !== -1 && eventData.attendee_Ids.length >= eventData.maxAttendee)) {
             throw new Error('The event has reached the maximum number of attendees');
         }
 
