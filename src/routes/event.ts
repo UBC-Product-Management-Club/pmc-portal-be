@@ -48,7 +48,6 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         })
     }
 
-
     try {
         const media = await uploadEventMedia(event_Id, mediaFiles) // upload media and get download links
         const event: Event = {

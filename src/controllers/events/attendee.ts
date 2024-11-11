@@ -51,7 +51,6 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
         });
     };
 
-
     try {
         const eventDoc = await eventIDAttendee.get();
         if (!eventDoc.exists) {
@@ -60,10 +59,10 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
         if (attendee.member_Id) {
             await checkMemberId(attendee.member_Id);
         }
-        
+
         const eventData = eventDoc.data() as Event;
 
-        if (eventData.attendee_Ids.length >= eventData.maxAttendee) {
+        if (eventData.maxAttendee !== -1 && eventData.attendee_Ids.length >= eventData.maxAttendee) {
             throw new Error('The event has reached the maximum number of attendees');
         }
 
