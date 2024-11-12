@@ -24,7 +24,7 @@ paymentRouter.post("/add-transaction", async (req, res) => {
 paymentRouter.post("/membership", async (req, res) => {
     // Create Stripe PaymentIntent for membership fee
     try {
-        const paymentIntent = await createPaymentIntent(1000) // $10
+        const paymentIntent = await createPaymentIntent(req.body.amt)
         return res.status(200).json({
             payment_secret: paymentIntent.client_secret
         })
