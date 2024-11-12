@@ -36,7 +36,7 @@ jobs:
           touch .env
           echo ORIGIN=${{ secrets.STAGING_ORIGIN }} >> .env
           echo BUCKET_NAME=${{ secrets.BUCKET_NAME }} >> .env
-          echo STRIPE_SECRET=${{ secrets.STRIPE_SECRET }} >> .env
+          echo STRIPE_SECRET=${{ secrets.STRIPE_TEST_SECRET }} >> .env
           echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_STAGING_DATABASE_ID }} >> .env
 
       - name: Log into Google Cloud
