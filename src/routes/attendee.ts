@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAttendeeById, addAttendee } from "../controllers/events/attendee";
+import { getAttendeeById } from "../controllers/events/attendee";
 
 export const attendeeRouter = Router();
 
