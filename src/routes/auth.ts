@@ -2,6 +2,7 @@ import { Request, Response, Router } from "express";
 import { handleOnboarding } from "../controllers/auth/register";
 import { handleLogin } from "../controllers/auth/login";
 import { loginReqBody, loginResponse, onboardingReqBody } from "../controllers/auth/types";
+import { getAllUsers } from "../controllers/auth/users";
 
 export const authRouter = Router()
 
@@ -52,6 +53,17 @@ authRouter.post("/login", async (req: Request, res: Response) => {
                 error: error.message
             })
         // show error component
+    }
+})
+
+// TO DO: Add role-based access control to this in the future
+authRouter.get("/users", async (req: Request, res: Response) => {
+    try {
+        const users = await getAllUsers();
+        return res.status(200).send(users);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send(error);
     }
 })
 
