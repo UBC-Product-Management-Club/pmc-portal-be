@@ -22,12 +22,12 @@ type Attendee = {
     event_Id: string
     first_name: string
     last_name: string
-    student_num: number
+    student_id?: number
     email: string
-    year_level: number
-    major: string
-    faculty: string
-    familiarity: 'beginner' | 'intermediate' | 'advanced' | 'mentor'
+    year?: string | undefined
+    major?: string
+    faculty?: string
+    familiarity: "beginner" | "intermediate" | "advanced" | "mentor"
     found_out: string
     dietary: string
 }

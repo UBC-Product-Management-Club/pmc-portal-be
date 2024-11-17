@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { getEvents, getEventById, addEvent, uploadEventMedia } from "../controllers/events/event";
-import { Event } from "../schema/Event"
+import { Attendee, Event } from "../schema/Event"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
+import { addAttendee } from "../controllers/events/attendee";
+import { addTransaction } from "../controllers/payments/add";
+import { addTransactionBody } from "../schema/Transaction";
 
 export const eventRouter = Router()
 
@@ -26,6 +29,24 @@ eventRouter.get('/:id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+eventRouter.post('/registered', async (req, res) => {
+    try {
+        const { attendeeInfo, paymentInfo } : {
+            attendeeInfo: Attendee,
+            paymentInfo: addTransactionBody
+        } = req.body
+        addAttendee(attendeeInfo) // should add attendee to firestore
+        addTransaction(paymentInfo) // should add transaction to firestore
+        res.status(200).json({
+            message: "registration successful"
+        })
+    } catch (error: any) {
+        res.status(500).json({ error: error.message })
+    }
+
+
+})
 
 eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
     const event_Id = uuidv4(); // generate a unique event ID -- do i need this or does firestore does it for me?
