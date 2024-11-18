@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
+  <style>
+    body {
+      font-family: "Poppins";
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    .email-container {
+      max-width: 600px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 0 auto;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #333;
+    }
+    p {
+      color: #555;
+      line-height: 1.6;
+    }
+    .event-details {
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .event-details p {
+      margin: 5px 0;
+    }
+    .highlight {
+      color: #007BFF;
+      font-weight: bold;
+    }
+    .long-text-box {
+      background-color: #f1f1f1;
+      padding: 10px;
+      border-left: 4px solid #007BFF;
+      margin: 10px 0;
+      font-style: italic;
+    }
+    .cta {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .cta a {
+      display: inline-block;
+      padding: 10px 15px;
+      background-color: #007BFF;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    .footer {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <h1>Hi {{First Name}},</h1>
+    <p>We’re thrilled to let you know that you’ve secured a spot at <span class="highlight">{{Event Name}}</span>! Here’s everything you need to know to make the most out of the experience.</p>
+    
+    <div class="event-details">
+      <h2>📅 Event Details:</h2>
+      <p><strong>Date:</strong> {{Date}}</p>
+      <p><strong>Time:</strong> {{Start Time}} - {{End Time}}</p>
+      <p><strong>Location:</strong> {{Venue or online link}}</p>
+    </div>
+    
+    <h2>✨ What to Expect:</h2>
+    <div class="long-text-box">
+      {{Brief overview of the event: workshops, speakers, networking opportunities, etc.}}
+    </div>
+    
+    <h2>🔗 Stay Updated:</h2>
+    <p>Follow us on Instagram at <a href="https://instagram.com/ubcpmc" target="_blank">@ubcpmc</a> for real-time updates. Feel free to reach out with any questions! We’re here to help you have an unforgettable experience!</p>
+    
+    <!-- <div class="cta">
+      <a href="https://example.com" target="_blank">View Event Details</a>
+    </div> -->
+    
+    <p>Can’t wait to see you at <span class="highlight">{{Event Name}}</span>!</p>
+    <p>Warm regards,</p>
+    <p><strong>UBC PMC</strong></p>
+
+    <div class="footer">
+      <p>This email was sent by UBC Product Management Club.</p>
+    </div>
+  </div>
+</body>
+</html>
