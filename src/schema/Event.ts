@@ -24,10 +24,10 @@ type Attendee = {
     last_name: string
     student_id?: number
     email: string
-    year?: string | undefined
+    year?: number
     major?: string
     faculty?: string
-    familiarity: "beginner" | "intermediate" | "advanced" | "mentor"
+    familiarity: 'beginner' | 'intermediate' | 'advanced' | 'mentor'
     found_out: string
     dietary: string
 }
