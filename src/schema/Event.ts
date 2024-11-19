@@ -29,6 +29,7 @@ type Attendee = {
     familiarity: 'beginner' | 'intermediate' | 'advanced' | 'mentor'
     found_out: string
     dietary: string
+    event_form_answers: object | undefined
 }
 
 
