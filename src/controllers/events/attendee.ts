@@ -67,6 +67,7 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
             throw new Error('The event has reached the maximum number of attendees');
         }
 
+        // put into a function 
         const q = attendeesRef
             .where('email', '==', attendee.email)
             .where('event_Id', '==', attendee.event_Id);
