@@ -1,5 +1,5 @@
 import { db } from "../../config/firebase";
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Query } from 'firebase-admin/firestore';
 import { Attendee, Event } from "../../schema/Event";
 
 // const getAttendees = async (): Promise<Attendee[]> => {
@@ -39,6 +39,7 @@ const getAttendeeById = async (id: string): Promise<Attendee | null> => {
 
 const addAttendee = async (attendee: Attendee): Promise<void> => {
     const eventIDAttendee = db.collection('events').doc(attendee.event_Id);
+    const attendeesRef = db.collection('attendees')
     const checkMemberId = (uid: string): Promise<void> => {
         const memberRef = db.collection('users').doc(uid);
         return memberRef.get().then(memberDoc => {
@@ -53,7 +54,6 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
 
     try {
         const eventDoc = await eventIDAttendee.get();
-        const non_members_emails = db.collection('users');
         if (!eventDoc.exists) {
             throw new Error('Event ID does not exist');
         }
@@ -67,8 +67,14 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
             throw new Error('The event has reached the maximum number of attendees');
         }
 
-        if (eventData.attendee_Ids.includes(attendee.member_Id)) {
-            throw new Error('You have signed up for this event before. We can only reserve 1 spot for you. Please contact tech@ubcpmc.com if you have any concerns.');
+        const q = attendeesRef
+            .where('email', '==', attendee.email)
+            .where('event_Id', '==', attendee.event_Id);
+
+        const querySnapshot = await q.get();
+
+        if (!querySnapshot.empty) {
+            throw new Error('You have signed up for this event.');
         }
 
         await db.collection('attendees').doc(attendee.attendee_Id).set(attendee);

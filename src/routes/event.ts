@@ -34,7 +34,7 @@ eventRouter.get('/:id', async (req, res) => {
 
 eventRouter.post('/registered', async (req, res) => {
     try {
-        const { attendeeInfo, paymentInfo } : {
+        const { attendeeInfo, paymentInfo }: {
             attendeeInfo: Attendee,
             paymentInfo: addTransactionBody
         } = req.body
