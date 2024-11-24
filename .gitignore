@@ -5,4 +5,4 @@ build
 .DS_STORE
 
 # For local test scripts. (e.g. email sending)
-test.ts
+test
