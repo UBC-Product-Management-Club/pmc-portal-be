@@ -49,17 +49,9 @@ jobs:
 
       - name: Run Cloud Build
         run: |
-<<<<<<< HEAD
-          gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.APP_NAME }}
-=======
           gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.STAGING_APP_NAME }}
->>>>>>> bc4ff24 (created new staging workflow)
 
       - name: Deploy to Cloud Run
         run: |
           gcloud config set project ${{ env.PROJECT_ID }}
-<<<<<<< HEAD
-          gcloud run deploy ${{ env.APP_NAME }} --image gcr.io/${{ env.PROJECT_ID }}/${{ env.APP_NAME }} --region ${{ env.REGION }} --allow-unauthenticated --set-env-vars $(cat .env | tr '\n' ',' | sed 's/,$//')
-=======
           gcloud run deploy ${{ env.STAGING_APP_NAME }} --image gcr.io/${{ env.PROJECT_ID }}/${{ env.STAGING_APP_NAME }} --region ${{ env.REGION }} --allow-unauthenticated --set-env-vars $(cat .env | tr '\n' ',' | sed 's/,$//')
->>>>>>> bc4ff24 (created new staging workflow)

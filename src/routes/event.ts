@@ -6,6 +6,8 @@ import multer from "multer"
 import { addAttendee } from "../controllers/events/attendee";
 import { addTransaction } from "../controllers/payments/add";
 import { addTransactionBody } from "../schema/Transaction";
+import { sendEmail } from "../controllers/emails/send";
+
 
 export const eventRouter = Router()
 
@@ -36,8 +38,9 @@ eventRouter.post('/registered', async (req, res) => {
             attendeeInfo: Attendee,
             paymentInfo: addTransactionBody
         } = req.body
-        addAttendee(attendeeInfo) // should add attendee to firestore
-        addTransaction(paymentInfo) // should add transaction to firestore
+        await addAttendee(attendeeInfo) // should add attendee to firestore
+        await addTransaction(paymentInfo) // should add transaction to firestore
+        await sendEmail(attendeeInfo)
         res.status(200).json({
             message: "registration successful"
         })
