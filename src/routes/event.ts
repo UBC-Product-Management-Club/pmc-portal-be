@@ -38,9 +38,9 @@ eventRouter.post('/registered', async (req, res) => {
             attendeeInfo: Attendee,
             paymentInfo: addTransactionBody
         } = req.body
-        addAttendee(attendeeInfo) // should add attendee to firestore
-        addTransaction(paymentInfo) // should add transaction to firestore
-        sendEmail(attendeeInfo)
+        await addAttendee(attendeeInfo) // should add attendee to firestore
+        await addTransaction(paymentInfo) // should add transaction to firestore
+        await sendEmail(attendeeInfo)
         res.status(200).json({
             message: "registration successful"
         })
