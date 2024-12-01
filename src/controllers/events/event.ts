@@ -50,7 +50,7 @@ const addEvent = async (event_Id: string, event: Event): Promise<void> => {
             throw new Error("Start time invalid. Must be ISO format (Thh:mm:ss).")
         }
 
-        if (!dateRegex.test(event.end_time)) {
+        if (!timeRegex.test(event.end_time)) {
             throw new Error("End time invalid. Must be ISO format (Thh:mm:ss).")
         }
 
