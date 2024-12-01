@@ -3,7 +3,9 @@
 type Event = {
     event_Id: string // generated
     name: string // from request
-    date: Date | string // from request. We should standardize a date format.
+    date: string // Date in ISO format (e.g. YYYY-MM-DD)
+    start_time: string // start time in ISO format (e.g. Thh:mm:ss)
+    end_time: string // end time in ISO format (e.g. Thh:mm:ss)
     location: string // from request
     description: string // from request
     media: string[] // generated
