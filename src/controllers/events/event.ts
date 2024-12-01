@@ -39,6 +39,21 @@ const getEventById = async (id: string): Promise<Event | null> => {
 
 const addEvent = async (event_Id: string, event: Event): Promise<void> => {
     try {
+        const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+        const timeRegex = /^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
+        
+        if (!dateRegex.test(event.date)) {
+            throw new Error("Event date invalid. Must be ISO format (YYYY-MM-DD).")
+        }
+
+        if (!timeRegex.test(event.start_time)) {
+            throw new Error("Start time invalid. Must be ISO format (Thh:mm:ss).")
+        }
+
+        if (!dateRegex.test(event.end_time)) {
+            throw new Error("End time invalid. Must be ISO format (Thh:mm:ss).")
+        }
+
         await db.collection('events').doc(event_Id).set(event);
     } catch (error) {
         console.error('Error adding event to database: ', error);
