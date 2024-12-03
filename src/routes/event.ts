@@ -55,6 +55,8 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
     const event_Id = uuidv4(); // generate a unique event ID -- do i need this or does firestore does it for me?
     const { name,
         date,
+        start_time,
+        end_time,
         description,
         location,
         member_price,
@@ -92,6 +94,8 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             event_Id,
             name,
             date,
+            start_time,
+            end_time,
             description,
             location,
             media,

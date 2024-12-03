@@ -3,6 +3,7 @@ import fs from "fs"
 import path from "path"
 import { Attendee, Event } from "../../schema/Event";
 import { getEventById } from "../events/event";
+import moment from "moment"
 
 const assetPath = path.join(process.cwd(), 'src', 'templates', 'emails', 'assets')
 const templatePath = path.join(process.cwd(), 'src','templates','emails', 'event_reg_confirmation.html');
@@ -38,11 +39,13 @@ const sendEmail = async (attendee_info: Attendee) : Promise<void> => {
     const processedEmailHTML = emailHTML
     .replaceAll('{{First Name}}', attendee_info.first_name)
     .replaceAll('{{Event Name}}', event!.name)
-    .replaceAll('{{Date}}', event!.date as string)
+    .replaceAll('{{Date}}', moment(event!.date).format("dddd, MMMM D"))
     .replaceAll('{{location}}', event!.location)
-    .replaceAll('{{desc}}', event!.description)
-    // .replace('{{Start Time}}', startTime)
-    // .replace('{{End Time}}', endTime)
+    .replace('{{desc}}', event!.description)
+
+    // needs a random date for time formatting to work.
+    .replace('{{Start Time}}', moment(`2024-12-01 ${event!.start_time}`).format("HH:mm"))
+    .replace('{{End Time}}', moment(`2024-12-01 ${event!.end_time}`).format("HH:mm"))
 
     const mailOptions = {
         from: process.env.PMC_EMAIL_SENDER,
