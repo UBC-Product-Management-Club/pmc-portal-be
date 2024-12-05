@@ -1,4 +1,3 @@
-
 //  some are "| string" since FormData only accepts strings
 type Event = {
     event_Id: string // generated
@@ -14,6 +13,7 @@ type Event = {
     attendee_Ids: string[] | string
     member_only: boolean | string // from request
     maxAttendee: number
+    eventForm: string | undefined
     isDisabled: boolean // manually write default as "false" when adding new event
 }
 
@@ -32,6 +32,7 @@ type Attendee = {
     familiarity: 'beginner' | 'intermediate' | 'advanced' | 'mentor'
     found_out: string
     dietary: string
+    event_form_answers: object | undefined
 }
 
 
