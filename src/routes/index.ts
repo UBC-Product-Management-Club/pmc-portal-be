@@ -14,7 +14,7 @@ apiRouter.use("/events", eventRouter)
 apiRouter.use("/profile", profileRouter)
 apiRouter.use("/attendee", attendeeRouter)
 apiRouter.use("/payments", paymentRouter)
-apiRouter.use("/event-form", eventFormRouter)
+apiRouter.use("/eventForm", eventFormRouter)
 
 // Protected
 // apiRouter.use("/profile", verifyIdToken, profileRouter)
