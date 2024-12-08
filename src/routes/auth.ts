@@ -3,14 +3,17 @@ import { handleOnboarding } from "../controllers/auth/register";
 import { handleLogin } from "../controllers/auth/login";
 import { loginReqBody, loginResponse, onboardingReqBody } from "../controllers/auth/types";
 import { getAllUsers } from "../controllers/auth/users";
+import { addTransaction } from "../controllers/payments/add";
 
 export const authRouter = Router()
 
-authRouter.post("/onboarding", async (req: Request, res: Response) => {
-    const { creds, userDoc }: onboardingReqBody = req.body
+authRouter.post("/onboard", async (req: Request, res: Response) => {
+    const { onboardingInfo, paymentInfo }: onboardingReqBody = req.body;
     try{
+
         // Add the user to the database (throws errors)
-        await handleOnboarding(creds, userDoc)
+        await handleOnboarding(onboardingInfo)
+        await addTransaction(paymentInfo)
 
         return res
             .status(200)
@@ -19,7 +22,7 @@ authRouter.post("/onboarding", async (req: Request, res: Response) => {
             })
     } catch (error: any) {
         return res
-            .status(400)
+            .status(500)
             .json({
                 error: error.message
             })
