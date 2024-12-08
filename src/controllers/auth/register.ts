@@ -1,10 +1,11 @@
-import { loginReqBody, userDocument } from "./types";
+import { memberOnboardingInfo } from "./types";
 import { db } from "../../config/firebase";
 import { checkUserExists } from "./utils";
 
 
 // Handles initial user onboarding and login.
-const handleOnboarding = async (creds: loginReqBody, userDoc: userDocument): Promise<void> => {
+const handleOnboarding = async (onboardInfo: memberOnboardingInfo): Promise<void> => {
+    const { creds, userDoc }: memberOnboardingInfo = onboardInfo
     if (await checkUserExists(creds.userUID)) {
         throw Error("User already exists.")
     }
