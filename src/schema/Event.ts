@@ -13,6 +13,7 @@ type Event = {
     member_only: boolean | string // from request
     maxAttendee: number
     isDisabled: boolean // manually write default as "false" when adding new event
+    isRegistered: boolean
 }
 
 type Attendee = {

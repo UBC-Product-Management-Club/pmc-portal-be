@@ -2,6 +2,7 @@ import { db } from "../../config/firebase";
 import { Event } from "../../schema/Event";
 import { storage } from "../../config/firebase";
 import { getStorage, getDownloadURL } from "firebase-admin/storage"
+import { checkIsRegistered } from "./attendee";
 
 const getEvents = async (): Promise<Event[]> => {
     const eventsCollection = db.collection('events');
@@ -20,18 +21,21 @@ const getEvents = async (): Promise<Event[]> => {
     return events;
 };
 
-const getEventById = async (id: string): Promise<Event | null> => {
+const getEventById = async (id: string, attendeeEmail: string | null, userEmail: string | null): Promise<Event | null> => {
     const eventDoc = db.collection('events').doc(id);
     const doc = await eventDoc.get();
 
     if (!doc.exists) {
-        console.log('No such document!');
+        console.log('No such event document!', id);
         return null;
     }
 
+    const isRegistered = await checkIsRegistered(id, attendeeEmail) || await checkIsRegistered(id, userEmail);
+
     const event: Event = {
         event_Id: id,
-        ...doc.data() as Omit<Event, 'event_Id'>
+        isRegistered,
+        ...doc.data() as Omit<Omit<Event, 'isRegistered'>, 'event_Id'>
     };
 
     return event;

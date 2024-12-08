@@ -1,8 +1,8 @@
-import {Router} from "express";
-import {addTransaction} from "../controllers/payments/add";
-import {createPaymentIntent} from "../controllers/payments/create";
-import {getEventById} from "../controllers/events/event";
-import {Event} from "../schema/Event";
+import { Router } from "express";
+import { addTransaction } from "../controllers/payments/add";
+import { createPaymentIntent } from "../controllers/payments/create";
+import { getEventById } from "../controllers/events/event";
+import { Event } from "../schema/Event";
 
 
 export const paymentRouter = Router()
@@ -40,8 +40,8 @@ paymentRouter.post("/event/:event_id", async (req, res) => {
     // Create PaymentIntent for given event_id
     // req must include: user uid, user member status
     const eventId: string = req.params.event_id
-    const {uid} = req.body
-    const event: Event | null = await getEventById(eventId)
+    const { uid } = req.body
+    const event: Event | null = await getEventById(eventId, "", "")
     if (!event) {
         return res.status(500).json({
             message: `No event found with eventId ${eventId}`

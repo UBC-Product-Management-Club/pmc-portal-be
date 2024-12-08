@@ -21,16 +21,16 @@ eventRouter.get('/', async (req, res) => {
     }
 });
 
-eventRouter.get('/:id', async (req, res) => {
+eventRouter.post('/:id', async (req, res) => {
     try {
-        const eventByID = await getEventById(req.params.id);
+        const eventByID = await getEventById(req.params.id, req.body.attendeeEmail, req.body.userEmail);
         res.status(200).json(eventByID);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
 });
 
-eventRouter.post('/registered', async (req, res) => {
+eventRouter.post('/:id/registered', async (req, res) => {
     try {
         const { attendeeInfo, paymentInfo }: {
             attendeeInfo: Attendee,
@@ -97,7 +97,8 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             member_only: Boolean(JSON.parse(member_only as string)),
             attendee_Ids: JSON.parse(attendee_Ids as string),
             maxAttendee: parseInt(maxAttendee as string) as number,
-            isDisabled: false
+            isDisabled: false,
+            isRegistered: false
         }
         await addEvent(event_Id, event);
         res.status(201).json({
