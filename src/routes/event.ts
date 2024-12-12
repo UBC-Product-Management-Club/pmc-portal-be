@@ -1,5 +1,5 @@
-import { Router } from "express";
-import { getEvents, getEventById, addEvent, uploadEventMedia } from "../controllers/events/event";
+import {Router} from "express";
+import {addEvent, getEventById, getEvents, uploadEventMedia} from "../controllers/events/event";
 import { Attendee, Event } from "../schema/Event"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
@@ -63,7 +63,8 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         non_member_price,
         member_only,
         attendee_Ids,
-        maxAttendee
+        maxAttendee,
+        eventForm
     } = JSON.parse(JSON.stringify(req.body))
     const mediaFiles = req.files as Express.Multer.File[]
 
@@ -104,6 +105,7 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             member_only: Boolean(JSON.parse(member_only as string)),
             attendee_Ids: JSON.parse(attendee_Ids as string),
             maxAttendee: parseInt(maxAttendee as string) as number,
+            eventForm: JSON.parse(eventForm as string),
             isDisabled: false
         }
         await addEvent(event_Id, event);
