@@ -16,9 +16,28 @@ type userDocument = {
     paymentVerified?: boolean
 }
 
-type onboardingReqBody = {
+type memberOnboardingInfo = {
     creds: loginReqBody
     userDoc: userDocument
+}
+
+type paymentInfo = {
+  id: string;
+  amount: number;
+  status: string;
+  created: number;
+};
+
+type membershipPaymentInfo = {
+  type: "membership";
+  member_id?: string;
+  attendee_id?: string;
+  payment: paymentInfo;
+}
+
+type onboardingReqBody = {
+    onboardingInfo: memberOnboardingInfo
+    paymentInfo: membershipPaymentInfo
 }
 
 type loginReqBody = {
@@ -35,4 +54,4 @@ type loginResponse = {
     }
 }
 
-export { onboardingReqBody, loginReqBody, loginResponse, userDocument }
+export { onboardingReqBody, loginReqBody, loginResponse, userDocument, memberOnboardingInfo }
