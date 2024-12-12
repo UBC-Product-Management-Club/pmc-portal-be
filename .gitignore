@@ -2,3 +2,7 @@ node_modules
 .env
 .secret
 build
+.DS_STORE
+
+# For local test scripts. (e.g. email sending)
+test

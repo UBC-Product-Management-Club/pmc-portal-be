@@ -1,9 +1,10 @@
-
 //  some are "| string" since FormData only accepts strings
 type Event = {
     event_Id: string // generated
     name: string // from request
-    date: Date | string // from request. We should standardize a date format.
+    date: string // Date in ISO format (e.g. YYYY-MM-DD)
+    start_time: string // start time in ISO format (e.g. Thh:mm:ss)
+    end_time: string // end time in ISO format (e.g. Thh:mm:ss)
     location: string // from request
     description: string // from request
     media: string[] // generated
@@ -12,6 +13,7 @@ type Event = {
     attendee_Ids: string[] | string
     member_only: boolean | string // from request
     maxAttendee: number
+    eventForm: string | undefined
     isDisabled: boolean // manually write default as "false" when adding new event
 }
 
@@ -24,12 +26,13 @@ type Attendee = {
     last_name: string
     student_id?: number
     email: string
-    year?: string | undefined
+    year?: number
     major?: string
     faculty?: string
-    familiarity: "beginner" | "intermediate" | "advanced" | "mentor"
+    familiarity: 'beginner' | 'intermediate' | 'advanced' | 'mentor'
     found_out: string
     dietary: string
+    event_form_answers: object | undefined
 }
 
 
