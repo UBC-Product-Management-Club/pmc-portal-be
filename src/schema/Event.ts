@@ -15,7 +15,6 @@ type Event = {
     maxAttendee: number
     eventForm: string | undefined
     isDisabled: boolean // manually write default as "false" when adding new event
-    isRegistered: boolean
 }
 
 type Attendee = {
