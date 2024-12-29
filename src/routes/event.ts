@@ -7,7 +7,7 @@ import { addAttendee } from "../controllers/events/attendee";
 import { addTransaction } from "../controllers/payments/add";
 import { addTransactionBody } from "../schema/Transaction";
 import { sendEmail } from "../controllers/emails/send";
-
+import { checkIsRegistered } from "../controllers/events/attendee";
 
 export const eventRouter = Router()
 
@@ -23,9 +23,9 @@ eventRouter.get('/', async (req, res) => {
     }
 });
 
-eventRouter.post('/:id', async (req, res) => {
+eventRouter.get('/:id', async (req, res) => {
     try {
-        const eventByID = await getEventById(req.params.id, req.body.attendeeEmail, req.body.userEmail);
+        const eventByID = await getEventById(req.params.id);
         res.status(200).json(eventByID);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -105,13 +105,8 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             member_only: Boolean(JSON.parse(member_only as string)),
             attendee_Ids: JSON.parse(attendee_Ids as string),
             maxAttendee: parseInt(maxAttendee as string) as number,
-<<<<<<< HEAD
             eventForm: JSON.parse(eventForm as string),
             isDisabled: false
-=======
-            isDisabled: false,
-            isRegistered: false
->>>>>>> cc71803 (made checks for the emails to emails in the localstorage)
         }
         await addEvent(event_Id, event);
         res.status(201).json({
@@ -121,3 +116,14 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+eventRouter.post("/:id/attendees/isRegistered", async (req, res) => {
+    const { id } = req.params
+    const { email } = req.body
+    try {
+        const isRegistered = await checkIsRegistered(id, email);
+        res.status(200).json({ isRegistered })
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+})

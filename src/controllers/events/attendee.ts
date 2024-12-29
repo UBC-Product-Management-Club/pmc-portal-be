@@ -38,6 +38,10 @@ const getAttendeeById = async (id: string): Promise<Attendee | null> => {
 
 const checkIsRegistered = async (event_Id: string, email: string | null) => {
     const attendeesRef = db.collection('attendees')
+    if (!email) {
+        return false;
+    }
+
     try {
         const q = attendeesRef
             .where('email', '==', email ?? "")

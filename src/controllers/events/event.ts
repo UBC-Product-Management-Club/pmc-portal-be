@@ -21,7 +21,7 @@ const getEvents = async (): Promise<Event[]> => {
     return events;
 };
 
-const getEventById = async (id: string, attendeeEmail: string | null, userEmail: string | null): Promise<Event | null> => {
+const getEventById = async (id: string): Promise<Event | null> => {
     const eventDoc = db.collection('events').doc(id);
     const doc = await eventDoc.get();
 
@@ -30,12 +30,9 @@ const getEventById = async (id: string, attendeeEmail: string | null, userEmail:
         return null;
     }
 
-    const isRegistered = await checkIsRegistered(id, attendeeEmail) || await checkIsRegistered(id, userEmail);
-
     const event: Event = {
         event_Id: id,
-        isRegistered,
-        ...doc.data() as Omit<Omit<Event, 'isRegistered'>, 'event_Id'>
+        ...doc.data() as Omit<Event, 'event_Id'>
     };
 
     return event;

@@ -41,7 +41,7 @@ paymentRouter.post("/event/:event_id", async (req, res) => {
     // req must include: user uid, user member status
     const eventId: string = req.params.event_id
     const { uid } = req.body
-    const event: Event | null = await getEventById(eventId, "", "")
+    const event: Event | null = await getEventById(eventId)
     if (!event) {
         return res.status(500).json({
             message: `No event found with eventId ${eventId}`
