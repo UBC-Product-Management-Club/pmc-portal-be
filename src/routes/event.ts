@@ -1,12 +1,7 @@
 import {Router} from "express";
 import {addEvent, getEventById, getEvents, uploadEventMedia} from "../controllers/events/event";
-<<<<<<< HEAD
 import { Attendee, Event } from "../schema/Event"
 import { v4 as uuidv4 } from 'uuid';
-=======
-import {Event} from "../schema/Event"
-import {v4 as uuidv4} from 'uuid';
->>>>>>> 5cce8bf (Handle error)
 import multer from "multer"
 import { addAttendee } from "../controllers/events/attendee";
 import { addTransaction } from "../controllers/payments/add";
