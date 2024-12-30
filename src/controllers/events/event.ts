@@ -2,6 +2,7 @@ import { db } from "../../config/firebase";
 import { Event } from "../../schema/Event";
 import { storage } from "../../config/firebase";
 import { getStorage, getDownloadURL } from "firebase-admin/storage"
+import { checkIsRegistered } from "./attendee";
 
 const getEvents = async (): Promise<Event[]> => {
     const eventsCollection = db.collection('events');
@@ -25,7 +26,7 @@ const getEventById = async (id: string): Promise<Event | null> => {
     const doc = await eventDoc.get();
 
     if (!doc.exists) {
-        console.log('No such document!');
+        console.log('No such event document!', id);
         return null;
     }
 

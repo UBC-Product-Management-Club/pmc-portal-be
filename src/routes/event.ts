@@ -7,7 +7,7 @@ import { addAttendee } from "../controllers/events/attendee";
 import { addTransaction } from "../controllers/payments/add";
 import { addTransactionBody } from "../schema/Transaction";
 import { sendEmail } from "../controllers/emails/send";
-
+import { checkIsRegistered } from "../controllers/events/attendee";
 
 export const eventRouter = Router()
 
@@ -32,9 +32,9 @@ eventRouter.get('/:id', async (req, res) => {
     }
 });
 
-eventRouter.post('/registered', async (req, res) => {
+eventRouter.post('/:id/registered', async (req, res) => {
     try {
-        const { attendeeInfo, paymentInfo } : {
+        const { attendeeInfo, paymentInfo }: {
             attendeeInfo: Attendee,
             paymentInfo: addTransactionBody
         } = req.body
@@ -116,3 +116,14 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+eventRouter.post("/:id/attendees/isRegistered", async (req, res) => {
+    const { id } = req.params
+    const { email } = req.body
+    try {
+        const isRegistered = await checkIsRegistered(id, email);
+        res.status(200).json({ isRegistered })
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+})
