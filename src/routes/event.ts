@@ -65,7 +65,7 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         member_only,
         attendee_Ids,
         maxAttendee,
-        eventForm
+        eventFormId
     } = JSON.parse(JSON.stringify(req.body))
     const mediaFiles = req.files as Express.Multer.File[]
 
@@ -106,7 +106,7 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             member_only: Boolean(JSON.parse(member_only as string)),
             attendee_Ids: JSON.parse(attendee_Ids as string),
             maxAttendee: parseInt(maxAttendee as string) as number,
-            eventForm: JSON.parse(eventForm as string),
+            eventFormId: JSON.parse(eventFormId as string),
             isDisabled: false
         }
         await addEvent(event_Id, event);
