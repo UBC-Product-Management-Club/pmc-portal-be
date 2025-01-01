@@ -40,7 +40,7 @@ jobs:
           echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_STAGING_DATABASE_ID }} >> .env
           echo PMC_EMAIL_SENDER=${{ secrets.PMC_EMAIL_SENDER }} >> .env
           echo PMC_EMAIL_LOGIN=${{ secrets.PMC_EMAIL_LOGIN }} >> .env
-          echo PMC_EMAIL_PWD=${{ secrets.PMC_EMAIL_PWD }} >> .env
+          echo PMC_EMAIL_PWD="${{ secrets.PMC_EMAIL_PWD }}" >> .env
 
       - name: Log into Google Cloud
         uses: "google-github-actions/auth@v1"
