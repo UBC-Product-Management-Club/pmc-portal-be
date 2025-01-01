@@ -13,7 +13,7 @@ type Event = {
     attendee_Ids: string[] | string
     member_only: boolean | string // from request
     maxAttendee: number
-    eventForm: string | undefined
+    eventFormId: string | undefined
     isDisabled: boolean // manually write default as "false" when adding new event
 }
 
@@ -33,7 +33,7 @@ type Attendee = {
     found_out: string
     dietary: string
     event_form_answers: object | undefined
+    files?: string[]
 }
 
-
-export type { Event, Attendee }
+export type {Event, Attendee}
