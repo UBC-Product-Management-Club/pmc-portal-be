@@ -8,6 +8,8 @@ import moment from "moment"
 const assetPath = path.join(__dirname, '..', '..', 'templates', 'emails', 'assets')
 const templatePath = path.join(__dirname, '..', '..', 'templates', 'emails', 'event_reg_confirmation.html');
 
+console.log("template file exists: ", fs.existsSync(templatePath))
+
 const sendEmail = async (attendee_info: Attendee) : Promise<void> => {
     let event: Event | null
     try {
@@ -18,7 +20,6 @@ const sendEmail = async (attendee_info: Attendee) : Promise<void> => {
     }
 
     const emailHTML = fs.readFileSync(templatePath, 'utf8')
-    console.log("emailHTML: ", emailHTML)
     let transporter
 
     try {
