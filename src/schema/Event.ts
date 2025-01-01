@@ -33,7 +33,7 @@ type Attendee = {
     found_out: string
     dietary: string
     event_form_answers: object | undefined
+    files?: string[]
 }
-
 
 export type {Event, Attendee}

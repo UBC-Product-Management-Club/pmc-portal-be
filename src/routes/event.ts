@@ -1,5 +1,5 @@
 import {Router} from "express";
-import {addEvent, getEventById, getEvents, uploadEventMedia} from "../controllers/events/event";
+import {addEvent, getEventById, getEvents} from "../controllers/events/event";
 import { Attendee, Event } from "../schema/Event"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
@@ -8,6 +8,7 @@ import { addTransaction } from "../controllers/payments/add";
 import { addTransactionBody } from "../schema/Transaction";
 import { sendEmail } from "../controllers/emails/send";
 import { checkIsRegistered } from "../controllers/events/attendee";
+import { uploadFiles } from "../utils/files";
 
 export const eventRouter = Router()
 
@@ -32,23 +33,29 @@ eventRouter.get('/:id', async (req, res) => {
     }
 });
 
-eventRouter.post('/:id/registered', async (req, res) => {
+eventRouter.post('/:id/registered', upload.array('files', 5), async (req, res) => {
     try {
-        const { attendeeInfo, paymentInfo }: {
-            attendeeInfo: Attendee,
-            paymentInfo: addTransactionBody
-        } = req.body
+        const attendeeInfo = JSON.parse(req.body.attendeeInfo) as Attendee
+        const paymentInfo = JSON.parse(req.body.paymentInfo) as addTransactionBody
+        
+        const files = req.files as Express.Multer.File[]
+        
+        if (files && files.length > 0) {
+            const parentPath = `events/${req.params.id}/attendees/${attendeeInfo.attendee_Id}/files/`
+            const uploadedFiles = await uploadFiles(files, parentPath)
+            attendeeInfo.files = uploadedFiles
+        }
+
         await addAttendee(attendeeInfo) // should add attendee to firestore
         await addTransaction(paymentInfo) // should add transaction to firestore
         await sendEmail(attendeeInfo)
+        
         res.status(200).json({
             message: "registration successful"
         })
     } catch (error: any) {
         res.status(500).json({ error: error.message })
     }
-
-
 })
 
 eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
@@ -91,7 +98,8 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         }
     }
     try {
-        const media = await uploadEventMedia(event_Id, mediaFiles) // upload media and get download links
+        const parentPath = `events/${event_Id}/media/`
+        const media = await uploadFiles(mediaFiles, parentPath) // upload media and get download links
         const event: Event = {
             event_Id,
             name,
