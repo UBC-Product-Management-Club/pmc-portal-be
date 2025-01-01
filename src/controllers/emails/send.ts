@@ -7,8 +7,6 @@ import moment from "moment"
 
 const assetPath = path.join(__dirname, '..', '..', 'templates', 'emails', 'assets')
 const templatePath = path.join(__dirname, '..', '..', 'templates', 'emails', 'event_reg_confirmation.html');
-console.log("filename: ", __filename)
-console.log("dirname: ", __dirname)
 
 const sendEmail = async (attendee_info: Attendee) : Promise<void> => {
     let event: Event | null
@@ -20,6 +18,7 @@ const sendEmail = async (attendee_info: Attendee) : Promise<void> => {
     }
 
     const emailHTML = fs.readFileSync(templatePath, 'utf8')
+    console.log("emailHTML: ", emailHTML)
     let transporter
 
     try {
