@@ -8,14 +8,6 @@ import moment from "moment"
 const assetPath = path.join(__dirname, '..', '..', 'templates', 'emails', 'assets')
 const templatePath = path.join(__dirname, '..', '..', 'templates', 'emails', 'event_reg_confirmation.html');
 
-const path1 = path.join(__dirname, '..', '..', 'templates', 'emails')
-
-console.log('Current working directory:', process.cwd());
-console.log('Directory contents:', fs.readdirSync(path.dirname(path1)));
-console.log('Template path:', templatePath);
-console.log('Template directory exists:', fs.existsSync(path.dirname(templatePath)));
-console.log('Template directory contents:', fs.readdirSync(path.dirname(templatePath)));
-
 const sendEmail = async (attendee_info: Attendee) : Promise<void> => {
     let event: Event | null
     try {
