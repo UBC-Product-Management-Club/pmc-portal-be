@@ -1,5 +1,5 @@
 import {Router} from "express";
-import {addEvent, getEventById, getEvents, uploadEventMedia} from "../controllers/events/event";
+import {addEvent, getEventById, getEvents} from "../controllers/events/event";
 import { Attendee, Event } from "../schema/Event"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
@@ -7,19 +7,20 @@ import { addAttendee } from "../controllers/events/attendee";
 import { addTransaction } from "../controllers/payments/add";
 import { addTransactionBody } from "../schema/Transaction";
 import { sendEmail } from "../controllers/emails/send";
-
+import { checkIsRegistered } from "../controllers/events/attendee";
+import { uploadFiles } from "../utils/files";
 
 export const eventRouter = Router()
 
 const memStorage = multer.memoryStorage()
-const upload = multer({ storage: memStorage })
+const upload = multer({storage: memStorage})
 
 eventRouter.get('/', async (req, res) => {
     try {
         const events = await getEvents();
         res.status(200).json(events);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
 
@@ -28,32 +29,39 @@ eventRouter.get('/:id', async (req, res) => {
         const eventByID = await getEventById(req.params.id);
         res.status(200).json(eventByID);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
 
-eventRouter.post('/registered', async (req, res) => {
+eventRouter.post('/:id/registered', upload.array('files', 5), async (req, res) => {
     try {
-        const { attendeeInfo, paymentInfo } : {
-            attendeeInfo: Attendee,
-            paymentInfo: addTransactionBody
-        } = req.body
+        const attendeeInfo = JSON.parse(req.body.attendeeInfo) as Attendee
+        const paymentInfo = JSON.parse(req.body.paymentInfo) as addTransactionBody
+        
+        const files = req.files as Express.Multer.File[]
+        
+        if (files && files.length > 0) {
+            const parentPath = `events/${req.params.id}/attendees/${attendeeInfo.attendee_Id}/files/`
+            const uploadedFiles = await uploadFiles(files, parentPath)
+            attendeeInfo.files = uploadedFiles
+        }
+
         await addAttendee(attendeeInfo) // should add attendee to firestore
         await addTransaction(paymentInfo) // should add transaction to firestore
         await sendEmail(attendeeInfo)
+
         res.status(200).json({
             message: "registration successful"
         })
     } catch (error: any) {
         res.status(500).json({ error: error.message })
     }
-
-
 })
 
 eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
     const event_Id = uuidv4(); // generate a unique event ID -- do i need this or does firestore does it for me?
-    const { name,
+    const {
+        name,
         date,
         start_time,
         end_time,
@@ -64,7 +72,7 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         member_only,
         attendee_Ids,
         maxAttendee,
-        eventForm
+        eventFormId
     } = JSON.parse(JSON.stringify(req.body))
     const mediaFiles = req.files as Express.Multer.File[]
 
@@ -90,7 +98,8 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
         }
     }
     try {
-        const media = await uploadEventMedia(event_Id, mediaFiles) // upload media and get download links
+        const parentPath = `events/${event_Id}/media/`
+        const media = await uploadFiles(mediaFiles, parentPath) // upload media and get download links
         const event: Event = {
             event_Id,
             name,
@@ -105,7 +114,7 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             member_only: Boolean(JSON.parse(member_only as string)),
             attendee_Ids: JSON.parse(attendee_Ids as string),
             maxAttendee: parseInt(maxAttendee as string) as number,
-            eventForm: JSON.parse(eventForm as string),
+            eventFormId: JSON.parse(eventFormId as string),
             isDisabled: false
         }
         await addEvent(event_Id, event);
@@ -113,6 +122,17 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             message: `Event with ID ${event_Id} has been added successfully.`,
         });
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
+
+eventRouter.post("/:id/attendees/isRegistered", async (req, res) => {
+    const { id } = req.params
+    const { email } = req.body
+    try {
+        const isRegistered = await checkIsRegistered(id, email);
+        res.status(200).json({ isRegistered })
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+})

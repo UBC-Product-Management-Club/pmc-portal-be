@@ -1,5 +1,5 @@
 import { db } from "../../config/firebase";
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Query } from 'firebase-admin/firestore';
 import { Attendee, Event } from "../../schema/Event";
 
 // const getAttendees = async (): Promise<Attendee[]> => {
@@ -24,7 +24,7 @@ const getAttendeeById = async (id: string): Promise<Attendee | null> => {
     const doc = await attendeeDoc.get();
 
     if (!doc.exists) {
-        console.log('No such document!');
+        console.log('No such attendee document!');
         return null;
     }
 
@@ -36,9 +36,28 @@ const getAttendeeById = async (id: string): Promise<Attendee | null> => {
     return attendee;
 };
 
+const checkIsRegistered = async (event_Id: string, email: string | null) => {
+    const attendeesRef = db.collection('attendees')
+    if (!email) {
+        return false;
+    }
+
+    try {
+        const q = attendeesRef
+            .where('email', '==', email ?? "")
+            .where('event_Id', '==', event_Id);
+
+        const querySnapshot = await q.get();
+
+        return !querySnapshot.empty;
+    } catch (error) {
+        throw new Error(`User is not registered: ${error}`);
+    }
+}
 
 const addAttendee = async (attendee: Attendee): Promise<void> => {
     const eventIDAttendee = db.collection('events').doc(attendee.event_Id);
+    // const attendeesRef = db.collection('attendees')
     const checkMemberId = (uid: string): Promise<void> => {
         const memberRef = db.collection('users').doc(uid);
         return memberRef.get().then(memberDoc => {
@@ -66,6 +85,21 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
             throw new Error('The event has reached the maximum number of attendees');
         }
 
+        if (await checkIsRegistered(attendee.event_Id, attendee.email)) {
+            throw new Error('You have signed up for this event.');
+        };
+
+        // put into a function 
+        // const q = attendeesRef
+        //     .where('email', '==', attendee.email)
+        //     .where('event_Id', '==', attendee.event_Id);
+
+        // const querySnapshot = await q.get();
+
+        // if (!querySnapshot.empty) {
+        //     throw new Error('You have signed up for this event.');
+        // }
+
         await db.collection('attendees').doc(attendee.attendee_Id).set(attendee);
         await eventIDAttendee.update({
             attendee_Ids: FieldValue.arrayUnion(attendee.attendee_Id)
@@ -76,4 +110,4 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
     }
 };
 
-export { getAttendeeById, addAttendee };
+export { getAttendeeById, addAttendee, checkIsRegistered };

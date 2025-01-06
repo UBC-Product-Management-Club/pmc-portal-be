@@ -5,8 +5,8 @@ import { Attendee, Event } from "../../schema/Event";
 import { getEventById } from "../events/event";
 import moment from "moment"
 
-const assetPath = path.join(process.cwd(), 'src', 'templates', 'emails', 'assets')
-const templatePath = path.join(process.cwd(), 'src','templates','emails', 'event_reg_confirmation.html');
+const assetPath = path.join(__dirname, '..', '..', 'templates', 'emails', 'assets')
+const templatePath = path.join(__dirname, '..', '..', 'templates', 'emails', 'event_reg_confirmation.html');
 
 const sendEmail = async (attendee_info: Attendee) : Promise<void> => {
     let event: Event | null

@@ -20,6 +20,9 @@ FROM node:20-alpine AS execute
 # Copy the built code from the build stage
 COPY --from=build /app/build ./build
 
+# Copy the templates directory
+COPY --from=build /app/src/templates ./build/src/templates
+
 # Copy package.json and package-lock.json
 COPY --from=build /app/package.json ./
 COPY --from=build /app/package-lock.json ./

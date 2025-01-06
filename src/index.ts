@@ -6,6 +6,10 @@ import { apiRouter } from "./routes";
 
 // CONFIGURE .env
 dotenv.config();
+console.log('Environment Variables:');
+Object.keys(process.env).forEach(key => {
+  console.log(`${key}: ${process.env[key]}`);
+});
 
 const app = express();
 
@@ -48,3 +52,5 @@ const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+
