@@ -49,7 +49,7 @@ eventRouter.post('/:id/registered', upload.array('files', 5), async (req, res) =
         await addAttendee(attendeeInfo) // should add attendee to firestore
         await addTransaction(paymentInfo) // should add transaction to firestore
         await sendEmail(attendeeInfo)
-        
+
         res.status(200).json({
             message: "registration successful"
         })
