@@ -22,5 +22,7 @@ const storage = new Storage({
 console.log(process.env.STRIPE_SECRET)
 const stripe = new Stripe(process.env.STRIPE_SECRET!)
 
+console.log("Current working directory:", process.cwd());
+console.log("Attempting to use keyfile at:", process.cwd() + "/.secret/pmc-portal-credential.json");
 
 export { auth, db, storage, stripe };
