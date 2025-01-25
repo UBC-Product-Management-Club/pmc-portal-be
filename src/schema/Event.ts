@@ -15,6 +15,7 @@ type Event = {
     maxAttendee: number
     eventFormId: string | undefined
     isDisabled: boolean // manually write default as "false" when adding new event
+    points: Record<string, number>
 }
 
 type Attendee = {
@@ -34,6 +35,8 @@ type Attendee = {
     dietary: string
     event_form_answers: object | undefined
     files?: string[]
+    activities_attended: string[]
+    points: number
 }
 
-export type {Event, Attendee}
+export type { Event, Attendee }
