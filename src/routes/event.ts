@@ -1,9 +1,9 @@
-import {Router} from "express";
-import {addEvent, getEventById, getEvents} from "../controllers/events/event";
+import { Router } from "express";
+import { addEvent, getEventById, getEvents } from "../controllers/events/event";
 import { Attendee, Event } from "../schema/Event"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
-import { addAttendee } from "../controllers/events/attendee";
+import { addAttendee, getAttendeeById } from "../controllers/events/attendee";
 import { addTransaction } from "../controllers/payments/add";
 import { addTransactionBody } from "../schema/Transaction";
 import { sendEmail } from "../controllers/emails/send";
@@ -13,14 +13,14 @@ import { uploadFiles } from "../utils/files";
 export const eventRouter = Router()
 
 const memStorage = multer.memoryStorage()
-const upload = multer({storage: memStorage})
+const upload = multer({ storage: memStorage })
 
 eventRouter.get('/', async (req, res) => {
     try {
         const events = await getEvents();
         res.status(200).json(events);
     } catch (error: any) {
-        res.status(500).json({error: error.message});
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -29,7 +29,7 @@ eventRouter.get('/:id', async (req, res) => {
         const eventByID = await getEventById(req.params.id);
         res.status(200).json(eventByID);
     } catch (error: any) {
-        res.status(500).json({error: error.message});
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -37,19 +37,24 @@ eventRouter.post('/:id/registered', upload.array('files', 5), async (req, res) =
     try {
         const attendeeInfo = JSON.parse(req.body.attendeeInfo) as Attendee
         const paymentInfo = JSON.parse(req.body.paymentInfo) as addTransactionBody
-        
+
         const files = req.files as Express.Multer.File[]
-        
+
         if (files && files.length > 0) {
             const parentPath = `events/${req.params.id}/attendees/${attendeeInfo.attendee_Id}/files/`
             const uploadedFiles = await uploadFiles(files, parentPath)
             attendeeInfo.files = uploadedFiles
         }
 
-        await addAttendee(attendeeInfo) // should add attendee to firestore
+        const attendee = {
+            ...attendeeInfo,
+            points: 1,
+            activities_attended: []
+        }
+
+        await addAttendee(attendee) // should add attendee to firestore
         await addTransaction(paymentInfo) // should add transaction to firestore
         await sendEmail(attendeeInfo)
-
         res.status(200).json({
             message: "registration successful"
         })
@@ -115,14 +120,15 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             attendee_Ids: JSON.parse(attendee_Ids as string),
             maxAttendee: parseInt(maxAttendee as string) as number,
             eventFormId: JSON.parse(eventFormId as string),
-            isDisabled: false
+            isDisabled: false,
+            points: {}
         }
         await addEvent(event_Id, event);
         res.status(201).json({
             message: `Event with ID ${event_Id} has been added successfully.`,
         });
     } catch (error: any) {
-        res.status(500).json({error: error.message});
+        res.status(500).json({ error: error.message });
     }
 });
 
