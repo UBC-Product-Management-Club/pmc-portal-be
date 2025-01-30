@@ -9,7 +9,6 @@ import { addTransactionBody } from "../schema/Transaction";
 import { sendEmail } from "../controllers/emails/send";
 import { checkIsRegistered } from "../controllers/events/attendee";
 import { uploadFiles } from "../utils/files";
-import crypto from 'crypto';
 
 export const eventRouter = Router()
 
@@ -47,7 +46,13 @@ eventRouter.post('/:id/registered', upload.array('files', 5), async (req, res) =
             attendeeInfo.files = uploadedFiles
         }
 
-        await addAttendee(attendeeInfo) // should add attendee to firestore
+        const attendee = {
+            ...attendeeInfo,
+            points: 1,
+            activities_attended: []
+        }
+
+        await addAttendee(attendee) // should add attendee to firestore
         await addTransaction(paymentInfo) // should add transaction to firestore
         await sendEmail(attendeeInfo)
         res.status(200).json({
@@ -116,10 +121,7 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
             maxAttendee: parseInt(maxAttendee as string) as number,
             eventFormId: JSON.parse(eventFormId as string),
             isDisabled: false,
-            points: JSON.parse(attendee_Ids as string).reduce((acc: Record<string, number>, id: string) => {
-                acc[id] = 0; // Default to 0 points for all attendees
-                return acc;
-            }, {})
+            points: {}
         }
         await addEvent(event_Id, event);
         res.status(201).json({

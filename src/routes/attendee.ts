@@ -4,6 +4,7 @@ import { getEventById } from "../controllers/events/event";
 import { Attendee } from "../schema/Event";
 import { db } from "../config/firebase";
 import { FieldValue } from "firebase-admin/firestore";
+import { checkEmail } from "../controllers/qrCode";
 
 export const attendeeRouter = Router();
 
@@ -36,12 +37,14 @@ attendeeRouter.get("/:eventId", async (req, res) => {
   }
 });
 
-// updating the points for the attendee
-attendeeRouter.put('/:eventId/:attendeeId/qr/:qrCodeId', async (req, res) => {
+attendeeRouter.get('/:eventId/:email/qr', async (req, res) => {
   try {
     const event = await getEventById(req.params.eventId);
-    const attendee = await getAttendeeById(req.params.attendeeId);
-    const qrCodeId = req.params.qrCodeId; // get from frontend
+    const attendeeId = await checkEmail(req.params.email, req.params.eventId);
+    if (!attendeeId) {
+      return res.status(404).send("User not found");
+    }
+    const attendee = await getAttendeeById(attendeeId);
 
     if (!event) {
       return res.status(404).send("Event not found");
@@ -50,14 +53,41 @@ attendeeRouter.put('/:eventId/:attendeeId/qr/:qrCodeId', async (req, res) => {
       return res.status(404).send("User not found");
     }
 
-    // checks if user has scanned the qr code or not
+    res.status(200).json({
+      message: "Successfully retrieved points",
+      totalPoints: attendee.points
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+})
+
+// updating the points for the attendee
+attendeeRouter.put('/:eventId/:email/qr/:qrCodeId', async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    const attendeeId = await checkEmail(req.params.email, req.params.eventId);
+    if (!attendeeId) {
+      return res.status(404).send("User not found");
+    }
+    const attendee = await getAttendeeById(attendeeId);
+    const qrCodeId = req.params.qrCodeId;
+
+    if (!event) {
+      return res.status(404).send("Event not found");
+    }
+    if (!attendee) {
+      return res.status(404).send("User not found");
+    }
+
     const activities_attended = attendee.activities_attended;
 
     if (activities_attended.includes(qrCodeId)) {
-      return res.status(400).send("You have already scanned this QR code.")
+      return res.status(400).send("You have already scanned this QR code.");
     }
+    
     const qrPoints = event.points[qrCodeId];
-    const attendeeRef = db.collection('attendees').doc(req.params.attendeeId);
+    const attendeeRef = db.collection('attendees').doc(attendeeId);
 
     activities_attended.push(qrCodeId);
 
@@ -66,7 +96,13 @@ attendeeRouter.put('/:eventId/:attendeeId/qr/:qrCodeId', async (req, res) => {
       activities_attended
     });
 
-    res.status(200).send("Successfully added points");
+    // Retrieve updated attendee data
+    const updatedAttendee = await getAttendeeById(attendeeId);
+
+    res.status(200).json({
+      message: "Successfully added points",
+      totalPoints: updatedAttendee!.points
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
