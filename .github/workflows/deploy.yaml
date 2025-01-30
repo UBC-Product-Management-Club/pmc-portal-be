@@ -52,7 +52,10 @@ jobs:
 
       - name: Run Cloud Build
         run: |
-          gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.APP_NAME }}
+          # Debug to verify .secret exists and has content
+          ls -la .secret/
+          # Submit build with explicit include of .secret directory
+          gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.APP_NAME }} --ignore-file=.gcloudignore
 
       - name: Deploy to Cloud Run
         run: |

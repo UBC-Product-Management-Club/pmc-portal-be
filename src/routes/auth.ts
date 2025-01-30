@@ -13,7 +13,9 @@ authRouter.post("/onboard", async (req: Request, res: Response) => {
 
         // Add the user to the database (throws errors)
         await handleOnboarding(onboardingInfo)
-        await addTransaction(paymentInfo)
+        if (paymentInfo) {
+            await addTransaction(paymentInfo)
+        }
 
         return res
             .status(200)

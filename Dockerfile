@@ -34,6 +34,14 @@ COPY --from=build /app/.secret ./
 # Install only production dependencies
 COPY --from=build /app/node_modules ./node_modules
 
+# After all the COPY commands, before CMD
+RUN echo "Container directory structure:" && \
+    ls -la && \
+    echo "Build directory:" && \
+    ls -la build/ && \
+    echo "Secret directory:" && \
+    ls -la .secret/ || true
+
 # Set the command to run the application
 CMD ["node", "build/src/index.js"]
 
