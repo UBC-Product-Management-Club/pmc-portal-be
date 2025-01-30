@@ -68,22 +68,30 @@ attendeeRouter.put('/:eventId/:email/qr/:qrCodeId', async (req, res) => {
     const event = await getEventById(req.params.eventId);
     const attendeeId = await checkEmail(req.params.email, req.params.eventId);
     if (!attendeeId) {
-      return res.status(404).send("User not found");
+      return res.status(400).json({
+        message: "Attendee with this email is not found."
+      });
     }
     const attendee = await getAttendeeById(attendeeId);
     const qrCodeId = req.params.qrCodeId;
 
     if (!event) {
-      return res.status(404).send("Event not found");
+      return res.status(400).json({
+        message: "Event not found"
+      });
     }
     if (!attendee) {
-      return res.status(404).send("User not found");
+      return res.status(400).json({
+        message: "Attendee with this email is not found."
+      });
     }
 
     const activities_attended = attendee.activities_attended;
 
     if (activities_attended.includes(qrCodeId)) {
-      return res.status(400).send("You have already scanned this QR code.");
+      return res.status(400).json({
+        message: "You have already scanned this QR code."
+      });
     }
     
     const qrPoints = event.points[qrCodeId];
@@ -104,6 +112,6 @@ attendeeRouter.put('/:eventId/:email/qr/:qrCodeId', async (req, res) => {
       totalPoints: updatedAttendee!.points
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
