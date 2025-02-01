@@ -42,15 +42,21 @@ attendeeRouter.get('/:eventId/:email/qr', async (req, res) => {
     const event = await getEventById(req.params.eventId);
     const attendeeId = await checkEmail(req.params.email, req.params.eventId);
     if (!attendeeId) {
-      return res.status(404).send("User not found");
+      return res.status(404).send({
+        message: "Attendee with this email is not found."
+      });
     }
     const attendee = await getAttendeeById(attendeeId);
 
     if (!event) {
-      return res.status(404).send("Event not found");
+      return res.status(404).send({
+        message: "Event not found"
+      });
     }
     if (!attendee) {
-      return res.status(404).send("User not found");
+      return res.status(404).send({
+        message: "Attendee with this email is not found."
+      });
     }
 
     res.status(200).json({
