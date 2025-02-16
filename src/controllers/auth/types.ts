@@ -1,5 +1,6 @@
 
 type userDocument = {
+    id: string
     first_name: string
     last_name: string
     pronouns: string
@@ -14,7 +15,11 @@ type userDocument = {
     returning_member: boolean
     attendee_ids: string[]
     paymentVerified?: boolean
+    exists?: boolean
+    onboarded?: boolean
 }
+
+type UserRequiredFields = Pick<userDocument, 'id' | 'first_name' | 'last_name' | 'email' | 'university' | 'student_id' | 'year' | 'faculty' | 'major' | 'why_PM' | 'returning_member' | 'paymentVerified'>
 
 type memberOnboardingInfo = {
     creds: loginReqBody
@@ -54,4 +59,4 @@ type loginResponse = {
     }
 }
 
-export { onboardingReqBody, loginReqBody, loginResponse, userDocument, memberOnboardingInfo }
+export { onboardingReqBody, loginReqBody, loginResponse, userDocument, UserRequiredFields, memberOnboardingInfo }
