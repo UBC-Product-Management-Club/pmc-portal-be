@@ -1,9 +1,7 @@
-name: Build and Deploy to Cloud Run
+name: Build and Deploy to Cloud Run (PROD)
 
 on:
-  push:
-    branches:
-      - main
+    workflow_dispatch:
 
 env:
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -35,6 +33,7 @@ jobs:
         run: |
           touch .env
           echo ORIGIN=${{ secrets.ORIGIN }} >> .env
+          echo ADMIN_PORTAL_ORIGIN=${{ secrets.PRODUCTION_ADMIN_ORIGIN }} >> .env
           echo BUCKET_NAME=${{ secrets.BUCKET_NAME }} >> .env
           echo STRIPE_SECRET=${{ secrets.STRIPE_SECRET }} >> .env
           echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_DATABASE_ID }} >> .env

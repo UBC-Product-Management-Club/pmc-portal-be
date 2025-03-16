@@ -3,7 +3,7 @@ name: Build and Deploy to Cloud Run
 on:
   push:
     branches:
-      - staging
+      - main 
 
 env:
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -35,6 +35,7 @@ jobs:
         run: |
           touch .env
           echo ORIGIN=${{ secrets.STAGING_ORIGIN }} >> .env
+          echo ADMIN_PORTAL_ORIGIN=${{ secrets.STAGING_ADMIN_ORIGIN }} >> .env
           echo BUCKET_NAME=${{ secrets.BUCKET_NAME }} >> .env
           echo STRIPE_SECRET=${{ secrets.STRIPE_TEST_SECRET }} >> .env
           echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_STAGING_DATABASE_ID }} >> .env
