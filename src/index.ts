@@ -24,6 +24,7 @@ const app = express();
 
 const allowedOrigins = [
   process.env.ORIGIN,
+  process.env.ADMIN_PORTAL_ORIGIN
 ]
 
 const corsOptions = {
