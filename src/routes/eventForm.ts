@@ -1,7 +1,7 @@
 import {Router} from "express";
-import {getEventForm} from "../controllers/eventForm/get";
+import {getEventForm} from "../services/eventForm/get";
 import {ZodError} from "zod";
-import {addEventForm} from "../controllers/eventForm/add";
+import {addEventForm} from "../services/eventForm/add";
 
 export const eventFormRouter = Router()
 
