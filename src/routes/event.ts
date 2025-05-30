@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { addEvent, getEventById, getEvents } from "../controllers/events/event";
+import { addEvent, getEventById, getEvents } from "../services/events/event";
 import { Attendee, Event } from "../schema/Event"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
-import { addAttendee, getAttendeeById } from "../controllers/events/attendee";
-import { addTransaction } from "../controllers/payments/add";
+import { addAttendee, getAttendeeById } from "../services/events/attendee";
+import { addTransaction } from "../services/payments/add";
 import { addTransactionBody } from "../schema/Transaction";
-import { sendEmail } from "../controllers/emails/send";
-import { checkIsRegistered } from "../controllers/events/attendee";
+import { sendEmail } from "../services/emails/send";
+import { checkIsRegistered } from "../services/events/attendee";
 import { uploadFiles } from "../utils/files";
 
 export const eventRouter = Router()

@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { getAttendeeById } from "../controllers/events/attendee";
-import { getEventById } from "../controllers/events/event";
+import { getAttendeeById } from "../services/events/attendee";
+import { getEventById } from "../services/events/event";
 import { Attendee } from "../schema/Event";
 import { db } from "../config/firebase";
 import { FieldValue } from "firebase-admin/firestore";
-import { checkEmail } from "../controllers/qrCode";
+import { checkEmail } from "../services/qrCode";
 
 export const attendeeRouter = Router();
 

@@ -1,9 +1,9 @@
 import { Request, Response, Router } from "express";
-import { handleOnboarding } from "../controllers/auth/register";
-import { handleLogin } from "../controllers/auth/login";
-import { loginReqBody, loginResponse, onboardingReqBody } from "../controllers/auth/types";
-import { getAllUsers } from "../controllers/auth/users";
-import { addTransaction } from "../controllers/payments/add";
+import { handleOnboarding } from "../services/auth/register";
+import { handleLogin } from "../services/auth/login";
+import { loginReqBody, loginResponse, onboardingReqBody } from "../services/auth/types";
+import { getAllUsers } from "../services/auth/users";
+import { addTransaction } from "../services/payments/add";
 
 export const authRouter = Router()
 

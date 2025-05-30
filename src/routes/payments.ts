@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { addTransaction } from "../controllers/payments/add";
-import { createPaymentIntent } from "../controllers/payments/create";
-import { getEventById } from "../controllers/events/event";
+import { addTransaction } from "../services/payments/add";
+import { createPaymentIntent } from "../services/payments/create";
+import { getEventById } from "../services/events/event";
 import { Event } from "../schema/Event";
 
 
