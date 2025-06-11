@@ -1,21 +1,25 @@
 import { Request, Response, Router } from "express";
 import { handleSupabaseOnboarding } from "../../services/auth/register";
-import { handleSupabaseLogin } from "../../services/auth/login";
-import { loginReqBody, loginResponse, onboardingReqBody } from "../../services/auth/types";
 import { getAllSupabaseUsers } from "../../services/auth/users";
-import { addSupabaseTransaction } from "../../services/payments/add";
+import { UserDocument } from "../../services/auth/types";
+import Stripe from "stripe";
 
 export const authRouter = Router()
 
+interface onboardingBody {
+   user: UserDocument,
+   payment: Stripe.PaymentIntent
+}
+
 authRouter.post("/onboard", async (req: Request, res: Response) => {
-    const { onboardingInfo, paymentInfo }: onboardingReqBody = req.body;
+    const { user, payment }: onboardingBody = req.body;
     try{
 
         // Add the user to the database (throws errors)
-        await handleSupabaseOnboarding(onboardingInfo)
-        if (paymentInfo) {
-            await addSupabaseTransaction(paymentInfo)
-        }
+        await handleSupabaseOnboarding(user)
+        // if (payment) {
+        //     await addSupabaseTransaction(payment)
+        // }
 
         return res
             .status(200)
@@ -32,7 +36,7 @@ authRouter.post("/onboard", async (req: Request, res: Response) => {
 })
 
 authRouter.post("/login", async (req: Request, res: Response) => {
-    const { userUID, idToken }: loginReqBody = req.body
+    const { userId } : { userId: string }= req.body
     try{
         // const session: loginResponse | undefined = await handleSupabaseLogin(userUID, idToken)
 
@@ -58,7 +62,6 @@ authRouter.post("/login", async (req: Request, res: Response) => {
             .json({
                 error: error.message
             })
-        // show error component
     }
 })
 
