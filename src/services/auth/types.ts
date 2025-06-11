@@ -46,17 +46,7 @@ type onboardingReqBody = {
 }
 
 type loginReqBody = {
-    userUID: string
-    idToken: string
+    userId: string
 }
 
-type loginResponse = {
-    sessionCookie: string
-    options: {
-        maxAge: number
-        httpOnly: boolean
-        secure: boolean
-    }
-}
-
-export { onboardingReqBody, loginReqBody, loginResponse, userDocument, UserRequiredFields, memberOnboardingInfo }
+export { onboardingReqBody, loginReqBody, userDocument, UserRequiredFields, memberOnboardingInfo }
