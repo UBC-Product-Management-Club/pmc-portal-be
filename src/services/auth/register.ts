@@ -1,6 +1,5 @@
 import { memberOnboardingInfo } from "./types";
 import { db } from "../../config/firebase";
-import { checkUserExists } from "./utils";
 
 
 // Handles initial user onboarding and login.
