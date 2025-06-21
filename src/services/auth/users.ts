@@ -1,6 +1,7 @@
 import { db } from "../../config/firebase";
 import { exportUserFieldNames, UserExportFields, UserRequiredFields } from "./types";
 import { formatCSV } from "./utils";
+import {supabase} from "../../config/supabase";
 
 export const getAllUsers = async (): Promise<UserRequiredFields[]> => {
     try {
@@ -12,6 +13,21 @@ export const getAllUsers = async (): Promise<UserRequiredFields[]> => {
         throw error;
     }
 };
+
+export const getAllSupabaseUsers = async (): Promise<UserRequiredFields[]> => {
+    try {
+        const {data, error} = await supabase.from('User').select();
+        if (error || !data) {
+            throw new Error('Failed to fetch users: ' + error?.message);
+        }
+        data.push(data.length)
+        return data;
+
+    } catch (error) {
+        console.error("Error fetching users: ", error);
+        throw error;
+    }
+}
 
 export const exportUsers = async (password: string, isCSV: boolean = false): Promise<UserExportFields[] | string> => {
     try {
