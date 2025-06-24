@@ -20,7 +20,6 @@ export const getAllSupabaseUsers = async (): Promise<UserRequiredFields[]> => {
         if (error || !data) {
             throw new Error('Failed to fetch users: ' + error?.message);
         }
-        data.push(data.length)
         return data;
 
     } catch (error) {
