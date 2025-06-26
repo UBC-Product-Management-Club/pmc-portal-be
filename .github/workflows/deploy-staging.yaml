@@ -65,5 +65,5 @@ jobs:
             --image gcr.io/${{ env.PROJECT_ID }}/${{ env.APP_NAME }} \
             --region ${{ env.REGION }} \
             --allow-unauthenticated \
-            --set-env-vars PORT=${{ secrets.PORT }},ORIGIN=${{ secrets.ORIGIN }},ADMIN_PORTAL_ORIGIN=${{ secrets.ADMIN_ORIGIN }},BUCKET_NAME=${{ secrets.BUCKET_NAME }},STRIPE_SECRET=${{ secrets.STRIPE_SECRET }},FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_DATABASE_ID }},PMC_EMAIL_SENDER="${{ secrets.PMC_EMAIL_SENDER }}",PMC_EMAIL_LOGIN=${{ secrets.PMC_EMAIL_LOGIN }},PMC_EMAIL_PWD="${{ secrets.PMC_EMAIL_PWD }}",EXPORT_PASSWORD=${{ secrets.EXPORT_PASSWORD }},SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+            --set-env-vars ORIGIN=${{ secrets.ORIGIN }},ADMIN_PORTAL_ORIGIN=${{ secrets.ADMIN_ORIGIN }},BUCKET_NAME=${{ secrets.BUCKET_NAME }},STRIPE_SECRET=${{ secrets.STRIPE_SECRET }},FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_DATABASE_ID }},PMC_EMAIL_SENDER="${{ secrets.PMC_EMAIL_SENDER }}",PMC_EMAIL_LOGIN=${{ secrets.PMC_EMAIL_LOGIN }},PMC_EMAIL_PWD="${{ secrets.PMC_EMAIL_PWD }}",EXPORT_PASSWORD=${{ secrets.EXPORT_PASSWORD }},SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
         
