@@ -40,9 +40,9 @@ jobs:
           echo PMC_EMAIL_SENDER=${{ secrets.PMC_EMAIL_SENDER }} >> .env
           echo PMC_EMAIL_LOGIN=${{ secrets.PMC_EMAIL_LOGIN }} >> .env
           echo PMC_EMAIL_PWD="${{ secrets.PMC_EMAIL_PWD }}" >> .env
-          echo SUPABASE_URL="${{secrets.SUPABASE_URL}}" >> .env
-          echo SUPABASE_ANON_KEY="${{secrets.SUPABASE_ANON_KEY}}" >> .env
-
+          echo SUPABASE_URL=${{ secrets.SUPABASE_URL}} >> .env
+          echo SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY}} >> .env
+          
       - name: Log into Google Cloud
         uses: "google-github-actions/auth@v1"
         with:
