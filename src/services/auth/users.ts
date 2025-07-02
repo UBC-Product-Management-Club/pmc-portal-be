@@ -14,19 +14,6 @@ export const getAllUsers = async (): Promise<UserRequiredFields[]> => {
     }
 };
 
-export const getAllSupabaseUsers = async (): Promise<UserRequiredFields[]> => {
-    try {
-        const {data, error} = await supabase.from('User').select();
-        if (error || !data) {
-            throw new Error('Failed to fetch users: ' + error?.message);
-        }
-        return data;
-
-    } catch (error) {
-        console.error("Error fetching users: ", error);
-        throw error;
-    }
-}
 
 export const exportUsers = async (password: string, isCSV: boolean = false): Promise<UserExportFields[] | string> => {
     try {
@@ -52,4 +39,29 @@ export const exportUsers = async (password: string, isCSV: boolean = false): Pro
         console.error("Error fetching users: ", error);
         throw error;
     }
-};
+    
+}
+
+// supabase services
+
+export const getAllSupabaseUsers = async (): Promise<UserRequiredFields[]> => {
+    try {
+        const {data, error} = await supabase.from('User').select();
+        if (error || !data) {
+            throw new Error('Failed to fetch users: ' + error?.message);
+        }
+        return data;
+
+    } catch (error) {
+        console.error("Error fetching users: ", error);
+        throw error;
+    }
+}
+
+// boilerplate
+export const exportSupabaseUsers = async (password: string, isCSV: boolean = false): Promise<{ message: string }> => {
+    
+    return {message: `exporting Supabase Users`}
+}
+
+;

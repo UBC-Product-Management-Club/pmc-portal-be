@@ -110,4 +110,12 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
     }
 };
 
-export { getAttendeeById, addAttendee, checkIsRegistered };
+
+// supabase
+
+const getSupabaseAttendeeById = async (id: string): Promise<{message: string}> => {
+
+    return {message: `getting attendee by ${id}`};
+};
+
+export { getAttendeeById, addAttendee, checkIsRegistered, getSupabaseAttendeeById };

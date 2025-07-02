@@ -1,12 +1,12 @@
 import { Request, Response, Router } from "express";
-import { exportUsers, getAllUsers, getAllSupabaseUsers} from "../services/auth/users";
-import { getProfile } from "../services/profile/get";
+import { exportUsers, getAllUsers} from "../../services/auth/users";
+import { getProfile } from "../../services/profile/get";
 
 export const adminRouter = Router();
 
 adminRouter.get("/users", async (req: Request, res: Response) => {
     try {
-        const users = await getAllSupabaseUsers();
+        const users = await getAllUsers();
         return res.status(200).send(users);
     } catch (error) {
         console.error(error);

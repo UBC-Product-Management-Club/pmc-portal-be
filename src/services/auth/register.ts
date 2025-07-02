@@ -19,5 +19,9 @@ const handleOnboarding = async (onboardInfo: memberOnboardingInfo): Promise<void
     }
 }
 
+// supabase
+const handleSupabaseOnboarding = async (onboardInfo: memberOnboardingInfo): Promise<{message: string}> => {
+    return {message: "success"}
+}
 
-export { handleOnboarding }
+export { handleOnboarding, handleSupabaseOnboarding }
