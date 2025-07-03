@@ -11,6 +11,7 @@ jest.mock('nodemailer');
 const mockedGetEventById = getEventById as jest.MockedFunction<typeof getEventById>;
 const mockedReadFileSync = fs.readFileSync as jest.Mock;
 const mockedCreateTransport = nodemailer.createTransport as jest.Mock;
+let sendMailMock: jest.Mock;
 
 describe('sendEmail', () => {
 
@@ -63,15 +64,13 @@ describe('sendEmail', () => {
             <p>{{desc}}</p>
         `);
 
-        const sendMailMock = jest.fn().mockResolvedValue({ response: '250 OK' });
+        sendMailMock = jest.fn().mockResolvedValue({ response: '250 OK' });
         mockedCreateTransport.mockReturnValue({ sendMail: sendMailMock });
     });
 
     it('successfully sends email', async () => {
         await sendEmail(fakeAttendee);
         expect(mockedCreateTransport).toHaveBeenCalled();
-
-        const sendMailMock = mockedCreateTransport.mock.results[0].value.sendMail;
         expect(sendMailMock).toHaveBeenCalledTimes(1);
         expect(sendMailMock).toHaveCalledWithMailInfo(
             fakeAttendee.email,
