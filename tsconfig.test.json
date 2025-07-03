@@ -1,0 +1,16 @@
+//Separate config to avoid compiling test files with tsc 
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest"],
+    "module": "commonjs",
+    "target": "es2016",
+    "lib": ["ES2021.String"],
+    "rootDir": ".",         
+    "noEmit": true,
+    "moduleResolution": "node10",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts", "global.d.ts"]
+}
