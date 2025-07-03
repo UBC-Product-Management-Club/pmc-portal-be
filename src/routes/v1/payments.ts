@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { addTransaction } from "../services/payments/add";
-import { createPaymentIntent } from "../services/payments/create";
-import { getEventById } from "../services/events/event";
-import { Event } from "../schema/Event";
+import { addTransaction } from "../../services/payments/add";
+import { createPaymentIntent } from "../../services/payments/create";
+import { getEventById } from "../../services/events/event";
+import { Event } from "../../schema/Event";
 
 
 export const paymentRouter = Router()

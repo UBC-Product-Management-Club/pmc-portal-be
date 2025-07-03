@@ -1,9 +1,9 @@
 import { Request, Response, Router } from "express";
-import { handleOnboarding } from "../services/auth/register";
-import { handleLogin } from "../services/auth/login";
-import { loginReqBody, loginResponse, onboardingReqBody } from "../services/auth/types";
-import { getAllUsers } from "../services/auth/users";
-import { addTransaction } from "../services/payments/add";
+import { handleSupabaseOnboarding } from "../../services/auth/register";
+import { handleSupabaseLogin } from "../../services/auth/login";
+import { loginReqBody, loginResponse, onboardingReqBody } from "../../services/auth/types";
+import { getAllSupabaseUsers } from "../../services/auth/users";
+import { addSupabaseTransaction } from "../../services/payments/add";
 
 export const authRouter = Router()
 
@@ -12,15 +12,15 @@ authRouter.post("/onboard", async (req: Request, res: Response) => {
     try{
 
         // Add the user to the database (throws errors)
-        await handleOnboarding(onboardingInfo)
+        await handleSupabaseOnboarding(onboardingInfo)
         if (paymentInfo) {
-            await addTransaction(paymentInfo)
+            await addSupabaseTransaction(paymentInfo)
         }
 
         return res
             .status(200)
             .json({
-                message: "Login success. New user created"
+                message: "Supabase Login success. New user created"
             })
     } catch (error: any) {
         return res
@@ -34,22 +34,23 @@ authRouter.post("/onboard", async (req: Request, res: Response) => {
 authRouter.post("/login", async (req: Request, res: Response) => {
     const { userUID, idToken }: loginReqBody = req.body
     try{
-        const session: loginResponse | undefined = await handleLogin(userUID, idToken)
+        // const session: loginResponse | undefined = await handleSupabaseLogin(userUID, idToken)
 
-        // If user doesn't exist, return 302 to redirect
-        if (!session) {
-            return res
-                .status(302)
-                .json({
-                    message: "User doesn't exist, redirecting to onboarding"
-                })
-        }
+        // // If user doesn't exist, return 302 to redirect
+        // if (!session) {
+        //     return res
+        //         .status(302)
+        //         .json({
+        //             message: "User doesn't exist, redirecting to onboarding"
+        //         })
+        // }
         return res
             .status(200)
-            .cookie('session', session.sessionCookie, session.options)
+            //.cookie('session', session.sessionCookie, session.options)
             .json({
-                message: "Login success"
+                message: "Supabase Login success"
             })
+
     } catch (error: any) {
         console.log(error)
         return res
@@ -64,7 +65,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 // TO DO: Add role-based access control to this in the future
 authRouter.get("/users", async (req: Request, res: Response) => {
     try {
-        const users = await getAllUsers();
+        const users = await getAllSupabaseUsers();
         return res.status(200).send(users);
     } catch (error) {
         console.error(error);

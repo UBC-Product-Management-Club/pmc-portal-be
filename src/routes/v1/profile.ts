@@ -1,6 +1,6 @@
 import {Request, Response, Router} from "express";
-import {getProfile, getProfileByEmail, getRegisteredEvents} from "../services/profile/get";
-import {deleteUser} from "../services/profile/delete";
+import {getProfile, getProfileByEmail, getRegisteredEvents} from "../../services/profile/get";
+import {deleteUser} from "../../services/profile/delete";
 // import { editProfile } from "../controllers/profile/edit";
 
 export const profileRouter = Router()
