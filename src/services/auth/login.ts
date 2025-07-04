@@ -1,33 +1,16 @@
-import { auth } from "../../config/firebase"
-import { loginResponse } from "./types"
-import { checkUserExists } from "./utils"
+import { db } from "../../config/firebase"
 
-/*
-    Request Body must include:
-        - user : User object returned from successful firebase authentication
-        - idToken: idToken returned from successful firebase authentication. Used to exchange for session cookie
-    HandleLogin authenticates idToken and returns a sessionCookie
-*/
-const handleLogin = async (userUID: string, idToken: string): Promise<loginResponse | undefined> => {
-    if (!userUID || !idToken) {
+// TODO: create types for user auth
+const handleLogin = async (userId: string): Promise<any> => {
+    if (!userId) {
         throw Error("400: Bad request")
     }
-
-    // If user doesn't exist, return undefined
-    if (!await checkUserExists(userUID)) {
-        return undefined
-    }
-
-    const expiresIn = 60 * 60 * 1000
     try {
-        // exchanges idToken for session cookie
-        const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn })
-        const options = { maxAge: expiresIn, httpOnly: true, secure: true}
-        return { sessionCookie: sessionCookie, options: options }
-        // res.cookie('session', sessionCookie, options)
+        const userRef = db.collection("users").doc(userId)
+        const user = await userRef.get()
+        return user.data()
     } catch (error) {
-        // Failed session cookie creation
-        throw Error("500: Failed to create session cookie")
+        throw Error("500: something went wrong fetching users")
     }
 }
 

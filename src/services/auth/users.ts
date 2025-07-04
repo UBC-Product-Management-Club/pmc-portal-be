@@ -1,7 +1,7 @@
 import { db } from "../../config/firebase";
-import { exportUserFieldNames, UserExportFields, UserRequiredFields } from "./types";
 import { formatCSV } from "./utils";
 import {supabase} from "../../config/supabase";
+import { exportUserFieldNames, UserExportFields, UserRequiredFields } from "../../schema/User";
 
 export const getAllUsers = async (): Promise<UserRequiredFields[]> => {
     try {
