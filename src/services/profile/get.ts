@@ -1,10 +1,10 @@
 import {db} from "../../config/firebase";
-import {UserDocument} from "../auth/types";
+import { User } from "../../schema/User";
 
-const getProfile = async (uid: string): Promise<UserDocument | undefined> => {
+const getProfile = async (uid: string): Promise<User | undefined> => {
     const docRef = db.collection("users").doc(uid)
     const userRef = await docRef.get()
-    return userRef.data() as UserDocument | undefined
+    return userRef.data() as User | undefined
 }
 
 

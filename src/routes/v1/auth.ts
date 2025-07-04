@@ -1,15 +1,15 @@
 import { Request, Response, Router } from "express";
 import { onboard } from "../../services/auth/register";
 import { handleLogin } from "../../services/auth/login";
-import { UserDocument } from "../../services/auth/types";
 import { getAllUsers } from "../../services/auth/users";
 import { addTransaction } from "../../services/payments/add";
 import Stripe from "stripe";
+import { User } from "../../schema/User";
 
 export const authRouter = Router()
 
 interface onboardingBody {
-   user: UserDocument,
+   user: User,
    payment: Stripe.PaymentIntent
 }
 

@@ -1,13 +1,13 @@
 import { Request, Response, Router } from "express";
 import { handleSupabaseOnboarding } from "../../services/auth/register";
 import { getAllSupabaseUsers } from "../../services/auth/users";
-import { UserDocument } from "../../services/auth/types";
 import Stripe from "stripe";
+import { User } from "../../schema/User";
 
 export const authRouter = Router()
 
 interface onboardingBody {
-   user: UserDocument,
+   user: User,
    payment: Stripe.PaymentIntent
 }
 
