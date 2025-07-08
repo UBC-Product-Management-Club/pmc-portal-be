@@ -1,5 +1,5 @@
 //  some are "| string" since FormData only accepts strings
-type Event = {
+type FirebaseEvent = {
     event_Id: string // generated
     name: string // from request
     date: string // Date in ISO format (e.g. YYYY-MM-DD)
@@ -39,4 +39,4 @@ type Attendee = {
     points: number
 }
 
-export type { Event, Attendee }
+export type { FirebaseEvent, Attendee }

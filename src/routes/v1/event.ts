@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { addEvent, getEventById, getEvents } from "../../services/events/event";
-import { Attendee, Event } from "../../schema/Event"
+import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
 import { addAttendee, getAttendeeById } from "../../services/events/attendee";
 import { addTransaction } from "../../services/payments/add";
-import { addTransactionBody } from "../../schema/Transaction";
+import { addTransactionBody } from "../../schema/v1/Transaction";
 import { sendEmail } from "../../services/emails/send";
 import { checkIsRegistered } from "../../services/events/attendee";
 import { uploadFiles } from "../../utils/files";
@@ -105,7 +105,7 @@ eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
     try {
         const parentPath = `events/${event_Id}/media/`
         const media = await uploadFiles(mediaFiles, parentPath) // upload media and get download links
-        const event: Event = {
+        const event: FirebaseEvent = {
             event_Id,
             name,
             date,

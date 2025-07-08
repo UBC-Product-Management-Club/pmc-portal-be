@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { addEvent, getSupabaseEventById, getSupabaseEvents } from "../../services/events/event";
-import { Attendee, Event } from "../../schema/Event"
+import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
 import { addAttendee, getAttendeeById } from "../../services/events/attendee";
 import { addTransaction } from "../../services/payments/add";
-import { addTransactionBody } from "../../schema/Transaction";
+import { addTransactionBody } from "../../schema/v1/Transaction";
 import { sendEmail } from "../../services/emails/send";
 import { checkIsRegistered } from "../../services/events/attendee";
 import { uploadFiles } from "../../utils/files";
@@ -18,7 +18,7 @@ const upload = multer({ storage: memStorage })
 eventRouter.get('/', async (req, res) => {
     try {
         const events = await getSupabaseEvents();
-        res.status(200).json({message: "getting supabase events"});
+        res.status(200).json(events);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
@@ -27,7 +27,7 @@ eventRouter.get('/', async (req, res) => {
 eventRouter.get('/:id', async (req, res) => {
     try {
         const eventByID = await getSupabaseEventById(req.params.id);
-        res.status(200).json({message: `getting event ${req.params.id}`});
+        res.status(200).json(eventByID);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
