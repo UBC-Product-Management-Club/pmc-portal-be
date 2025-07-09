@@ -18,6 +18,25 @@ type userDocument = {
     onboarded?: boolean;
 };
 
+type SupabaseUser = {
+    user_id: string;
+    first_name: string;
+    last_name: string;
+    is_ubc_student: boolean | null;
+    display_name: string;
+    why_pm: string;
+    pronouns?: string | null;
+    university?: string | null;
+    faculty?: string | null;
+    email: string;
+    year?: string | null;
+    major?: string | null;
+    pfp?: string | null;
+    is_returning_member?: boolean | null;
+    is_payment_verified?: boolean;
+    student_id?: string | null;
+};
+
 type UserRequiredFields = Pick<
     userDocument,
     "id" | "first_name" | "last_name" | "email" | "university" | "student_id" | "year" | "faculty" | "major" | "why_PM" | "returning_member" | "paymentVerified"
@@ -65,4 +84,4 @@ type loginResponse = {
     };
 };
 
-export { onboardingReqBody, loginReqBody, loginResponse, userDocument, UserRequiredFields, memberOnboardingInfo, UserExportFields, exportUserFieldNames };
+export { onboardingReqBody, loginReqBody, loginResponse, userDocument, UserRequiredFields, memberOnboardingInfo, UserExportFields, exportUserFieldNames, SupabaseUser };

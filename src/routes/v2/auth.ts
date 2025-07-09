@@ -5,35 +5,30 @@ import { loginReqBody, loginResponse, onboardingReqBody } from "../../services/a
 import { getAllSupabaseUsers } from "../../services/auth/users";
 import { addSupabaseTransaction } from "../../services/payments/add";
 
-export const authRouter = Router()
+export const authRouter = Router();
 
 authRouter.post("/onboard", async (req: Request, res: Response) => {
     const { onboardingInfo, paymentInfo }: onboardingReqBody = req.body;
-    try{
-
+    try {
         // Add the user to the database (throws errors)
-        await handleSupabaseOnboarding(onboardingInfo)
+        await handleSupabaseOnboarding(onboardingInfo);
         if (paymentInfo) {
-            await addSupabaseTransaction(paymentInfo)
+            await addSupabaseTransaction(paymentInfo);
         }
 
-        return res
-            .status(200)
-            .json({
-                message: "Supabase Login success. New user created"
-            })
+        return res.status(200).json({
+            message: "Supabase Login success. New user created",
+        });
     } catch (error: any) {
-        return res
-            .status(500)
-            .json({
-                error: error.message
-            })
+        return res.status(500).json({
+            error: error.message,
+        });
     }
-})
+});
 
 authRouter.post("/login", async (req: Request, res: Response) => {
-    const { userUID, idToken }: loginReqBody = req.body
-    try{
+    const { userUID, idToken }: loginReqBody = req.body;
+    try {
         // const session: loginResponse | undefined = await handleSupabaseLogin(userUID, idToken)
 
         // // If user doesn't exist, return 302 to redirect
@@ -44,23 +39,22 @@ authRouter.post("/login", async (req: Request, res: Response) => {
         //             message: "User doesn't exist, redirecting to onboarding"
         //         })
         // }
-        return res
-            .status(200)
-            //.cookie('session', session.sessionCookie, session.options)
-            .json({
-                message: "Supabase Login success"
-            })
-
+        return (
+            res
+                .status(200)
+                //.cookie('session', session.sessionCookie, session.options)
+                .json({
+                    message: "Supabase Login success",
+                })
+        );
     } catch (error: any) {
-        console.log(error)
-        return res
-            .status(400)
-            .json({
-                error: error.message
-            })
+        console.log(error);
+        return res.status(400).json({
+            error: error.message,
+        });
         // show error component
     }
-})
+});
 
 // TO DO: Add role-based access control to this in the future
 authRouter.get("/users", async (req: Request, res: Response) => {
@@ -71,8 +65,7 @@ authRouter.get("/users", async (req: Request, res: Response) => {
         console.error(error);
         return res.status(500).send(error);
     }
-})
-
+});
 
 // for testing authentication. Will probably need to be middleware later
 // authRouter.get("/test", async (req,res) => {
