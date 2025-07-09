@@ -1,6 +1,7 @@
 import { db } from "../../config/firebase";
 import { supabase } from "../../config/supabase";
 import { FirebaseEvent } from "../../schema/v1/FirebaseEvent";
+import { Tables } from "../../schema/v2/database.types";
 import { SupabaseEvent } from "../../schema/v2/SupabaseEvent";
 
 const getEvents = async (): Promise<FirebaseEvent[]> => {
@@ -63,46 +64,25 @@ const addEvent = async (event_Id: string, event: FirebaseEvent): Promise<void> =
 
 
 // supabase services
-
-const getSupabaseEvents = async (): Promise<SupabaseEvent[]> => {
-    try {
-
-        const {data, error} = await supabase.from('Event').select();
-        if (error || !data) {
-            throw new Error('Failed to fetch events: ' + error?.message);
-        }
-        const events: SupabaseEvent[] = data.map(doc => ({
-            event_id: doc.event_id,
-            ...doc as Omit<SupabaseEvent, 'event_id'>
-        }));
-        return events;
-
-    } catch (error) {
+const getSupabaseEvents = async (): Promise<Tables<'Event'>[]> => {
+    const {data, error} = await supabase.from('Event').select();
+    if (error || !data) {
         console.error("Error fetching events: ", error);
-        throw error;
+        throw new Error('Failed to fetch events: ' + error?.message);
     }
+    return data;
 };
 
-const getSupabaseEventById = async (id: string): Promise<SupabaseEvent | null> => {
-    
-    try {
+const getSupabaseEventById = async (id: string): Promise<Tables<'Event'> | null> => {
 
-        const {data, error } = await supabase.from('Event').select().eq('event_id', id).single();
+    const {data, error } = await supabase.from('Event').select().eq('event_id', id).single();
 
-        if (error || !data) {
-            throw new Error('Failed to fetch events: ' + error?.message);
-        }
-
-
-        const event: SupabaseEvent = {
-            event_id: data.event_id,
-            ...data as Omit<SupabaseEvent, 'event_id'>
-        };
-        return event
-    } catch (error) {
-        console.error("Error fetching events: ", error);
-        throw error;
+    if (error || !data) {
+        console.error("Error fetching event: ", error);
+        throw new Error(`Failed to fetch event ${id}: ` + error?.message);
     }
+
+    return data;
 
 };
 
