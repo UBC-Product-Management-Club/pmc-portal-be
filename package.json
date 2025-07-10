@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",
+    "@jest/types": "^30.0.1",
     "@json2csv/plainjs": "^7.0.6",
     "@supabase/supabase-js": "^2.50.0",
     "@types/cors": "^2.8.18",

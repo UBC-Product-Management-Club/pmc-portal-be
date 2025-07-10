@@ -1,12 +1,12 @@
-import { db } from "../../config/firebase";
-import { getSupabaseUserByID } from "../auth/users";
-import { userDocument } from "../auth/types";
+import {db} from "../../config/firebase";
+import { User } from "../../schema/User";
 
-const getProfile = async (uid: string): Promise<userDocument | undefined> => {
-    const docRef = db.collection("users").doc(uid);
-    const userRef = await docRef.get();
-    return userRef.data() as userDocument | undefined;
-};
+const getProfile = async (uid: string): Promise<User | undefined> => {
+    const docRef = db.collection("users").doc(uid)
+    const userRef = await docRef.get()
+    return userRef.data() as User | undefined
+}
+
 
 const getProfileByEmail = async (email: string): Promise<string | undefined> => {
     const userCollection = db.collection("users");

@@ -1,70 +1,73 @@
 import { Request, Response, Router } from "express";
 import { handleSupabaseOnboarding } from "../../services/auth/register";
-import { handleSupabaseLogin } from "../../services/auth/login";
-import { loginReqBody, loginResponse, onboardingReqBody } from "../../services/auth/types";
 import { getAllSupabaseUsers } from "../../services/auth/users";
-import { addSupabaseTransaction } from "../../services/payments/add";
+import Stripe from "stripe";
+import { User } from "../../schema/User";
 
 export const authRouter = Router();
 
-authRouter.post("/onboard", async (req: Request, res: Response) => {
-    const { onboardingInfo, paymentInfo }: onboardingReqBody = req.body;
-    try {
-        // Add the user to the database (throws errors)
-        await handleSupabaseOnboarding(onboardingInfo);
-        if (paymentInfo) {
-            await addSupabaseTransaction(paymentInfo);
-        }
+interface onboardingBody {
+  user: User;
+  payment: Stripe.PaymentIntent;
+}
 
-        return res.status(200).json({
-            message: "Supabase Login success. New user created",
-        });
-    } catch (error: any) {
-        return res.status(500).json({
-            error: error.message,
-        });
-    }
+authRouter.post("/onboard", async (req: Request, res: Response) => {
+  const { user, payment }: onboardingBody = req.body;
+  try {
+    // Add the user to the database (throws errors)
+    await handleSupabaseOnboarding(user);
+    // if (payment) {
+    //     await addSupabaseTransaction(payment)
+    // }
+
+    return res.status(200).json({
+      message: "Supabase Login success. New user created",
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      error: error.message,
+    });
+  }
 });
 
 authRouter.post("/login", async (req: Request, res: Response) => {
-    const { userUID, idToken }: loginReqBody = req.body;
-    try {
-        // const session: loginResponse | undefined = await handleSupabaseLogin(userUID, idToken)
+  const { userId }: { userId: string } = req.body;
+  try {
+    // const session: loginResponse | undefined = await handleSupabaseLogin(userUID, idToken)
 
-        // // If user doesn't exist, return 302 to redirect
-        // if (!session) {
-        //     return res
-        //         .status(302)
-        //         .json({
-        //             message: "User doesn't exist, redirecting to onboarding"
-        //         })
-        // }
-        return (
-            res
-                .status(200)
-                //.cookie('session', session.sessionCookie, session.options)
-                .json({
-                    message: "Supabase Login success",
-                })
-        );
-    } catch (error: any) {
-        console.log(error);
-        return res.status(400).json({
-            error: error.message,
-        });
-        // show error component
-    }
+    // // If user doesn't exist, return 302 to redirect
+    // if (!session) {
+    //     return res
+    //         .status(302)
+    //         .json({
+    //             message: "User doesn't exist, redirecting to onboarding"
+    //         })
+    // }
+    return (
+      res
+        .status(200)
+        //.cookie('session', session.sessionCookie, session.options)
+        .json({
+          message: "Supabase Login success",
+        })
+    );
+  } catch (error: any) {
+    console.log(error);
+    return res.status(400).json({
+      error: error.message,
+    });
+  }
 });
 
 // TO DO: Add role-based access control to this in the future
 authRouter.get("/users", async (req: Request, res: Response) => {
-    try {
-        const users = await getAllSupabaseUsers();
-        return res.status(200).send(users);
-    } catch (error) {
-        console.error(error);
-        return res.status(500).send(error);
-    }
+  try {
+    const users = await getAllSupabaseUsers();
+    return res.status(200).send(users);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send(error);
+  }
 });
 
 // for testing authentication. Will probably need to be middleware later
