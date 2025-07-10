@@ -59,4 +59,17 @@ const addEvent = async (event_Id: string, event: Event): Promise<void> => {
     }
 };
 
-export { getEvents, getEventById, addEvent };
+
+// supabase services
+
+const getSupabaseEvents = async (): Promise<{message: string}> => {
+
+    return {message: "getting all events"};
+};
+
+const getSupabaseEventById = async (id: string): Promise<{message: string, attendee_Ids: Array<string>}> => {
+
+    return {message: `getting event by ${id}`, attendee_Ids: []};
+};
+
+export { getEvents, getEventById, addEvent, getSupabaseEvents, getSupabaseEventById};

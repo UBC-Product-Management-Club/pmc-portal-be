@@ -31,5 +31,11 @@ const handleLogin = async (userUID: string, idToken: string): Promise<loginRespo
     }
 }
 
+//supabase 
+const handleSupabaseLogin = async (userUID: string, idToken: string): Promise<{message: string}> => {
+   return {message: "success"}
+}
+
+
 // Checks if the current userRef exists.
-export { handleLogin }
+export { handleLogin , handleSupabaseLogin}

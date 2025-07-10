@@ -7,6 +7,7 @@ const getProfile = async (uid: string): Promise<userDocument | undefined> => {
     return userRef.data() as userDocument | undefined
 }
 
+
 const getProfileByEmail = async (email: string): Promise<string | undefined> => {
     const userCollection = db.collection("users");
     const querySnapshot = await userCollection.where("email", "==", email).get();
@@ -26,4 +27,12 @@ const getRegisteredEvents = async (uid: string): Promise<string[] | undefined> =
     return eventIds;
 }
 
-export {getProfile, getProfileByEmail, getRegisteredEvents}
+// supabase services
+// boilerplate
+const getSupabaseProfile = async (uid: string): Promise<{ message: string }> => {
+    
+    return {message: `getting supabase user id ${uid}`}
+}
+
+
+export {getProfile, getProfileByEmail, getRegisteredEvents, getSupabaseProfile}

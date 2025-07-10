@@ -2,7 +2,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import express from "express";
-import { apiRouter } from "./routes";
+import { v1ApiRouter } from "./routes/v1";
+import { v2ApiRouter } from "./routes/v2";
 
 // CONFIGURE .env
 dotenv.config();
@@ -46,7 +47,9 @@ app.use(express.urlencoded({extended: true}))
 
 
 // SET ROUTES
-app.use("/api/v1", apiRouter);
+app.use("/api", v1ApiRouter);
+
+app.use("/api", v2ApiRouter);
 
 const PORT = process.env.PORT || 8000;
 

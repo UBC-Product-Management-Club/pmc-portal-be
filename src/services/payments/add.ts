@@ -6,4 +6,11 @@ const addTransaction = async (transaction: addTransactionBody) : Promise<string>
     return transaction.payment.id
 }
 
-export { addTransaction }
+//supabase 
+
+const addSupabaseTransaction = async (transaction: addTransactionBody) : Promise<string>=> {
+    
+    return "success"
+}
+
+export { addTransaction, addSupabaseTransaction }

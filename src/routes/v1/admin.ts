@@ -1,6 +1,6 @@
 import { Request, Response, Router } from "express";
-import { exportUsers, getAllUsers } from "../services/auth/users";
-import { getProfile } from "../services/profile/get";
+import { exportUsers, getAllUsers} from "../../services/auth/users";
+import { getProfile } from "../../services/profile/get";
 
 export const adminRouter = Router();
 
