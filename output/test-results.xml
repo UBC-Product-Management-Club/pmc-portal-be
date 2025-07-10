@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="1" failures="0" errors="0" time="0.597">
-  <testsuite name="sendEmail" errors="0" failures="0" skipped="0" timestamp="2025-07-10T01:18:06" time="0.581" tests="1">
-    <testcase classname="sendEmail successfully sends email" name="sendEmail successfully sends email" time="0.011">
+<testsuites name="jest tests" tests="1" failures="0" errors="0" time="0.81">
+  <testsuite name="sendEmail" errors="0" failures="0" skipped="0" timestamp="2025-07-10T01:35:58" time="0.786" tests="1">
+    <testcase classname="sendEmail successfully sends email" name="sendEmail successfully sends email" time="0.01">
     </testcase>
   </testsuite>
 </testsuites>
