@@ -1,5 +1,5 @@
 import {db} from "../../config/firebase";
-import {EventForm} from "../../schema/EventForm";
+import {EventForm} from "../../schema/v1/EventForm";
 
 export const getEventForm = async (uid: string): Promise<EventForm | undefined> => {
     const docRef = db.collection("eventForms").doc(uid)

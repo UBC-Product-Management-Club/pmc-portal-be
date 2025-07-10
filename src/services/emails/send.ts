@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer"
 import fs from "fs"
 import path from "path"
-import { Attendee, Event } from "../../schema/Event";
+import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent";
 import { getEventById } from "../events/event";
 import moment from "moment"
 
@@ -9,7 +9,7 @@ const assetPath = path.join(__dirname, '..', '..', 'templates', 'emails', 'asset
 const templatePath = path.join(__dirname, '..', '..', 'templates', 'emails', 'event_reg_confirmation.html');
 
 const sendEmail = async (attendee_info: Attendee) : Promise<void> => {
-    let event: Event | null
+    let event: FirebaseEvent | null
     try {
         event = await getEventById(attendee_info.event_Id)
     } catch (error) {

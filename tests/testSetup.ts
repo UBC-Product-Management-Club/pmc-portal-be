@@ -1,6 +1,6 @@
 import { toHaveCalledWithMailInfo } from './customMatchers/emailMatchers';
 import dotenv from 'dotenv';
-dotenv.config({path: '.env.test'});
+dotenv.config({path: './.secret/.env'});
 
 //custom matchers imports
 expect.extend({

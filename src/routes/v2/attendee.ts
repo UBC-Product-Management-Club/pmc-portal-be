@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getSupabaseAttendeeById } from "../../services/events/attendee";
 import { getSupabaseEventById } from "../../services/events/event";
-import { Attendee } from "../../schema/Event";
+import { Attendee } from "../../schema/v1/FirebaseEvent";
 import { db } from "../../config/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { checkEmail } from "../../services/qrCode";

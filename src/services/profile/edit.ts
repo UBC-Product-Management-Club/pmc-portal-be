@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { User } from "../../schema/User";
+import { User } from "../../schema/v1/User";
 import { db } from "../../config/firebase";
 
 const editProfile = async (req: Request, res: Response) => {

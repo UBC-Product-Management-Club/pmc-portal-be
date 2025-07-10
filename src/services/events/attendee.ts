@@ -1,6 +1,6 @@
 import { db } from "../../config/firebase";
 import { FieldValue, Query } from 'firebase-admin/firestore';
-import { Attendee, Event } from "../../schema/Event";
+import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent";
 
 // const getAttendees = async (): Promise<Attendee[]> => {
 //     const attendeesCollection = db.collection('events');
@@ -79,7 +79,7 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
             await checkMemberId(attendee.member_Id);
         }
 
-        const eventData = eventDoc.data() as Event;
+        const eventData = eventDoc.data() as FirebaseEvent;
 
         if (eventData.isDisabled === true || (eventData.maxAttendee !== -1 && eventData.attendee_Ids.length >= eventData.maxAttendee)) {
             throw new Error('The event has reached the maximum number of attendees');

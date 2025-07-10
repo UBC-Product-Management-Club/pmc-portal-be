@@ -1,4 +1,4 @@
-import {EventFormSchema} from "../../schema/EventForm";
+import {EventFormSchema} from "../../schema/v1/EventForm";
 import {db} from "../../config/firebase";
 
 export const addEventForm = async (data: object): Promise<void> => {
