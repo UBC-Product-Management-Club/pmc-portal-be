@@ -8,7 +8,37 @@ on:
 jobs:
 
   # run tests
+  test-backend:
+    name: Run Backend Jest Tests
+    runs-on: ubuntu-latest
 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '23.5.0' 
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./pmc-portal-be  
+      
+      - name: Ensure output directory exists
+        run: mkdir -p output
+        working-directory: ./pmc-portal-be
+
+      - name: Run Jest tests
+        run: npm test
+        working-directory: ./pmc-portal-be
+      
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-results
+          path: pmc-portal-be/output/test-results.xml
+      
   # run linting
 
   build-verify-image:
