@@ -15,7 +15,6 @@ interface onboardingBody {
 authRouter.post("/onboard", async (req: Request, res: Response) => {
     const { user, payment }: onboardingBody = req.body;
     try {
-        console.log("ONBOARDING RIGHT NOW");
         // Add the user to the database (throws errors)
         await handleSupabaseOnboarding(user);
         // if (payment) {
