@@ -10,7 +10,11 @@ const config: Config.InitialOptions = {
     modulePathIgnorePatterns: ['<rootDir>/build/'],
     transform: {
         '^.+\\.ts$': ['ts-jest', { tsconfig: './tsconfig.test.json' }]
-    }
+    },
+    reporters: [
+        'default',
+        ['jest-junit', {outputDirectory: 'output', outputName: 'test-results.xml'}],
+    ],
 };
 
 export default config;
