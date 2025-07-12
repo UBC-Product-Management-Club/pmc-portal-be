@@ -1,11 +1,16 @@
 import { Router } from "express";
 import { addTransaction } from "../../services/payments/add";
-import { createPaymentIntent } from "../../services/payments/create";
 import { getEventById } from "../../services/events/event";
 import { FirebaseEvent } from "../../schema/v1/FirebaseEvent";
+import { createMembershipPaymentIntent, MEMBERSHIP_FEE_NONUBC, MEMBERSHIP_FEE_UBC } from "../../services/payments/PaymentService";
 
 
 export const paymentRouter = Router()
+
+interface createPaymentIntentBody {
+    type: "membership" | "event",
+    options: {[key: string]: string}
+}
 
 paymentRouter.post("/add-transaction", async (req, res) => {
     // add transaction to firebase
@@ -21,20 +26,13 @@ paymentRouter.post("/add-transaction", async (req, res) => {
     }
 })
 
-paymentRouter.post("/membership", async (req, res) => {
-    // Create Stripe PaymentIntent for membership fee
-    try {
-        const paymentIntent = await createPaymentIntent(req.body.amt)
-        return res.status(200).json({
-            payment_secret: paymentIntent.client_secret
-        })
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            message: "Error creating PaymentIntent."
-        })
-    }
+paymentRouter.get("/membership", async (req, res) => {
+    return res.status(200).json({
+        ubcPrice: MEMBERSHIP_FEE_UBC,
+        nonUbcPrice: MEMBERSHIP_FEE_NONUBC 
+    })
 })
+
 
 paymentRouter.post("/event/:event_id", async (req, res) => {
     // Create PaymentIntent for given event_id
@@ -47,25 +45,49 @@ paymentRouter.post("/event/:event_id", async (req, res) => {
             message: `No event found with eventId ${eventId}`
         })
     }
-
-    try {
-        let paymentIntent
-        // If the request was submitted with a UID, then they are a member
-        // If not, then they are a guest
-        if (uid) {
-            paymentIntent = await createPaymentIntent(+event.member_price)
-        } else {
-            paymentIntent = await createPaymentIntent(+event.non_member_price)
-        }
-        return res.status(200).json({
-            payment_secret: paymentIntent.client_secret
-        })
-    } catch (error) {
-        return res.status(500).json({
-            message: "Error creating PaymentIntent"
-        })
-    }
-
 })
 
+paymentRouter.get("/event/:eventId", async (req, res) => {
+    // TODO: fetch event price and return
+})
 
+paymentRouter.get("/create/membership", async (req, res) => {
+    const isUbcStudent = req.query["ubc"]
+    if (!isUbcStudent) {
+        return res.status(400).json({
+            message: "Missing info!"
+        })
+    }
+    try {
+        const paymentIntent = await createMembershipPaymentIntent(isUbcStudent === "true")
+        if (!paymentIntent.client_secret) {
+            throw new Error("Client secret was null!")
+        }
+        return res.status(201).json({
+            clientSecret: paymentIntent.client_secret
+        })
+    } catch (e) {
+        return res.status(400).json({
+            message: e
+        })
+    }
+})
+
+// paymentRouter.get("/create", async (req, res) => {
+//     // make this take in query params
+//     const data: createPaymentIntentBody = req.body
+//     try {
+//         return res.status(200).json({
+//             paymentSecret: createPaymentIntent(data).client_secret
+//         })
+//     }
+
+//     // if () {
+//     //     return res.status(400).json({
+//     //         message: "Missing info!"
+//     //     })
+//     // }
+//     console.log(paymentIntent)
+// })
+
+export type {createPaymentIntentBody}

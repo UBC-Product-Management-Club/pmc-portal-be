@@ -1,18 +1,26 @@
-
 interface User {
+    id: string
     displayName: string
-    email: string
-    faculty: string
-    first_name: string
-    last_name: string
+    firstName: string
+    lastName: string
     pronouns: string
+    email: string
     university: string
-    year: number
+    faculty: string
+    year: string
     major: string
     pfp: string
-    student_id: number
-    why_pm: string
-    returning_member: boolean
+    studentId: number
+    whyPm: string
 }
 
-export type { User }
+type UserRequiredFields = Pick<
+    User,
+    "id" | "firstName" | "lastName" | "email" | "university" | "studentId" | "year" | "faculty" | "major" | "whyPm" 
+>;
+
+const exportUserFieldNames = ["id", "firstName", "lastName", "email", "university", "studentId", "year", "faculty", "major"] as const;
+
+type UserExportFields = Pick<User, (typeof exportUserFieldNames)[number]>;
+
+export { User, UserRequiredFields, UserExportFields, exportUserFieldNames };
