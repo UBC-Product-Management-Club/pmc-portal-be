@@ -1,7 +1,7 @@
 import Stripe from "stripe"
 import { db } from "../../../src/config/firebase"
 import { onboard } from "../../../src/services/auth/register"
-import { User } from "../../../src/schema/User"
+import { User } from "../../../src/schema/v1/User"
 
 jest.mock("../../../src/config/firebase", () => ({
     db: {

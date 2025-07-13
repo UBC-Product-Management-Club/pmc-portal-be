@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import { db } from "../../config/firebase";
-import { User } from "../../schema/User";
+import { User } from "../../schema/v1/User";
 
 // Handles initial user onboarding and login.
 const onboard = async (user: User, payment: Stripe.PaymentIntent): Promise<void> => {
