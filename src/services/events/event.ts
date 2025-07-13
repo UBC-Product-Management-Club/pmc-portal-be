@@ -2,7 +2,6 @@ import { db } from "../../config/firebase";
 import { supabase } from "../../config/supabase";
 import { FirebaseEvent } from "../../schema/v1/FirebaseEvent";
 import { Tables } from "../../schema/v2/database.types";
-import { SupabaseEvent } from "../../schema/v2/SupabaseEvent";
 
 const getEvents = async (): Promise<FirebaseEvent[]> => {
     const eventsCollection = db.collection('events');
