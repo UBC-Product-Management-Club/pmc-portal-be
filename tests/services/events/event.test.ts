@@ -1,4 +1,8 @@
-jest.mock('../../../src/config/supabase');
+jest.mock('../../../src/config/supabase', () => ({
+  supabase: {
+    from: jest.fn(),
+  }
+}));
 
 import { supabase } from '../../../src/config/supabase';
 import { getSupabaseEvents, getSupabaseEventById } from '../../../src/services/events/event';
