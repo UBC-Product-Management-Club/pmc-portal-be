@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { addTransaction } from "../../services/payments/add";
 import { getEventById } from "../../services/events/event";
-import { Event } from "../../schema/Event";
+import { FirebaseEvent } from "../../schema/v1/FirebaseEvent";
 import { createMembershipPaymentIntent, MEMBERSHIP_FEE_NONUBC, MEMBERSHIP_FEE_UBC } from "../../services/payments/PaymentService";
 
 
@@ -31,6 +31,20 @@ paymentRouter.get("/membership", async (req, res) => {
         ubcPrice: MEMBERSHIP_FEE_UBC,
         nonUbcPrice: MEMBERSHIP_FEE_NONUBC 
     })
+})
+
+
+paymentRouter.post("/event/:event_id", async (req, res) => {
+    // Create PaymentIntent for given event_id
+    // req must include: user uid, user member status
+    const eventId: string = req.params.event_id
+    const { uid } = req.body
+    const event: FirebaseEvent | null = await getEventById(eventId)
+    if (!event) {
+        return res.status(500).json({
+            message: `No event found with eventId ${eventId}`
+        })
+    }
 })
 
 paymentRouter.get("/event/:eventId", async (req, res) => {

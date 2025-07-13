@@ -1,5 +1,5 @@
 import {db} from "../../config/firebase";
-import { User } from "../../schema/User";
+import { User } from "../../schema/v1/User";
 
 const getProfile = async (uid: string): Promise<User | undefined> => {
     const docRef = db.collection("users").doc(uid)
