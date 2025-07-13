@@ -7,8 +7,7 @@ const mockedSupabaseFrom = jest.fn();
 const mockedSupabaseSelect = jest.fn();
 const mockedSupabaseEq = jest.fn();
 
-(supabase.from as jest.Mock) = mockedSupabaseFrom;
-
+(supabase.from as jest.Mock).mockImplementation(mockedSupabaseFrom);
 
 describe('getSupabaseEvents', () => {
   beforeEach(() => {
