@@ -7,3 +7,4 @@ build
 # For local test scripts. (e.g. email sending)
 test
 .env.test
+output
