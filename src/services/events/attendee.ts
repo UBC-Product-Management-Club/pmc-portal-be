@@ -1,6 +1,18 @@
 import { db } from "../../config/firebase";
 import { FieldValue, Query } from 'firebase-admin/firestore';
 import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent";
+import { supabase } from "../../config/supabase";
+import { Database } from "../../schema/v2/database.types";
+
+interface RegistrationData {
+    userId: string;
+    eventId: string;
+    paymentId?: string | null;
+    eventFormAnswers?: any;
+}
+
+type AttendeeRow = Database['public']['Tables']['Attendee']['Row'];
+type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
 
 // const getAttendees = async (): Promise<Attendee[]> => {
 //     const attendeesCollection = db.collection('events');
@@ -112,10 +124,67 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
 
 
 // supabase
+const addSupabaseAttendee = async (registrationData: RegistrationData): Promise<AttendeeRow> => {
+    const { userId, eventId, paymentId, eventFormAnswers } = registrationData;
+
+    if (!userId || !eventId) {
+        throw new Error('Missing required fields');
+    }
+    
+    console.log(eventId);
+    
+    // Check if event exists
+    const { data: event, error: eventError } = await supabase
+        .from('Event')
+        .select()
+        .eq('event_id', eventId) 
+        .single();
+
+    console.log('Event query result:', { event, eventError });
+
+    if (eventError || !event) {
+        console.log('Event error details:', eventError);
+        throw new Error(`Event not found: ${eventError?.message}`);
+    }
+
+    // Check if attendee already exists
+    const { data: existingAttendee } = await supabase
+        .from('Attendee')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('event_id', eventId)
+        .single();
+    
+    if (existingAttendee) {
+        throw new Error('User already registered for this event');
+    }
+
+    const attendee: AttendeeInsert = {
+        user_id: userId,
+        event_id: eventId,
+        payment_id: paymentId || null,
+        event_form_answers: eventFormAnswers,
+        registration_time: new Date().toISOString(),
+        status: 'registered'
+    }
+    console.log(attendee)
+
+    const { data, error } = await supabase
+        .from('Attendee')
+        .insert(attendee)
+        .select()
+        .single();
+    
+    if (error) {
+        throw new Error(`Failed to create attendee: ${error.message}`);
+    }
+    
+    return data;
+}
 
 const getSupabaseAttendeeById = async (id: string): Promise<{message: string}> => {
 
     return {message: `getting attendee by ${id}`};
 };
 
-export { getAttendeeById, addAttendee, checkIsRegistered, getSupabaseAttendeeById };
+export { getAttendeeById, addAttendee, checkIsRegistered, getSupabaseAttendeeById, addSupabaseAttendee };
