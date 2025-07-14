@@ -48,12 +48,14 @@ eventRouter.post('/:eventId/register', async (req, res) => {
             return res.status(401).json({ error: 'User not authenticated' });
         }
 
-        const result = await addSupabaseAttendee({
-            userId,
-            eventId,
-            paymentId,
-            eventFormAnswers
-        });
+        const insertData: AttendeeInsert = {
+            user_id: userId,
+            event_id:eventId,
+            payment_id:paymentId,
+            event_form_answers: eventFormAnswers
+        }
+
+        const result = await addSupabaseAttendee(insertData);
         
         res.status(201).json({
             message: 'Registration successful',

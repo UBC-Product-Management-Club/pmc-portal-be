@@ -4,12 +4,6 @@ import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent";
 import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
 
-interface RegistrationData {
-    userId: string;
-    eventId: string;
-    paymentId?: string | null;
-    eventFormAnswers?: any;
-}
 
 type AttendeeRow = Database['public']['Tables']['Attendee']['Row'];
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
@@ -124,20 +118,20 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
 
 
 // supabase
-const addSupabaseAttendee = async (registrationData: RegistrationData): Promise<AttendeeRow> => {
-    const { userId, eventId, paymentId, eventFormAnswers } = registrationData;
+const addSupabaseAttendee = async (registrationData: AttendeeInsert): Promise<AttendeeRow> => {
+    const { user_id, event_id, payment_id, event_form_answers} = registrationData;
 
-    if (!userId || !eventId) {
+    if (!user_id || !event_id) {
         throw new Error('Missing required fields');
     }
     
-    console.log(eventId);
+    console.log(event_id);
     
     // Check if event exists
     const { data: event, error: eventError } = await supabase
         .from('Event')
         .select()
-        .eq('event_id', eventId) 
+        .eq('event_id', event_id) 
         .single();
 
     console.log('Event query result:', { event, eventError });
@@ -151,8 +145,8 @@ const addSupabaseAttendee = async (registrationData: RegistrationData): Promise<
     const { data: existingAttendee } = await supabase
         .from('Attendee')
         .select('*')
-        .eq('user_id', userId)
-        .eq('event_id', eventId)
+        .eq('user_id', user_id)
+        .eq('event_id', event_id)
         .single();
     
     if (existingAttendee) {
@@ -160,10 +154,10 @@ const addSupabaseAttendee = async (registrationData: RegistrationData): Promise<
     }
 
     const attendee: AttendeeInsert = {
-        user_id: userId,
-        event_id: eventId,
-        payment_id: paymentId || null,
-        event_form_answers: eventFormAnswers,
+        user_id: user_id,
+        event_id: event_id,
+        payment_id: payment_id || null,
+        event_form_answers: event_form_answers,
         registration_time: new Date().toISOString(),
         status: 'registered'
     }
