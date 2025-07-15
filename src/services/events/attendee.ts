@@ -7,6 +7,9 @@ import { Database } from "../../schema/v2/database.types";
 
 type AttendeeRow = Database['public']['Tables']['Attendee']['Row'];
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
+type ValidationResult = 
+    | { success: true; error: undefined }
+    | { success: false; error: string };
 
 // const getAttendees = async (): Promise<Attendee[]> => {
 //     const attendeesCollection = db.collection('events');
@@ -121,47 +124,17 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
 const addSupabaseAttendee = async (registrationData: AttendeeInsert): Promise<AttendeeRow> => {
     const { user_id, event_id, payment_id, event_form_answers} = registrationData;
 
-    if (!user_id || !event_id) {
-        throw new Error('Missing required fields');
-    }
-    
-    console.log(event_id);
-    
-    // Check if event exists
-    const { data: event, error: eventError } = await supabase
-        .from('Event')
-        .select()
-        .eq('event_id', event_id) 
-        .single();
+    const validationResult = await checkValidAttendee(registrationData);
 
-    console.log('Event query result:', { event, eventError });
-
-    if (eventError || !event) {
-        console.log('Event error details:', eventError);
-        throw new Error(`Event not found: ${eventError?.message}`);
-    }
-
-    // Check if attendee already exists
-    const { data: existingAttendee } = await supabase
-        .from('Attendee')
-        .select('*')
-        .eq('user_id', user_id)
-        .eq('event_id', event_id)
-        .single();
-    
-    if (existingAttendee) {
-        throw new Error('User already registered for this event');
+    if (!validationResult.success) {
+        throw new Error(validationResult.error);
     }
 
     const attendee: AttendeeInsert = {
-        user_id: user_id,
-        event_id: event_id,
-        payment_id: payment_id || null,
-        event_form_answers: event_form_answers,
+        ...registrationData,
         registration_time: new Date().toISOString(),
         status: 'registered'
     }
-    console.log(attendee)
 
     const { data, error } = await supabase
         .from('Attendee')
@@ -176,9 +149,57 @@ const addSupabaseAttendee = async (registrationData: AttendeeInsert): Promise<At
     return data;
 }
 
+const checkValidAttendee = async (registrationData: AttendeeInsert): Promise<ValidationResult> => {
+    const { user_id, event_id } = registrationData;
+    
+    if (!user_id || !event_id) {
+        return { success: false, error: 'Missing required fields'};
+    }
+    
+    // Check if event exists
+    const { data: event, error: eventError } = await supabase
+        .from('Event')
+        .select()
+        .eq('event_id', event_id) 
+        .single();
+
+    if (eventError || !event) {
+        return { success: false, error: 'Event not found'};
+    }
+
+    // Check if attendee already exists
+    const { data: existingAttendee } = await supabase
+        .from('Attendee')
+        .select('*')
+        .eq('user_id', user_id)
+        .eq('event_id', event_id)
+        .single();
+    
+    if (existingAttendee) {
+        return { success: false, error: 'User already registered for this event'};
+    }
+
+    // Check if event is full
+    const {data, count, error: eventFullError} = await supabase
+        .from('Attendee')
+        .select('*', { count: 'exact', head: true }) 
+        .eq('event_id', event_id);
+    
+    if (eventFullError) {
+        return { success: false, error: `Error counting attendees: ${eventFullError.message}`};
+    }
+
+    if ((count ?? 0) >= event.max_attendees) {
+        return { success: false, error: 'Event is full'};
+    }
+
+    return {success: true, error: undefined}
+
+}
+
 const getSupabaseAttendeeById = async (id: string): Promise<{message: string}> => {
 
     return {message: `getting attendee by ${id}`};
 };
 
-export { getAttendeeById, addAttendee, checkIsRegistered, getSupabaseAttendeeById, addSupabaseAttendee };
+export { getAttendeeById, addAttendee, checkIsRegistered, getSupabaseAttendeeById, addSupabaseAttendee, checkValidAttendee};

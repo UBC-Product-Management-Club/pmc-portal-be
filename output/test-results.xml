@@ -1,71 +1,89 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="28" failures="0" errors="0" time="5.409">
-  <testsuite name="register service" errors="0" failures="0" skipped="0" timestamp="2025-07-14T22:22:13" time="3.999" tests="4">
-    <testcase classname="register service throws error when payment fails" name="register service throws error when payment fails" time="0.023">
+<testsuites name="jest tests" tests="37" failures="0" errors="0" time="5.336">
+  <testsuite name="payment service" errors="0" failures="0" skipped="0" timestamp="2025-07-15T18:53:49" time="3.887" tests="2">
+    <testcase classname="payment service creates membership payment intent for ubc student" name="payment service creates membership payment intent for ubc student" time="0.007">
     </testcase>
-    <testcase classname="register service throws error when onboarding existing user" name="register service throws error when onboarding existing user" time="0.001">
-    </testcase>
-    <testcase classname="register service adds a new user to database" name="register service adds a new user to database" time="0.001">
-    </testcase>
-    <testcase classname="register service throws when adding a user fails" name="register service throws when adding a user fails" time="0.001">
+    <testcase classname="payment service creates membership payment intent for non ubc student" name="payment service creates membership payment intent for non ubc student" time="0">
     </testcase>
   </testsuite>
-  <testsuite name="payment service" errors="0" failures="0" skipped="0" timestamp="2025-07-14T22:22:13" time="4.008" tests="2">
-    <testcase classname="payment service creates membership payment intent for ubc student" name="payment service creates membership payment intent for ubc student" time="0.01">
-    </testcase>
-    <testcase classname="payment service creates membership payment intent for non ubc student" name="payment service creates membership payment intent for non ubc student" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="login sevice" errors="0" failures="0" skipped="0" timestamp="2025-07-14T22:22:13" time="4.041" tests="3">
-    <testcase classname="login sevice throws error if no userId is provided" name="login sevice throws error if no userId is provided" time="0.022">
+  <testsuite name="login sevice" errors="0" failures="0" skipped="0" timestamp="2025-07-15T18:53:49" time="3.913" tests="3">
+    <testcase classname="login sevice throws error if no userId is provided" name="login sevice throws error if no userId is provided" time="0.03">
     </testcase>
     <testcase classname="login sevice returns user data if userId is valid" name="login sevice returns user data if userId is valid" time="0.001">
     </testcase>
     <testcase classname="login sevice throws error if get() fails" name="login sevice throws error if get() fails" time="0.001">
     </testcase>
   </testsuite>
-  <testsuite name="getSupabaseEvents" errors="0" failures="0" skipped="0" timestamp="2025-07-14T22:22:13" time="4.076" tests="7">
-    <testcase classname="getSupabaseEvents returns event list successfully" name="getSupabaseEvents returns event list successfully" time="0.01">
+  <testsuite name="register service" errors="0" failures="0" skipped="0" timestamp="2025-07-15T18:53:49" time="3.931" tests="4">
+    <testcase classname="register service throws error when payment fails" name="register service throws error when payment fails" time="0.033">
     </testcase>
-    <testcase classname="getSupabaseEvents throws error when supabase returns an error" name="getSupabaseEvents throws error when supabase returns an error" time="0.016">
+    <testcase classname="register service throws error when onboarding existing user" name="register service throws error when onboarding existing user" time="0.002">
     </testcase>
-    <testcase classname="getSupabaseEvents throws error on unexpected exception" name="getSupabaseEvents throws error on unexpected exception" time="0.004">
+    <testcase classname="register service adds a new user to database" name="register service adds a new user to database" time="0">
     </testcase>
-    <testcase classname="getSupabaseEventsById returns event" name="getSupabaseEventsById returns event" time="0">
+    <testcase classname="register service throws when adding a user fails" name="register service throws when adding a user fails" time="0.001">
     </testcase>
-    <testcase classname="getSupabaseEventsById throws an error when supabase returns an error" name="getSupabaseEventsById throws an error when supabase returns an error" time="0">
+  </testsuite>
+  <testsuite name="getSupabaseEvents" errors="0" failures="0" skipped="0" timestamp="2025-07-15T18:53:49" time="3.955" tests="7">
+    <testcase classname="getSupabaseEvents returns event list successfully" name="getSupabaseEvents returns event list successfully" time="0.009">
+    </testcase>
+    <testcase classname="getSupabaseEvents throws error when supabase returns an error" name="getSupabaseEvents throws error when supabase returns an error" time="0.009">
+    </testcase>
+    <testcase classname="getSupabaseEvents throws error on unexpected exception" name="getSupabaseEvents throws error on unexpected exception" time="0.003">
+    </testcase>
+    <testcase classname="getSupabaseEventsById returns event" name="getSupabaseEventsById returns event" time="0.003">
+    </testcase>
+    <testcase classname="getSupabaseEventsById throws an error when supabase returns an error" name="getSupabaseEventsById throws an error when supabase returns an error" time="0.001">
     </testcase>
     <testcase classname="getSupabaseEventsById throws an error when data is null" name="getSupabaseEventsById throws an error when data is null" time="0.001">
     </testcase>
-    <testcase classname="getSupabaseEventsById throws on unexpected exception" name="getSupabaseEventsById throws on unexpected exception" time="0.001">
+    <testcase classname="getSupabaseEventsById throws on unexpected exception" name="getSupabaseEventsById throws on unexpected exception" time="0">
     </testcase>
   </testsuite>
-  <testsuite name="sendEmail" errors="0" failures="0" skipped="0" timestamp="2025-07-14T22:22:12" time="4.166" tests="1">
-    <testcase classname="sendEmail successfully sends email" name="sendEmail successfully sends email" time="0.018">
+  <testsuite name="sendEmail" errors="0" failures="0" skipped="0" timestamp="2025-07-15T18:53:49" time="4.024" tests="1">
+    <testcase classname="sendEmail successfully sends email" name="sendEmail successfully sends email" time="0.014">
     </testcase>
   </testsuite>
-  <testsuite name="addSupabaseAttendee" errors="0" failures="0" skipped="0" timestamp="2025-07-14T22:22:13" time="4.733" tests="11">
-    <testcase classname="addSupabaseAttendee successful registration should create attendee successfully" name="addSupabaseAttendee successful registration should create attendee successfully" time="0.017">
+  <testsuite name="checkValidAttendee" errors="0" failures="0" skipped="0" timestamp="2025-07-15T18:53:49" time="4.62" tests="20">
+    <testcase classname="checkValidAttendee validation errors should return error for missing user_id" name="checkValidAttendee validation errors should return error for missing user_id" time="0.008">
     </testcase>
-    <testcase classname="addSupabaseAttendee successful registration should handle free events (null paymentId)" name="addSupabaseAttendee successful registration should handle free events (null paymentId)" time="0.001">
+    <testcase classname="checkValidAttendee validation errors should return error for missing event_id" name="checkValidAttendee validation errors should return error for missing event_id" time="0.001">
     </testcase>
-    <testcase classname="addSupabaseAttendee error handling should throw error when missing required fields (user_id)" name="addSupabaseAttendee error handling should throw error when missing required fields (user_id)" time="0.012">
+    <testcase classname="checkValidAttendee validation errors should return error when event not found" name="checkValidAttendee validation errors should return error when event not found" time="0.001">
     </testcase>
-    <testcase classname="addSupabaseAttendee error handling should throw error when missing required fields (event_id)" name="addSupabaseAttendee error handling should throw error when missing required fields (event_id)" time="0.001">
+    <testcase classname="checkValidAttendee validation errors should return error when event data is null" name="checkValidAttendee validation errors should return error when event data is null" time="0.001">
     </testcase>
-    <testcase classname="addSupabaseAttendee error handling should throw error when event not found" name="addSupabaseAttendee error handling should throw error when event not found" time="0.001">
+    <testcase classname="checkValidAttendee validation errors should return error when user already registered" name="checkValidAttendee validation errors should return error when user already registered" time="0.001">
     </testcase>
-    <testcase classname="addSupabaseAttendee error handling should throw error when event data is null" name="addSupabaseAttendee error handling should throw error when event data is null" time="0.001">
+    <testcase classname="checkValidAttendee validation errors should return error when event is full" name="checkValidAttendee validation errors should return error when event is full" time="0">
     </testcase>
-    <testcase classname="addSupabaseAttendee error handling should throw error when user already registered" name="addSupabaseAttendee error handling should throw error when user already registered" time="0.001">
+    <testcase classname="checkValidAttendee validation errors should return error when counting attendees fails" name="checkValidAttendee validation errors should return error when counting attendees fails" time="0.001">
     </testcase>
-    <testcase classname="addSupabaseAttendee error handling should throw error when insert fails" name="addSupabaseAttendee error handling should throw error when insert fails" time="0.001">
+    <testcase classname="checkValidAttendee successful validation should return success when all validations pass" name="checkValidAttendee successful validation should return success when all validations pass" time="0">
+    </testcase>
+    <testcase classname="checkValidAttendee call sequence verification should call supabase methods in correct order" name="checkValidAttendee call sequence verification should call supabase methods in correct order" time="0.001">
+    </testcase>
+    <testcase classname="addSupabaseAttendee successful registration should create attendee successfully" name="addSupabaseAttendee successful registration should create attendee successfully" time="0.002">
+    </testcase>
+    <testcase classname="addSupabaseAttendee successful registration should handle free events (null paymentId)" name="addSupabaseAttendee successful registration should handle free events (null paymentId)" time="0">
+    </testcase>
+    <testcase classname="addSupabaseAttendee successful registration should handle minimal required fields" name="addSupabaseAttendee successful registration should handle minimal required fields" time="0.001">
+    </testcase>
+    <testcase classname="addSupabaseAttendee error handling should throw error when validation fails - missing user_id" name="addSupabaseAttendee error handling should throw error when validation fails - missing user_id" time="0.005">
+    </testcase>
+    <testcase classname="addSupabaseAttendee error handling should throw error when validation fails - missing event_id" name="addSupabaseAttendee error handling should throw error when validation fails - missing event_id" time="0">
+    </testcase>
+    <testcase classname="addSupabaseAttendee error handling should throw error when event not found" name="addSupabaseAttendee error handling should throw error when event not found" time="0">
+    </testcase>
+    <testcase classname="addSupabaseAttendee error handling should throw error when user already registered" name="addSupabaseAttendee error handling should throw error when user already registered" time="0">
+    </testcase>
+    <testcase classname="addSupabaseAttendee error handling should throw error when event is full" name="addSupabaseAttendee error handling should throw error when event is full" time="0.001">
+    </testcase>
+    <testcase classname="addSupabaseAttendee error handling should throw error when insert fails" name="addSupabaseAttendee error handling should throw error when insert fails" time="0">
     </testcase>
     <testcase classname="addSupabaseAttendee call sequence verification should call supabase methods in correct order" name="addSupabaseAttendee call sequence verification should call supabase methods in correct order" time="0.001">
     </testcase>
-    <testcase classname="addSupabaseAttendee call sequence verification should correctly check event existence with event_id" name="addSupabaseAttendee call sequence verification should correctly check event existence with event_id" time="0.001">
-    </testcase>
-    <testcase classname="addSupabaseAttendee data transformation should set registration_time as ISO string" name="addSupabaseAttendee data transformation should set registration_time as ISO string" time="0.001">
+    <testcase classname="addSupabaseAttendee data transformation should set registration_time as ISO string and status as registered" name="addSupabaseAttendee data transformation should set registration_time as ISO string and status as registered" time="0">
     </testcase>
   </testsuite>
 </testsuites>
