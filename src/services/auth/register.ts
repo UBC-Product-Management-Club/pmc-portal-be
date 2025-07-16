@@ -1,6 +1,5 @@
-import { User, UserRequiredFields } from "../../schema/User";
-import { db } from "../../config/firebase";
-import { checkUserExists, checkSupabaseUserExists, mapToSupabaseUser, TABLES } from "./utils";
+import { User, UserRequiredFields } from "../../schema/v1/User";
+import { checkSupabaseUserExists, mapToSupabaseUser, TABLES } from "./utils";
 import { supabase } from "../../config/supabase";
 
 // Handles initial user onboarding and login.

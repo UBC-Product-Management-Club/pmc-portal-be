@@ -1,5 +1,5 @@
 import { Parser } from "@json2csv/plainjs";
-import { User, UserExportFields, exportUserFieldNames } from "../../schema/User";
+import { User, UserExportFields, exportUserFieldNames } from "../../schema/v1/User";
 import { db } from "../../config/firebase";
 import { supabase } from "../../config/supabase";
 

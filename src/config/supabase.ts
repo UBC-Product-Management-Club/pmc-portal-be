@@ -1,5 +1,6 @@
-import dotenv from "dotenv";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import dotenv from "dotenv"
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { Database } from "../schema/v2/database.types";
 
 dotenv.config({ path: "./.secret/.env" });
 
@@ -12,6 +13,6 @@ if (!supabaseUrl || !supabaseKey) {
     throw new Error("Missing required Supabase environment variables");
 }
 
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
+const supabase: SupabaseClient = createClient<Database>(supabaseUrl, supabaseKey);
 
 export { supabase };

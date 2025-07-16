@@ -1,5 +1,5 @@
 import { handleSupabaseOnboarding } from "../../../src/services/auth/register";
-import { User } from "../../../src/schema/User";
+import { User } from "../../../src/schema/v1/User";
 import { checkSupabaseUserExists, mapToSupabaseUser } from "../../../src/services/auth/utils";
 import { supabase } from "../../../src/config/supabase";
 

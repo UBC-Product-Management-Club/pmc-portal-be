@@ -4,7 +4,7 @@ import { handleLogin } from "../../services/auth/login";
 import { getAllUsers } from "../../services/auth/users";
 import { addTransaction } from "../../services/payments/add";
 import Stripe from "stripe";
-import { User } from "../../schema/User";
+import { User } from "../../schema/v1/User";
 
 export const authRouter = Router();
 

@@ -1,7 +1,9 @@
 import { db } from "../../config/firebase";
-import { Event } from "../../schema/Event";
+import { supabase } from "../../config/supabase";
+import { FirebaseEvent } from "../../schema/v1/FirebaseEvent";
+import { Tables } from "../../schema/v2/database.types";
 
-const getEvents = async (): Promise<Event[]> => {
+const getEvents = async (): Promise<FirebaseEvent[]> => {
     const eventsCollection = db.collection('events');
     const snapshot = await eventsCollection.orderBy('date').get();
 
@@ -10,15 +12,15 @@ const getEvents = async (): Promise<Event[]> => {
         return [];
     }
 
-    const events: Event[] = snapshot.docs.map(doc => ({
+    const events: FirebaseEvent[] = snapshot.docs.map(doc => ({
         event_Id: doc.id,
-        ...doc.data() as Omit<Event, 'event_Id'>
+        ...doc.data() as Omit<FirebaseEvent, 'event_Id'>
     }));
 
     return events;
 };
 
-const getEventById = async (id: string): Promise<Event | null> => {
+const getEventById = async (id: string): Promise<FirebaseEvent | null> => {
     const eventDoc = db.collection('events').doc(id);
     const doc = await eventDoc.get();
 
@@ -27,15 +29,15 @@ const getEventById = async (id: string): Promise<Event | null> => {
         return null;
     }
 
-    const event: Event = {
+    const event: FirebaseEvent = {
         event_Id: id,
-        ...doc.data() as Omit<Event, 'event_Id'>
+        ...doc.data() as Omit<FirebaseEvent, 'event_Id'>
     };
 
     return event;
 };
 
-const addEvent = async (event_Id: string, event: Event): Promise<void> => {
+const addEvent = async (event_Id: string, event: FirebaseEvent): Promise<void> => {
     try {
         const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
         const timeRegex = /^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
@@ -61,15 +63,26 @@ const addEvent = async (event_Id: string, event: Event): Promise<void> => {
 
 
 // supabase services
-
-const getSupabaseEvents = async (): Promise<{message: string}> => {
-
-    return {message: "getting all events"};
+const getSupabaseEvents = async (): Promise<Tables<'Event'>[]> => {
+    const {data, error} = await supabase.from('Event').select();
+    if (error || !data) {
+        console.error("Error fetching events: ", error);
+        throw new Error('Failed to fetch events: ' + error?.message);
+    }
+    return data;
 };
 
-const getSupabaseEventById = async (id: string): Promise<{message: string, attendee_Ids: Array<string>}> => {
+const getSupabaseEventById = async (id: string): Promise<Tables<'Event'> | null> => {
 
-    return {message: `getting event by ${id}`, attendee_Ids: []};
+    const {data, error } = await supabase.from('Event').select().eq('event_id', id).single();
+
+    if (error || !data) {
+        console.error("Error fetching event: ", error);
+        throw new Error(`Failed to fetch event ${id}: ` + error?.message);
+    }
+
+    return data;
+
 };
 
 export { getEvents, getEventById, addEvent, getSupabaseEvents, getSupabaseEventById};

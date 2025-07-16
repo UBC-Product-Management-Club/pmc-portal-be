@@ -2,7 +2,7 @@ import { Request, Response, Router } from "express";
 import { handleSupabaseOnboarding } from "../../services/auth/register";
 import { getAllSupabaseUsers } from "../../services/auth/users";
 import Stripe from "stripe";
-import { User } from "../../schema/User";
+import { User } from "../../schema/v1/User";
 import { handleSupabaseLogin } from "../../services/auth/login";
 
 export const authRouter = Router();

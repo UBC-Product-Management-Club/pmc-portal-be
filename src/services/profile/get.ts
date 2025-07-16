@@ -1,5 +1,5 @@
 import { db } from "../../config/firebase";
-import { User } from "../../schema/User";
+import { User } from "../../schema/v1/User";
 import { getSupabaseUserByID } from "../auth/users";
 
 const getProfile = async (uid: string): Promise<User | undefined> => {
