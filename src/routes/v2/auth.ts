@@ -34,16 +34,17 @@ authRouter.post("/onboard", async (req: Request, res: Response) => {
 authRouter.post("/login", async (req: Request, res: Response) => {
     const { userId }: { userId: string } = req.body;
     try {
-        const session: boolean = await handleSupabaseLogin(userId);
+        const user = await handleSupabaseLogin(userId);
 
-        // // If user doesn't exist, return 302 to redirect
-        if (!session) {
-            return res.status(302).json({
-                message: "User doesn't exist, redirecting to onboarding",
+        if (user) {
+            return res.status(200).json({
+                message: "Supabase Login success",
             });
         }
-        return res.status(200).json({
-            message: "Supabase Login success",
+
+        // // If user doesn't exist, return 302 to redirect
+        return res.status(302).json({
+            message: "User doesn't exist, redirecting to onboarding",
         });
     } catch (error: any) {
         console.log(error);

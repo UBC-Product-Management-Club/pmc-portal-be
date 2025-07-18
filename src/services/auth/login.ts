@@ -1,5 +1,5 @@
 import { db } from "../../config/firebase";
-import { checkSupabaseUserExists } from "./utils";
+import { getSupabaseUserByID } from "./users";
 
 // TODO: create types for user auth
 const handleLogin = async (userId: string): Promise<any> => {
@@ -16,12 +16,12 @@ const handleLogin = async (userId: string): Promise<any> => {
 };
 
 //supabase
-const handleSupabaseLogin = async (uid: string): Promise<boolean> => {
+const handleSupabaseLogin = async (uid: string): Promise<any> => {
     if (!uid) {
         throw Error("400: Bad request");
     }
     try {
-        return checkSupabaseUserExists(uid);
+        return getSupabaseUserByID(uid);
     } catch (error) {
         throw Error("500: something went wrong fetching users");
     }

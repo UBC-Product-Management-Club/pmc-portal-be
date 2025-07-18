@@ -1,4 +1,4 @@
-import { User, UserRequiredFields } from "../../schema/v1/User";
+import { User } from "../../schema/v1/User";
 import { checkSupabaseUserExists, mapToSupabaseUser, TABLES } from "./utils";
 import { supabase } from "../../config/supabase";
 
