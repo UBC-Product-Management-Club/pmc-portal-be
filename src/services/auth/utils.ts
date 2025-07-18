@@ -17,17 +17,12 @@ async function checkUserExists(uid: string) {
 }
 
 async function checkSupabaseUserExists(id: string) {
-    try {
-        const { data, error } = await supabase.from(TABLES.USER).select().eq("user_id", id).maybeSingle();
-        if (error) {
-            throw new Error("Error creating user: " + error.message);
-        }
-
-        return !!data;
-    } catch (error) {
-        console.error("Error onboarding user: ", error);
-        throw error;
+    const { data, error } = await supabase.from(TABLES.USER).select().eq("user_id", id).maybeSingle();
+    if (error) {
+        throw new Error("Failed to verify if user already exists: " + error.message);
     }
+
+    return !!data;
 }
 
 function mapToSupabaseUser(userInfo: User) {

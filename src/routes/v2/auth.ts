@@ -42,14 +42,9 @@ authRouter.post("/login", async (req: Request, res: Response) => {
                 message: "User doesn't exist, redirecting to onboarding",
             });
         }
-        return (
-            res
-                .status(200)
-                //.cookie('session', session.sessionCookie, session.options)
-                .json({
-                    message: "Supabase Login success",
-                })
-        );
+        return res.status(200).json({
+            message: "Supabase Login success",
+        });
     } catch (error: any) {
         console.log(error);
         return res.status(400).json({
