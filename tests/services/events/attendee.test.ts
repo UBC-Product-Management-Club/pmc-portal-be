@@ -35,8 +35,8 @@ function createSelectEqEqSingle(returnValue: any) {
   };
 }
 
-// Mock for: supabase.from('Table').select().eq() (for counting)
-function createSelectEq(returnValue: any) {
+// Mock for: supabase.from('Table').select().eq() (for counting with head: true)
+function createSelectEqWithCount(returnValue: any) {
   return {
     select: jest.fn().mockReturnValue({
       eq: jest.fn().mockResolvedValue(returnValue)
@@ -64,23 +64,19 @@ describe('checkValidAttendee', () => {
   });
 
   describe('validation errors', () => {
-    it('should return error for missing required fields', async () => {
+    it('should throw error for missing required fields', async () => {
       const testCases = [
         { user_id: '', event_id: 'event-456' },
         { user_id: 'user-123', event_id: '' },
       ];
 
       for (const registrationData of testCases) {
-        const result = await checkValidAttendee(registrationData);
-        expect(result).toEqual({
-          success: false,
-          error: 'Missing required fields',
-        });
+        await expect(checkValidAttendee(registrationData)).rejects.toThrow('Missing required fields');
       }
       expect(mockFrom).not.toHaveBeenCalled();
     });
 
-    it('should return error when event not found', async () => {
+    it('should throw error when event not found', async () => {
       const registrationData: AttendeeInsert = {
         user_id: 'user-123',
         event_id: 'nonexistent-event',
@@ -91,16 +87,11 @@ describe('checkValidAttendee', () => {
         error: { message: 'No rows returned' }
       }));
 
-      const result = await checkValidAttendee(registrationData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'Event not found',
-      });
+      await expect(checkValidAttendee(registrationData)).rejects.toThrow('Event missing');
       expect(mockFrom).toHaveBeenCalledWith('Event');
     });
 
-    it('should return error when user already registered', async () => {
+    it('should throw error when user already registered', async () => {
       const registrationData: AttendeeInsert = {
         user_id: 'user-123',
         event_id: 'event-456',
@@ -113,16 +104,11 @@ describe('checkValidAttendee', () => {
         .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
         .mockReturnValueOnce(createSelectEqEqSingle({ data: existingAttendee, error: null }));
 
-      const result = await checkValidAttendee(registrationData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'User already registered for this event',
-      });
+      await expect(checkValidAttendee(registrationData)).rejects.toThrow('User already registered for event');
       expect(mockFrom).toHaveBeenCalledTimes(2);
     });
 
-    it('should return error when event is full', async () => {
+    it('should throw error when event is full', async () => {
       const registrationData: AttendeeInsert = {
         user_id: 'user-123',
         event_id: 'event-456',
@@ -133,22 +119,17 @@ describe('checkValidAttendee', () => {
       mockFrom
         .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
         .mockReturnValueOnce(createSelectEqEqSingle({ data: null, error: null }))
-        .mockReturnValueOnce(createSelectEq({
+        .mockReturnValueOnce(createSelectEqWithCount({
           data: [],
           count: 2,
           error: null
         }));
 
-      const result = await checkValidAttendee(registrationData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'Event is full',
-      });
+      await expect(checkValidAttendee(registrationData)).rejects.toThrow('Event is full');
       expect(mockFrom).toHaveBeenCalledTimes(3);
     });
 
-    it('should return error when counting attendees fails', async () => {
+    it('should throw error when counting attendees fails', async () => {
       const registrationData: AttendeeInsert = {
         user_id: 'user-123',
         event_id: 'event-456',
@@ -159,22 +140,17 @@ describe('checkValidAttendee', () => {
       mockFrom
         .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
         .mockReturnValueOnce(createSelectEqEqSingle({ data: null, error: null }))
-        .mockReturnValueOnce(createSelectEq({
+        .mockReturnValueOnce(createSelectEqWithCount({
           data: null,
           count: null,
           error: { message: 'Database error' }
         }));
 
-      const result = await checkValidAttendee(registrationData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'Error counting attendees: Database error',
-      });
+      await expect(checkValidAttendee(registrationData)).rejects.toThrow('Error counting attendees: Database error');
     });
   });
 
-  it('should return success when all validations pass', async () => {
+  it('should not throw when all validations pass', async () => {
     const registrationData: AttendeeInsert = {
       user_id: 'user-123',
       event_id: 'event-456',
@@ -185,15 +161,13 @@ describe('checkValidAttendee', () => {
     mockFrom
       .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
       .mockReturnValueOnce(createSelectEqEqSingle({ data: null, error: null }))
-      .mockReturnValueOnce(createSelectEq({
+      .mockReturnValueOnce(createSelectEqWithCount({
         data: [],
         count: 50,
         error: null
       }));
 
-    const result = await checkValidAttendee(registrationData);
-
-    expect(result).toEqual({ success: true });
+    await expect(checkValidAttendee(registrationData)).resolves.not.toThrow();
     expect(mockFrom).toHaveBeenCalledTimes(3);
   });
 });
@@ -230,7 +204,7 @@ describe('addSupabaseAttendee', () => {
       mockFrom
         .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
         .mockReturnValueOnce(createSelectEqEqSingle({ data: null, error: null }))
-        .mockReturnValueOnce(createSelectEq({
+        .mockReturnValueOnce(createSelectEqWithCount({
           data: [],
           count: 50,
           error: null
@@ -264,7 +238,7 @@ describe('addSupabaseAttendee', () => {
       mockFrom
         .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
         .mockReturnValueOnce(createSelectEqEqSingle({ data: null, error: null }))
-        .mockReturnValueOnce(createSelectEq({
+        .mockReturnValueOnce(createSelectEqWithCount({
           data: [],
           count: 25,
           error: null
@@ -301,7 +275,7 @@ describe('addSupabaseAttendee', () => {
         error: { message: 'No rows returned' }
       }));
 
-      await expect(addSupabaseAttendee(registrationData)).rejects.toThrow('Event not found');
+      await expect(addSupabaseAttendee(registrationData)).rejects.toThrow('Event missing');
     });
 
     it('should throw error when user already registered', async () => {
@@ -317,7 +291,7 @@ describe('addSupabaseAttendee', () => {
         .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
         .mockReturnValueOnce(createSelectEqEqSingle({ data: existingAttendee, error: null }));
 
-      await expect(addSupabaseAttendee(registrationData)).rejects.toThrow('User already registered for this event');
+      await expect(addSupabaseAttendee(registrationData)).rejects.toThrow('User already registered for event');
     });
 
     it('should throw error when event is full', async () => {
@@ -331,7 +305,7 @@ describe('addSupabaseAttendee', () => {
       mockFrom
         .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
         .mockReturnValueOnce(createSelectEqEqSingle({ data: null, error: null }))
-        .mockReturnValueOnce(createSelectEq({
+        .mockReturnValueOnce(createSelectEqWithCount({
           data: [],
           count: 2,
           error: null
@@ -351,7 +325,7 @@ describe('addSupabaseAttendee', () => {
       mockFrom
         .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
         .mockReturnValueOnce(createSelectEqEqSingle({ data: null, error: null }))
-        .mockReturnValueOnce(createSelectEq({
+        .mockReturnValueOnce(createSelectEqWithCount({
           data: [],
           count: 50,
           error: null

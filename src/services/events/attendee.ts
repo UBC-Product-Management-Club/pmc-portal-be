@@ -122,13 +122,8 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
 
 // supabase
 const addSupabaseAttendee = async (registrationData: AttendeeInsert): Promise<AttendeeRow> => {
-    const { user_id, event_id, payment_id, event_form_answers} = registrationData;
 
-    const validationResult = await checkValidAttendee(registrationData);
-
-    if (!validationResult.success) {
-        throw new Error(validationResult.error);
-    }
+    await checkValidAttendee(registrationData);
 
     const attendee: AttendeeInsert = {
         ...registrationData,
@@ -149,11 +144,11 @@ const addSupabaseAttendee = async (registrationData: AttendeeInsert): Promise<At
     return data;
 }
 
-const checkValidAttendee = async (registrationData: AttendeeInsert): Promise<ValidationResult> => {
+const checkValidAttendee = async (registrationData: AttendeeInsert) => {
     const { user_id, event_id } = registrationData;
     
     if (!user_id || !event_id) {
-        return { success: false, error: 'Missing required fields'};
+        throw new Error("Missing required fields")
     }
     
     // Check if event exists
@@ -164,7 +159,7 @@ const checkValidAttendee = async (registrationData: AttendeeInsert): Promise<Val
         .single();
 
     if (eventError || !event) {
-        return { success: false, error: 'Event not found'};
+        throw new Error(`Event missing: ${eventError}`)
     }
 
     // Check if attendee already exists
@@ -176,7 +171,7 @@ const checkValidAttendee = async (registrationData: AttendeeInsert): Promise<Val
         .single();
     
     if (existingAttendee) {
-        return { success: false, error: 'User already registered for this event'};
+        throw new Error(`User already registered for event`)
     }
 
     // Check if event is full
@@ -186,14 +181,13 @@ const checkValidAttendee = async (registrationData: AttendeeInsert): Promise<Val
         .eq('event_id', event_id);
     
     if (eventFullError) {
-        return { success: false, error: `Error counting attendees: ${eventFullError.message}`};
+        throw new Error(`Error counting attendees: ${eventFullError.message}`);
     }
 
     if ((count ?? 0) >= event.max_attendees) {
-        return { success: false, error: 'Event is full'};
+        throw new Error("Event is full")
     }
 
-    return {success: true, error: undefined}
 
 }
 
