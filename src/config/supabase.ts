@@ -4,8 +4,6 @@ import { Database } from "../schema/v2/database.types";
 
 dotenv.config({ path: "./.secret/.env" });
 
-const env = process.env.ENVIRONMENT;
-
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
