@@ -10,14 +10,9 @@ profileRouter.get("/:id", async (req: Request, res: Response) => {
     const uid: string = req.params.id;
     const user = await getSupabaseProfile(uid);
     if (user) {
-        return res.status(200).json({
-            exists: true,
-            ...user,
-        });
+        return res.status(200).json(user);
     } else {
-        return res.status(404).json({
-            exists: false,
-        });
+        return res.status(404).json();
     }
 });
 
