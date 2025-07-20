@@ -1,9 +1,3 @@
-jest.mock('../../../src/config/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-  }
-}));
-
 import * as fs from 'fs';
 import * as nodemailer from 'nodemailer';
 import { Attendee } from '../../../src/schema/v1/FirebaseEvent';

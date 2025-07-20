@@ -1,5 +1,6 @@
+import type { Database } from '../../schema/v2/database.types';
 import { Router } from "express";
-import { addEvent, getSupabaseEventById, getSupabaseEvents } from "../../services/events/event";
+import { getSupabaseEventById, getSupabaseEvents, addSupabaseEvent } from "../../services/events/event";
 import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
@@ -8,10 +9,11 @@ import { addTransaction } from "../../services/payments/add";
 import { addTransactionBody } from "../../schema/v1/Transaction";
 import { sendEmail } from "../../services/emails/send";
 import { checkIsRegistered } from "../../services/events/attendee";
-import { uploadFiles } from "../../utils/files";
+import { uploadFiles, uploadSupabaseFiles } from "../../utils/files";
 
 export const eventRouter = Router()
 
+type EventInsert = Database['public']['Tables']['Event']['Insert'];
 const memStorage = multer.memoryStorage()
 const upload = multer({ storage: memStorage })
 
@@ -63,70 +65,81 @@ eventRouter.post('/:id/registered', upload.array('files', 5), async (req, res) =
     }
 })
 
-eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
-    // const event_Id = uuidv4(); // generate a unique event ID -- do i need this or does firestore does it for me?
-    // const {
-    //     name,
-    //     date,
-    //     start_time,
-    //     end_time,
-    //     description,
-    //     location,
-    //     member_price,
-    //     non_member_price,
-    //     member_only,
-    //     attendee_Ids,
-    //     maxAttendee,
-    //     eventFormId
-    // } = JSON.parse(JSON.stringify(req.body))
-    // const mediaFiles = req.files as Express.Multer.File[]
+eventRouter.post('/addEvent', upload.fields([{ name: 'mediaFiles', maxCount: 5 },{ name: 'thumbnail', maxCount: 1 }]), async (req, res) => {
+    const event_Id = uuidv4();
 
-    // const requiredFields = [name, date, location, description, mediaFiles, member_price, non_member_price, attendee_Ids, maxAttendee];
-    // const checkUndefinedFields = [member_only];
-
-    // // Check for missing required fields or empty `mediaFiles`
-    // for (const field of requiredFields) {
-    //     if (!field || (field === mediaFiles && mediaFiles.length === 0)) {
-    //         return res.status(400).json({
-    //             message: "Invalid Event. Required fields are missing"
-    //         });
-    //     }
-    // }
-
-
-    // // Check if `member_only` is undefined
-    // for (const field of checkUndefinedFields) {
-    //     if (field === undefined) {
-    //         return res.status(400).json({
-    //             message: "Invalid Event. Required fields are missing"
-    //         });
-    //     }
-    // }
+    // Unpacking request body
     try {
-    //     const parentPath = `events/${event_Id}/media/`
-    //     const media = await uploadFiles(mediaFiles, parentPath) // upload media and get download links
-    //     const event: Event = {
-    //         event_Id,
-    //         name,
-    //         date,
-    //         start_time,
-    //         end_time,
-    //         description,
-    //         location,
-    //         media,
-    //         member_price: parseInt(member_price as string) as number,
-    //         non_member_price: parseInt(non_member_price as string) as number,
-    //         member_only: Boolean(JSON.parse(member_only as string)),
-    //         attendee_Ids: JSON.parse(attendee_Ids as string),
-    //         maxAttendee: parseInt(maxAttendee as string) as number,
-    //         eventFormId: JSON.parse(eventFormId as string),
-    //         isDisabled: false,
-    //         points: {}
-    //     }
-    //     await addEvent(event_Id, event);
+        const {
+            name,
+            date,
+            start_time,
+            end_time,
+            description,
+            location,
+            member_price,
+            non_member_price,
+            member_only,
+            max_attendees,
+            event_form_questions,
+        } = req.body;
+
+        const files = req.files as {
+            mediaFiles?: Express.Multer.File[],
+            thumbnail?: Express.Multer.File[]
+        };
+
+        // Extracting files from FormData
+        const mediaFiles = files.mediaFiles ?? [];
+        const thumbnailFile = files.thumbnail ?? [];
+
+        // Checking presence of required files
+        const requiredFields = [name, date, location, description, mediaFiles, thumbnailFile, member_price, non_member_price, max_attendees, event_form_questions];
+        for (const field of requiredFields) {
+            if (!field || (field === mediaFiles && mediaFiles.length === 0)) {
+                return res.status(400).json({
+                    message: "Invalid Event. Required fields are missing"
+                });
+            }
+        }
+
+        // Checking if member_only is undefined
+        if (member_only === undefined) {
+            return res.status(400).json({ message: "member_only is required" });
+        }
+
+        // Constructing proper time fields
+        const startTimestamp = `${date}T${start_time}`; // → e.g. "2025-07-18T17:00:00"
+        const endTimestamp = `${date}T${end_time}`;
+
+
+        // Upload files to get download url
+        const parentPath = `events/${event_Id}/media/`
+        const media = await uploadSupabaseFiles(mediaFiles, parentPath) 
+        const thumbnail = await uploadSupabaseFiles(thumbnailFile, parentPath) // Guaranteed to be an one element array
+
+        // Creates event object for insertion
+        const event: EventInsert = {
+            event_id: event_Id,
+            name: name as string,
+            date: date as string, 
+            start_time: startTimestamp as string,
+            end_time: endTimestamp as string,
+            description: description as string,
+            location: location as string,
+            member_price: parseInt(member_price as string) as number,
+            non_member_price: parseInt(non_member_price as string) as number,
+            max_attendees: parseInt(max_attendees as string) as number,
+            event_form_questions: JSON.parse(event_form_questions) as any, // TODO define stricter type
+            is_disabled: false,
+            media: media as string[],
+            thumbnail: thumbnail[0] as string, 
+        };
+        await addSupabaseEvent(event) // TODO make addSupabaseEvent function
         res.status(201).json({
-            message: `supabase event added successfully`,
+            message: `Supabase Event with ID ${event_Id} has been added successfully.`,
         });
+
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

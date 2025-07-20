@@ -2,6 +2,10 @@ import { db } from "../../config/firebase";
 import { supabase } from "../../config/supabase";
 import { FirebaseEvent } from "../../schema/v1/FirebaseEvent";
 import { Tables } from "../../schema/v2/database.types";
+import type { Database } from '../../schema/v2/database.types';
+
+
+type EventInsert = Database['public']['Tables']['Event']['Insert'];
 
 const getEvents = async (): Promise<FirebaseEvent[]> => {
     const eventsCollection = db.collection('events');
@@ -85,4 +89,36 @@ const getSupabaseEventById = async (id: string): Promise<Tables<'Event'> | null>
 
 };
 
-export { getEvents, getEventById, addEvent, getSupabaseEvents, getSupabaseEventById};
+
+const addSupabaseEvent = async (event: EventInsert): Promise<void> => {
+    const { date, start_time, end_time } = event;
+
+    // This should never trigger if controller properly validates the fields
+    if (!date || !start_time || !end_time) {
+        throw new Error("Missing required fields.");
+    }
+
+    const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+    const isoTimestampRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})?$/;
+    
+    if (!dateRegex.test(date)) {
+        console.log("Date from form:", date);
+        throw new Error("Event date invalid. Must be ISO format (YYYY-MM-DD).")
+    }
+
+    if (!isoTimestampRegex.test(start_time)) {
+        throw new Error("Start time invalid. Must be ISO format (Thh:mm:ss).")
+    }
+
+    if (!isoTimestampRegex.test(end_time)) {
+        throw new Error("End time invalid. Must be ISO format (Thh:mm:ss).")
+    }
+
+    const { error } = await supabase.from('Event').insert(event)
+        if (error) {
+        throw new Error("Failed to insert event due to unexpected error: " + error.message);
+    } 
+
+}
+
+export { getEvents, getEventById, addEvent, getSupabaseEvents, getSupabaseEventById, addSupabaseEvent};

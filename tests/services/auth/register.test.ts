@@ -3,13 +3,6 @@ import { db } from "../../../src/config/firebase"
 import { onboard } from "../../../src/services/auth/register"
 import { User } from "../../../src/schema/v1/User"
 
-jest.mock("../../../src/config/firebase", () => ({
-    db: {
-      collection: jest.fn()
-    }
-}))
-
-
 describe("register service", () => {
     let mockUser: User = {
         id: "",
