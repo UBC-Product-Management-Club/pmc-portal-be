@@ -1,7 +1,19 @@
-import Stripe from "stripe"
-import { db } from "../../../src/config/firebase"
-import { onboard } from "../../../src/services/auth/register"
-import { User } from "../../../src/schema/v1/User"
+import { handleSupabaseOnboarding } from "../../../src/services/auth/register";
+import { User } from "../../../src/schema/v1/User";
+import { checkSupabaseUserExists, mapToSupabaseUser } from "../../../src/services/auth/utils";
+import { supabase } from "../../../src/config/supabase";
+
+jest.mock("../../../src/services/auth/utils", () => ({
+    checkSupabaseUserExists: jest.fn(),
+    mapToSupabaseUser: jest.fn(),
+    TABLES: { USER: "User" },
+}));
+
+jest.mock("../../../src/config/supabase", () => ({
+    supabase: {
+        from: jest.fn(() => ({ insert: jest.fn() })),
+    },
+}));
 
 describe("register service", () => {
     let mockUser: User = {
@@ -17,60 +29,34 @@ describe("register service", () => {
         year: "",
         faculty: "",
         major: "",
-        whyPm: ""
-    }
-    const mockGet = jest.fn()
-    const mockDoc = jest.fn()
-    const mockSet = jest.fn()
-    const mockCollection = db.collection as jest.Mock;
-  
-    beforeEach(() => {
-      jest.clearAllMocks()
-  
-      mockCollection.mockImplementation(() => ({
-        doc: mockDoc
-      }))
-      mockDoc.mockImplementation(() => ({
-        get: mockGet,
-        set: mockSet
-      }))
-      mockGet.mockResolvedValue({
-        exists: false
-      })
-    })
+        whyPm: "",
+    };
 
-    it("throws error when payment fails", async () => {
-        const mockPayment = {
-            status: "canceled"
-        } as Stripe.PaymentIntent
-        await expect(onboard(mockUser, mockPayment)).rejects.toThrow("Payment failed!")
-    })
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
     it("throws error when onboarding existing user", async () => {
-        const mockPayment = {
-            status: "succeeded"
-        } as Stripe.PaymentIntent
-        mockGet.mockResolvedValueOnce({
-            exists: true
-        })
-        await expect(onboard(mockUser, mockPayment)).rejects.toThrow("User already exists!")
-    })
+        (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(true);
+        await expect(handleSupabaseOnboarding(mockUser)).rejects.toThrow("User already exists.");
+    });
 
     it("adds a new user to database", async () => {
-        const mockPayment = {
-            status: "succeeded"
-        } as Stripe.PaymentIntent
-        mockSet.mockResolvedValueOnce({})
+        (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(false);
+        (mapToSupabaseUser as jest.Mock).mockReturnValue({ user_id: mockUser.id });
+        const insertMock = jest.fn().mockResolvedValueOnce({ error: null });
+        (supabase.from as jest.Mock).mockReturnValue({ insert: insertMock });
 
-        await expect(onboard(mockUser, mockPayment)).resolves.toBeUndefined()
-    })
+        await expect(handleSupabaseOnboarding(mockUser)).resolves.toEqual({ message: "success" });
+        expect(insertMock).toHaveBeenCalledWith([{ user_id: mockUser.id }]);
+    });
 
     it("throws when adding a user fails", async () => {
-        const mockPayment = {
-            status: "succeeded"
-        } as Stripe.PaymentIntent
-        mockSet.mockRejectedValueOnce(new Error("some firebase error"))
+        (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(false);
+        (mapToSupabaseUser as jest.Mock).mockReturnValue({ user_id: mockUser.id });
+        const insertMock = jest.fn().mockResolvedValueOnce({ error: { message: "insert error" } });
+        (supabase.from as jest.Mock).mockReturnValue({ insert: insertMock });
 
-        await expect(onboard(mockUser, mockPayment)).rejects.toThrow("some firebase error")
-    })
-})
+        await expect(handleSupabaseOnboarding(mockUser)).rejects.toThrow("Error creating user: insert error");
+    });
+});

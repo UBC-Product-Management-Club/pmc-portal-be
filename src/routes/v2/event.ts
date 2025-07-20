@@ -4,12 +4,16 @@ import { getSupabaseEventById, getSupabaseEvents, addSupabaseEvent } from "../..
 import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
-import { addAttendee, getAttendeeById } from "../../services/events/attendee";
+import { addAttendee, addSupabaseAttendee, getAttendeeById } from "../../services/events/attendee";
 import { addTransaction } from "../../services/payments/add";
 import { addTransactionBody } from "../../schema/v1/Transaction";
 import { sendEmail } from "../../services/emails/send";
 import { checkIsRegistered } from "../../services/events/attendee";
 import { uploadFiles, uploadSupabaseFiles } from "../../utils/files";
+import { Database } from "../../schema/v2/database.types";
+
+
+type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
 
 export const eventRouter = Router()
 
@@ -35,31 +39,31 @@ eventRouter.get('/:id', async (req, res) => {
     }
 });
 
-eventRouter.post('/:id/registered', upload.array('files', 5), async (req, res) => {
+eventRouter.post('/:eventId/register', async (req, res) => {
     try {
-        // const attendeeInfo = JSON.parse(req.body.attendeeInfo) as Attendee
-        // const paymentInfo = JSON.parse(req.body.paymentInfo) as addTransactionBody
+        const userId = req.body.userId;
+        const paymentId = req.body.paymentId;
+        const eventId = req.params.eventId;
+        const eventFormAnswers = req.body.eventFormAnswers;
+        
+        if (!userId) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
 
-        // const files = req.files as Express.Multer.File[]
+        const insertData: AttendeeInsert = {
+            user_id: userId,
+            event_id:eventId,
+            payment_id:paymentId,
+            event_form_answers: eventFormAnswers
+        }
 
-        // if (files && files.length > 0) {
-        //     const parentPath = `events/${req.params.id}/attendees/${attendeeInfo.attendee_Id}/files/`
-        //     const uploadedFiles = await uploadFiles(files, parentPath)
-        //     attendeeInfo.files = uploadedFiles
-        // }
+        const result = await addSupabaseAttendee(insertData);
+        
+        res.status(201).json({
+            message: 'Registration successful',
+            attendee: result
+        });
 
-        // const attendee = {
-        //     ...attendeeInfo,
-        //     points: 1,
-        //     activities_attended: []
-        // }
-
-        // await addSupabaseAttendee(attendee) // should add attendee to firestore
-        // await addSupabaseTransaction(paymentInfo) // should add transaction to firestore
-        // await sendEmail(attendeeInfo)
-        res.status(200).json({
-            message: "supabase registration successful"
-        })
     } catch (error: any) {
         res.status(500).json({ error: error.message })
     }

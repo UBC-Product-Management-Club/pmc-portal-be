@@ -1,6 +1,15 @@
 import { db } from "../../config/firebase";
 import { FieldValue, Query } from 'firebase-admin/firestore';
 import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent";
+import { supabase } from "../../config/supabase";
+import { Database } from "../../schema/v2/database.types";
+
+
+type AttendeeRow = Database['public']['Tables']['Attendee']['Row'];
+type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
+type ValidationResult = 
+    | { success: true; error: undefined }
+    | { success: false; error: string };
 
 // const getAttendees = async (): Promise<Attendee[]> => {
 //     const attendeesCollection = db.collection('events');
@@ -112,10 +121,79 @@ const addAttendee = async (attendee: Attendee): Promise<void> => {
 
 
 // supabase
+const addSupabaseAttendee = async (registrationData: AttendeeInsert): Promise<AttendeeRow> => {
+
+    await checkValidAttendee(registrationData);
+
+    const attendee: AttendeeInsert = {
+        ...registrationData,
+        registration_time: new Date().toISOString(),
+        status: 'registered'
+    }
+
+    const { data, error } = await supabase
+        .from('Attendee')
+        .insert(attendee)
+        .select()
+        .single();
+    
+    if (error) {
+        throw new Error(`Failed to create attendee: ${error.message}`);
+    }
+    
+    return data;
+}
+
+const checkValidAttendee = async (registrationData: AttendeeInsert) => {
+    const { user_id, event_id } = registrationData;
+    
+    if (!user_id || !event_id) {
+        throw new Error("Missing required fields")
+    }
+    
+    // Check if event exists
+    const { data: event, error: eventError } = await supabase
+        .from('Event')
+        .select()
+        .eq('event_id', event_id) 
+        .single();
+
+    if (eventError || !event) {
+        throw new Error(`Event missing: ${eventError}`)
+    }
+
+    // Check if attendee already exists
+    const { data: existingAttendee } = await supabase
+        .from('Attendee')
+        .select('*')
+        .eq('user_id', user_id)
+        .eq('event_id', event_id)
+        .single();
+    
+    if (existingAttendee) {
+        throw new Error(`User already registered for event`)
+    }
+
+    // Check if event is full
+    const {data, count, error: eventFullError} = await supabase
+        .from('Attendee')
+        .select('*', { count: 'exact', head: true }) 
+        .eq('event_id', event_id);
+    
+    if (eventFullError) {
+        throw new Error(`Error counting attendees: ${eventFullError.message}`);
+    }
+
+    if ((count ?? 0) >= event.max_attendees) {
+        throw new Error("Event is full")
+    }
+
+
+}
 
 const getSupabaseAttendeeById = async (id: string): Promise<{message: string}> => {
 
     return {message: `getting attendee by ${id}`};
 };
 
-export { getAttendeeById, addAttendee, checkIsRegistered, getSupabaseAttendeeById };
+export { getAttendeeById, addAttendee, checkIsRegistered, getSupabaseAttendeeById, addSupabaseAttendee, checkValidAttendee};

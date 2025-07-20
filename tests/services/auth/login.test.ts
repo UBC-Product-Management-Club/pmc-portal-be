@@ -1,47 +1,53 @@
-import { db } from "../../../src/config/firebase";
-import { handleLogin } from "../../../src/services/auth/login";
+import { handleSupabaseLogin } from "../../../src/services/auth/login";
+import { supabase } from "../../../src/config/supabase";
 
-jest.mock("../../../src/config/firebase", () => ({
-    db: {
-      collection: jest.fn()
-    }
-  }))
+const mockQuery = {
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    maybeSingle: jest.fn(), // <-- use maybeSingle here
+};
+
+jest.mock("../../../src/config/supabase", () => ({
+    supabase: {
+        from: jest.fn(() => mockQuery),
+    },
+}));
 
 describe("login sevice", () => {
-    const mockGet = jest.fn()
-    const mockDoc = jest.fn()
-    const mockCollection = db.collection as jest.Mock;
-  
     beforeEach(() => {
-      jest.clearAllMocks()
-  
-      mockCollection.mockImplementation(() => ({
-        doc: mockDoc
-      }))
-      mockDoc.mockImplementation(() => ({
-        get: mockGet
-      }))
-    })
-  
-    it("throws error if no userId is provided", async () => {
-      await expect(handleLogin("")).rejects.toThrow("400: Bad request")
-    })
-  
-    it("returns user data if userId is valid", async () => {
-      mockGet.mockResolvedValueOnce({
-        data: () => ({ name: "Toby", email: "toby@example.com" })
-      })
-  
-      const userData = await handleLogin("some-id")
-      expect(userData).toEqual({ name: "Toby", email: "toby@example.com" })
-    })
-  
-    it("throws error if get() fails", async () => {
-      mockGet.mockRejectedValueOnce(new Error("Firestore down"))
-  
-      await expect(handleLogin("some-id")).rejects.toThrow(
-        "500: something went wrong fetching users"
-      )
-    })
+        jest.clearAllMocks();
+    });
 
-})
+    it("throws error if no userId is provided", async () => {
+        await expect(handleSupabaseLogin("")).rejects.toThrow("400: Bad request");
+    });
+
+    it("returns user data if userId is valid", async () => {
+        mockQuery.maybeSingle.mockResolvedValueOnce({
+            data: { name: "Toby", email: "toby@example.com" },
+            error: null,
+        });
+
+        const userData = await handleSupabaseLogin("some-id");
+        expect(userData).toEqual({ name: "Toby", email: "toby@example.com" });
+        expect(supabase.from).toHaveBeenCalledWith("User");
+        expect(mockQuery.select).toHaveBeenCalledWith();
+        expect(mockQuery.eq).toHaveBeenCalledWith("user_id", "some-id");
+        expect(mockQuery.maybeSingle).toHaveBeenCalled();
+    });
+
+    it("throws error if Supabase returns an error object", async () => {
+        mockQuery.maybeSingle.mockResolvedValueOnce({
+            data: null,
+            error: { message: "Supabase down" },
+        });
+
+        await expect(handleSupabaseLogin("some-id")).rejects.toThrow("Failed to fetch user: Supabase down");
+    });
+
+    it("throws error if maybeSingle() itself throws", async () => {
+        mockQuery.maybeSingle.mockRejectedValueOnce(new Error("Network failure"));
+
+        await expect(handleSupabaseLogin("some-id")).rejects.toThrow("Network failure");
+    });
+});
