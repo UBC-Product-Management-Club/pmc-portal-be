@@ -1,9 +1,3 @@
-jest.mock('../../../src/config/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-  }
-}));
-
 import { supabase } from '../../../src/config/supabase';
 import { addSupabaseAttendee, checkValidAttendee } from '../../../src/services/events/attendee';
 import { Database } from '../../../src/schema/v2/database.types';
