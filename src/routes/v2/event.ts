@@ -1,4 +1,3 @@
-import type { Database } from '../../schema/v2/database.types';
 import { Router } from "express";
 import { getSupabaseEventById, getSupabaseEvents, addSupabaseEvent } from "../../services/events/event";
 import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent"
