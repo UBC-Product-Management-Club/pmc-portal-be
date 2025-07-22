@@ -4,6 +4,7 @@ import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent";
 import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
 import { v4 as uuidv4 } from 'uuid';
+import { addUserFromGuestRegistration, findUserByEmail } from "../auth/register";
 
 type AttendeeRow = Database['public']['Tables']['Attendee']['Row'];
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
@@ -200,31 +201,10 @@ const registerGuestForEvent = async (guestUser:any, attendee:any, eventId:any) =
     const generatedUserId = uuidv4();
 
     const existing = await findUserByEmail(guestUser.email);
-
     const userId = existing ? existing.user_id : generatedUserId;
 
     if (!existing) {
-        const userData: UserInsert = { 
-            first_name: guestUser.firstName,
-            last_name:guestUser.lastName,
-            student_id:guestUser.studentId,
-            email:guestUser.email,
-            university:guestUser.university,
-            faculty: guestUser.faculty,
-            major: guestUser.major,
-            pronouns:guestUser.pronouns,
-            user_id:userId,
-         }
-
-        const { data, error } = await supabase
-            .from('User')
-            .insert(userData)
-            .select()
-            .single();
-        
-        if (!data || error){
-            throw new Error(`Error inserting guestUser: ${error?.message}`);
-        }
+        addUserFromGuestRegistration(guestUser, userId)
     }
 
     const attendeeData: AttendeeInsert = { 
@@ -255,20 +235,6 @@ const registerGuestForEvent = async (guestUser:any, attendee:any, eventId:any) =
     return data;
 }
 
-const findUserByEmail = async (email: string): Promise<UserRow | null> => {
-  const { data, error } = await supabase
-    .from('User')
-    .select('*')
-    .eq('email', email)
-    .maybeSingle();
-
-  if (error){
-    throw new Error(`Failed to find user: ${error.message}`);
-  }
-
-  return data;
-
-}
 
 const getSupabaseAttendeeById = async (id: string): Promise<{message: string}> => {
 
