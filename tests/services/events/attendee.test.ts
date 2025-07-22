@@ -1,9 +1,15 @@
+jest.mock('uuid', () => ({
+  v4: jest.fn(() => 'generated-uuid-123')
+}));
+
 import { supabase } from '../../../src/config/supabase';
-import { addSupabaseAttendee, checkValidAttendee } from '../../../src/services/events/attendee';
+import { addSupabaseAttendee, checkValidAttendee, registerGuestForEvent, findUserByEmail } from '../../../src/services/events/attendee';
 import { Database } from '../../../src/schema/v2/database.types';
 
 type AttendeeRow = Database['public']['Tables']['Attendee']['Row'];
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
+type UserRow = Database['public']['Tables']['User']['Row'];
+type UserInsert = Database['public']['Tables']['User']['Insert'];
 
 // Mock for: supabase.from('Table').select().eq().single()
 function createSelectEqSingle(returnValue: any) {
@@ -48,6 +54,18 @@ function createInsertSelectSingle(returnValue: any) {
     })
   };
 }
+
+// Mock for: supabase.from('Table').select().eq().maybeSingle()
+function createSelectEqMaybeSingle(returnValue: any) {
+  return {
+    select: jest.fn().mockReturnValue({
+      eq: jest.fn().mockReturnValue({
+        maybeSingle: jest.fn().mockResolvedValue(returnValue)
+      })
+    })
+  };
+}
+
 
 describe('checkValidAttendee', () => {
   let mockFrom: jest.Mock;
@@ -331,5 +349,119 @@ describe('addSupabaseAttendee', () => {
 
       await expect(addSupabaseAttendee(registrationData)).rejects.toThrow('Failed to create attendee: Foreign key constraint violation');
     });
+  });
+
+});
+
+describe('registerGuestForEvent', () => {
+  let mockFrom: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockFrom = supabase.from as jest.Mock;
+  });
+
+  it('registers a guest who does not already exist', async () => {
+    const guestUser = {
+      first_name: 'Test',
+      last_name: 'Guest',
+      email: 'guest@example.com',
+      university: 'UBC',
+      faculty: 'Science',
+      major: 'Computer Science',
+      pronouns: 'they/them',
+      student_id: '12345678'
+    };
+
+    const attendee = {
+      eventFormAnswers: {
+        shirtSize: 'M',
+        foodPreference: 'Vegan'
+      }
+    };
+
+    const eventId = 'event-001';
+
+    const mockEvent = { event_id: eventId, max_attendees: 100 };
+    const mockAttendee = {
+      attendee_id: 'attendee-xyz',
+      user_id: 'generated-uuid-123',
+      event_id: eventId,
+      event_form_answers: attendee.eventFormAnswers,
+      registration_time: '2025-01-01T00:00:00Z',
+      status: 'registered',
+      is_payment_verified: true
+    };
+
+    // Mock Supabase calls
+    mockFrom
+      // 1. findUserByEmail → returns null
+      .mockReturnValueOnce(createSelectEqMaybeSingle({ data: null, error: null }))
+      // 2. add user
+      .mockReturnValueOnce(createInsertSelectSingle({data: "hi", error: null}))
+      // 3. get event
+      .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
+      // 4. check user already registered → returns null
+      .mockReturnValueOnce(createSelectEqEqSingle({ data: null, error: null }))
+      // 5. count attendees
+      .mockReturnValueOnce(createSelectEqWithCount({ data: [], count: 10, error: null }))
+      // 6. insert attendee
+      .mockReturnValueOnce(createInsertSelectSingle({ data: mockAttendee, error: null }));
+
+    const result = await registerGuestForEvent(guestUser, attendee, eventId);
+
+    expect(result).toEqual(mockAttendee);
+    expect(mockFrom).toHaveBeenCalledTimes(6);
+  });
+  
+  it('registers a guest who already exists (skips insert)', async () => {
+  const guestUser = {
+    first_name: 'Test',
+    last_name: 'Guest',
+    email: 'existing@example.com',
+    university: 'UBC',
+    faculty: 'Science',
+    major: 'Physics',
+    pronouns: 'he/him',
+    student_id: '12345678'
+  };
+
+  const attendee = {
+    eventFormAnswers: {
+      dietary: 'None'
+    }
+  };
+
+  const eventId = 'event-002';
+
+  const existingUser = { user_id: 'existing-user-id', ...guestUser };
+
+  const mockEvent = { event_id: eventId, max_attendees: 100 };
+  const mockAttendee = {
+    attendee_id: 'attendee-xyz',
+    user_id: 'existing-user-id',
+    event_id: eventId,
+    event_form_answers: attendee.eventFormAnswers,
+    registration_time: '2025-01-01T00:00:00Z',
+    status: 'registered',
+    is_payment_verified: true
+  };
+
+  mockFrom
+    // 1. findUserByEmail → user exists
+    .mockReturnValueOnce(createSelectEqMaybeSingle({ data: existingUser, error: null }))
+    // 2. get event
+    .mockReturnValueOnce(createSelectEqSingle({ data: mockEvent, error: null }))
+    // 3. user not already registered
+    .mockReturnValueOnce(createSelectEqEqSingle({ data: null, error: null }))
+    // 4. attendee count
+    .mockReturnValueOnce(createSelectEqWithCount({ data: [], count: 20, error: null }))
+    // 5. insert attendee
+    .mockReturnValueOnce(createInsertSelectSingle({ data: mockAttendee, error: null }));
+
+  const result = await registerGuestForEvent(guestUser, attendee, eventId);
+
+  expect(result).toEqual(mockAttendee);
+  expect(mockFrom).toHaveBeenCalledTimes(5); // no user insert
   });
 });

@@ -3,7 +3,7 @@ import { getSupabaseEventById, getSupabaseEvents, addSupabaseEvent } from "../..
 import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent"
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
-import { addAttendee, addSupabaseAttendee, getAttendeeById } from "../../services/events/attendee";
+import { addAttendee, addSupabaseAttendee, getAttendeeById, registerGuestForEvent } from "../../services/events/attendee";
 import { addTransaction } from "../../services/payments/add";
 import { addTransactionBody } from "../../schema/v1/Transaction";
 import { sendEmail } from "../../services/emails/send";
@@ -14,6 +14,7 @@ import { EventSchema, EventInsert } from "../../schema/v2/Event";
 
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
+type UserInsert = Database['public']['Tables']['User']['Insert'];
 
 export const eventRouter = Router()
 
@@ -38,7 +39,7 @@ eventRouter.get('/:id', async (req, res) => {
     }
 });
 
-eventRouter.post('/:eventId/register', async (req, res) => {
+eventRouter.post('/:eventId/register/member', async (req, res) => {
     try {
         const userId = req.body.userId;
         const paymentId = req.body.paymentId;
@@ -61,6 +62,40 @@ eventRouter.post('/:eventId/register', async (req, res) => {
         res.status(201).json({
             message: 'Registration successful',
             attendee: result
+        });
+
+    } catch (error: any) {
+        res.status(500).json({ error: error.message })
+    }
+})
+
+eventRouter.post('/:eventId/register/guest', async (req, res) => {
+    try {
+
+        const {guestUser, attendee } = req.body;
+        const eventId = req.params.eventId;
+
+        const result = await registerGuestForEvent(guestUser, attendee, eventId);
+        res.status(201).json({
+            message: "Registration successful", 
+            attendee:result
+        });
+
+    } catch (error: any) {
+        res.status(500).json({ error: error.message })
+    }
+})
+
+eventRouter.post('/:eventId/register/guest', async (req, res) => {
+    try {
+
+        const {guestUser, attendee } = req.body;
+        const eventId = req.params.eventId;
+
+        const result = await registerGuestForEvent(guestUser, attendee, eventId);
+        res.status(201).json({
+            message: "Registration successful", 
+            attendee:result
         });
 
     } catch (error: any) {
