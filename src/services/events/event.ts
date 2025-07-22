@@ -63,8 +63,10 @@ const addEvent = async (event_Id: string, event: FirebaseEvent): Promise<void> =
 
 
 // supabase services
-const getSupabaseEvents = async (): Promise<Tables<'Event'>[]> => {
-    const {data, error} = await supabase.from('Event').select();
+const getSupabaseEvents = async (): Promise<Partial<Tables<'Event'>>[]> => {
+    const {data, error} = await supabase.from('Event')
+        .select("event_id, name, description, date, start_time, end_time, location, member_price, non_member_price, thumbnail, is_disabled")
+        .order("date", { ascending: false })
     if (error || !data) {
         console.error("Error fetching events: ", error);
         throw new Error('Failed to fetch events: ' + error?.message);

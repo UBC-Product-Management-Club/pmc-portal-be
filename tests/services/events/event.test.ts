@@ -23,6 +23,8 @@ describe('getSupabaseEvents', () => {
   });
   
   it('returns event list successfully', async () => {
+    const mockOrder = jest.fn()
+    const columns = "event_id, name, description, date, start_time, end_time, location, member_price, non_member_price, thumbnail, is_disabled"
     const testEvents = [
       {
         event_id: "1",
@@ -36,17 +38,22 @@ describe('getSupabaseEvents', () => {
       }
     ];
 
-    mockedSupabaseSelect.mockResolvedValue({ data: testEvents, error: null });
+    mockedSupabaseSelect.mockReturnValue({
+        order: mockOrder.mockResolvedValue({ data: testEvents, error: null})
+    })
 
     const events = await getSupabaseEvents();
 
     expect(events).toEqual(testEvents);
     expect(mockedSupabaseFrom).toHaveBeenCalledWith('Event');
-    expect(mockedSupabaseSelect).toHaveBeenCalled();
+    expect(mockedSupabaseSelect).toHaveBeenCalledWith(columns);
+    expect(mockOrder).toHaveBeenCalledWith("date", { ascending: false})
   });
 
   it('throws error when supabase returns an error', async () => {
-    mockedSupabaseSelect.mockResolvedValue({ data: null, error: { message: 'DB error' } });
+    mockedSupabaseSelect.mockReturnValue({
+        order: jest.fn().mockResolvedValue({ data: null, error: { message: 'DB error' }})
+    })
 
     await expect(getSupabaseEvents()).rejects.toThrow('Failed to fetch events: DB error');
   });
