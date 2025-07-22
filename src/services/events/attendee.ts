@@ -3,13 +3,14 @@ import { FieldValue, Query } from 'firebase-admin/firestore';
 import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent";
 import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
-
+import { v4 as uuidv4 } from 'uuid';
+import { addUserFromGuestRegistration, findUserByEmail } from "../auth/register";
 
 type AttendeeRow = Database['public']['Tables']['Attendee']['Row'];
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
-type ValidationResult = 
-    | { success: true; error: undefined }
-    | { success: false; error: string };
+type UserInsert = Database['public']['Tables']['User']['Insert'];
+type UserRow = Database['public']['Tables']['User']['Row'];
+
 
 // const getAttendees = async (): Promise<Attendee[]> => {
 //     const attendeesCollection = db.collection('events');
@@ -159,7 +160,7 @@ const checkValidAttendee = async (registrationData: AttendeeInsert) => {
         .single();
 
     if (eventError || !event) {
-        throw new Error(`Event missing: ${eventError}`)
+        throw new Error(`Event missing: ${eventError?.message}`)
     }
 
     // Check if attendee already exists
@@ -191,9 +192,55 @@ const checkValidAttendee = async (registrationData: AttendeeInsert) => {
 
 }
 
+const registerGuestForEvent = async (guestUser:any, attendee:any, eventId:any) => {
+
+    if (!guestUser) {
+        throw new Error("No guest user information");
+    }
+
+    const generatedUserId = uuidv4();
+
+    const existing = await findUserByEmail(guestUser.email);
+    const userId = existing ? existing.user_id : generatedUserId;
+
+    if (!existing) {
+        addUserFromGuestRegistration(guestUser, userId)
+    }
+
+    const attendeeData: AttendeeInsert = { 
+        event_id: eventId,
+        user_id: userId,
+        event_form_answers: attendee.eventFormAnswers
+    };
+
+    
+    await checkValidAttendee(attendeeData);
+
+    const attendeeInsert: AttendeeInsert = {
+        ...attendeeData,
+        registration_time: new Date().toISOString(),
+        status: 'registered'
+    }
+
+    const { data, error } = await supabase
+        .from('Attendee')
+        .insert(attendeeInsert)
+        .select()
+        .single();
+    
+    if (error) {
+        throw new Error(`Failed to create attendee: ${error.message}`);
+    }
+    
+    return data;
+}
+
+
 const getSupabaseAttendeeById = async (id: string): Promise<{message: string}> => {
 
     return {message: `getting attendee by ${id}`};
 };
 
-export { getAttendeeById, addAttendee, checkIsRegistered, getSupabaseAttendeeById, addSupabaseAttendee, checkValidAttendee};
+
+
+export { getAttendeeById, addAttendee, checkIsRegistered, getSupabaseAttendeeById, addSupabaseAttendee, checkValidAttendee, registerGuestForEvent, findUserByEmail};
