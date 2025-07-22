@@ -10,13 +10,13 @@ import { sendEmail } from "../../services/emails/send";
 import { checkIsRegistered } from "../../services/events/attendee";
 import { uploadFiles, uploadSupabaseFiles } from "../../utils/files";
 import { Database } from "../../schema/v2/database.types";
+import { EventSchema, EventInsert } from "../../schema/v2/Event";
 
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
 
 export const eventRouter = Router()
 
-type EventInsert = Database['public']['Tables']['Event']['Insert'];
 const memStorage = multer.memoryStorage()
 const upload = multer({ storage: memStorage })
 
@@ -115,30 +115,37 @@ eventRouter.post('/addEvent', upload.fields([{ name: 'mediaFiles', maxCount: 5 }
         const startTimestamp = `${date}T${start_time}`; // → e.g. "2025-07-18T17:00:00"
         const endTimestamp = `${date}T${end_time}`;
 
-
         // Upload files to get download url
         const parentPath = `events/${event_Id}/media/`
         const media = await uploadSupabaseFiles(mediaFiles, parentPath) 
         const thumbnail = await uploadSupabaseFiles(thumbnailFile, parentPath) // Guaranteed to be an one element array
 
         // Creates event object for insertion
-        const event: EventInsert = {
+        const event = {
             event_id: event_Id,
-            name: name as string,
-            date: date as string, 
-            start_time: startTimestamp as string,
-            end_time: endTimestamp as string,
-            description: description as string,
-            location: location as string,
-            member_price: parseInt(member_price as string) as number,
-            non_member_price: parseInt(non_member_price as string) as number,
-            max_attendees: parseInt(max_attendees as string) as number,
-            event_form_questions: JSON.parse(event_form_questions) as any, // TODO define stricter type
+            name: name,
+            date: date, 
+            start_time: startTimestamp,
+            end_time: endTimestamp,
+            description: description,
+            location: location,
+            member_price: member_price,
+            non_member_price: non_member_price,
+            max_attendees: max_attendees,
+            event_form_questions: event_form_questions, 
             is_disabled: false,
-            media: media as string[],
-            thumbnail: thumbnail[0] as string, 
+            media: media,
+            thumbnail: thumbnail[0], 
         };
-        await addSupabaseEvent(event) // TODO make addSupabaseEvent function
+
+        const result = EventSchema.safeParse(event);
+        if (!result.success) {
+            throw new Error(result.error.message);
+        };
+
+        const parsedEvent: EventInsert = result.data;
+
+        await addSupabaseEvent(parsedEvent) // TODO make addSupabaseEvent function
         res.status(201).json({
             message: `Supabase Event with ID ${event_Id} has been added successfully.`,
         });
