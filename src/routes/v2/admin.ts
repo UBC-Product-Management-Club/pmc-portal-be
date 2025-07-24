@@ -65,7 +65,7 @@ adminRouter.get("/users/:id", async (req: Request, res: Response) => {
     }
 });
 
-adminRouter.post('/addEvent', upload.fields([{ name: 'mediaFiles', maxCount: 5 },{ name: 'thumbnail', maxCount: 1 }]), async (req, res) => {
+adminRouter.post('/events/add', upload.fields([{ name: 'mediaFiles', maxCount: 5 },{ name: 'thumbnail', maxCount: 1 }]), async (req, res) => {
     const event_Id = uuidv4();
 
     // Unpacking request body
