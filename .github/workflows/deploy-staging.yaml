@@ -45,6 +45,7 @@ jobs:
           echo EXPORT_PASSWORD=${{ secrets.EXPORT_PASSWORD }} >> .env
           echo SUPABASE_URL=${{ secrets.SUPABASE_URL }} >> .env
           echo SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} >> .env
+          echo SUPABASE_BUCKET_NAME=${{ secrets.SUPABASE_BUCKET_NAME }} >> .env
 
       - name: Log into Google Cloud
         uses: "google-github-actions/auth@v1"
