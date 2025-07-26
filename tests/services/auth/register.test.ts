@@ -9,10 +9,8 @@ jest.mock("../../../src/services/auth/utils", () => ({
     TABLES: { USER: "User" },
 }));
 
-jest.mock("../../../src/config/supabase", () => ({
-    supabase: {
-        from: jest.fn(() => ({ insert: jest.fn() })),
-    },
+(supabase.from as jest.Mock).mockImplementation(() => ({
+  insert: jest.fn(),
 }));
 
 describe("register service", () => {

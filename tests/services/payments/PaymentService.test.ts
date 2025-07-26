@@ -1,15 +1,6 @@
 import { stripe } from "../../../src/config/firebase"
 import { createMembershipPaymentIntent, MEMBERSHIP_FEE_NONUBC, MEMBERSHIP_FEE_UBC } from "../../../src/services/payments/PaymentService"
 
-jest.mock("../../../src/config/firebase", () => ({
-        stripe: {
-            paymentIntents: {
-                create: jest.fn()
-            }
-        }
-    })
-)
-
 describe("payment service", () => {
     const mockCreate = stripe.paymentIntents.create as jest.Mock
 

@@ -1,14 +1,7 @@
-jest.mock('../../../src/config/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-  }
-}));
-
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'generated-uuid-123')
 }));
 
-import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../../../src/config/supabase';
 import { addSupabaseAttendee, checkValidAttendee, registerGuestForEvent, findUserByEmail } from '../../../src/services/events/attendee';
 import { Database } from '../../../src/schema/v2/database.types';
