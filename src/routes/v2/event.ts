@@ -1,23 +1,19 @@
 import { Router } from "express";
-import { addEvent, getSupabaseEventById, getSupabaseEvents } from "../../services/events/event";
+import { getSupabaseEventById, getSupabaseEvents } from "../../services/events/event";
 import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent"
-import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
 import { addAttendee, addSupabaseAttendee, getAttendeeById, registerGuestForEvent } from "../../services/events/attendee";
 import { addTransaction } from "../../services/payments/add";
 import { addTransactionBody } from "../../schema/v1/Transaction";
 import { sendEmail } from "../../services/emails/send";
 import { checkIsRegistered } from "../../services/events/attendee";
-import { uploadFiles } from "../../utils/files";
 import { Database } from "../../schema/v2/database.types";
+
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
 type UserInsert = Database['public']['Tables']['User']['Insert'];
 
 export const eventRouter = Router()
-
-const memStorage = multer.memoryStorage()
-const upload = multer({ storage: memStorage })
 
 eventRouter.get('/', async (req, res) => {
     try {
@@ -84,74 +80,22 @@ eventRouter.post('/:eventId/register/guest', async (req, res) => {
     }
 })
 
-eventRouter.post('/addEvent', upload.array('media', 5), async (req, res) => {
-    // const event_Id = uuidv4(); // generate a unique event ID -- do i need this or does firestore does it for me?
-    // const {
-    //     name,
-    //     date,
-    //     start_time,
-    //     end_time,
-    //     description,
-    //     location,
-    //     member_price,
-    //     non_member_price,
-    //     member_only,
-    //     attendee_Ids,
-    //     maxAttendee,
-    //     eventFormId
-    // } = JSON.parse(JSON.stringify(req.body))
-    // const mediaFiles = req.files as Express.Multer.File[]
-
-    // const requiredFields = [name, date, location, description, mediaFiles, member_price, non_member_price, attendee_Ids, maxAttendee];
-    // const checkUndefinedFields = [member_only];
-
-    // // Check for missing required fields or empty `mediaFiles`
-    // for (const field of requiredFields) {
-    //     if (!field || (field === mediaFiles && mediaFiles.length === 0)) {
-    //         return res.status(400).json({
-    //             message: "Invalid Event. Required fields are missing"
-    //         });
-    //     }
-    // }
-
-
-    // // Check if `member_only` is undefined
-    // for (const field of checkUndefinedFields) {
-    //     if (field === undefined) {
-    //         return res.status(400).json({
-    //             message: "Invalid Event. Required fields are missing"
-    //         });
-    //     }
-    // }
+eventRouter.post('/:eventId/register/guest', async (req, res) => {
     try {
-    //     const parentPath = `events/${event_Id}/media/`
-    //     const media = await uploadFiles(mediaFiles, parentPath) // upload media and get download links
-    //     const event: Event = {
-    //         event_Id,
-    //         name,
-    //         date,
-    //         start_time,
-    //         end_time,
-    //         description,
-    //         location,
-    //         media,
-    //         member_price: parseInt(member_price as string) as number,
-    //         non_member_price: parseInt(non_member_price as string) as number,
-    //         member_only: Boolean(JSON.parse(member_only as string)),
-    //         attendee_Ids: JSON.parse(attendee_Ids as string),
-    //         maxAttendee: parseInt(maxAttendee as string) as number,
-    //         eventFormId: JSON.parse(eventFormId as string),
-    //         isDisabled: false,
-    //         points: {}
-    //     }
-    //     await addEvent(event_Id, event);
+
+        const {guestUser, attendee } = req.body;
+        const eventId = req.params.eventId;
+
+        const result = await registerGuestForEvent(guestUser, attendee, eventId);
         res.status(201).json({
-            message: `supabase event added successfully`,
+            message: "Registration successful", 
+            attendee:result
         });
+
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message })
     }
-});
+})
 
 eventRouter.post("/:id/attendees/isRegistered", async (req, res) => {
     const { id } = req.params

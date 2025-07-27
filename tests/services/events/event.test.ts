@@ -1,25 +1,30 @@
-jest.mock('../../../src/config/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-  }
-}));
-
 import { supabase } from '../../../src/config/supabase';
-import { getSupabaseEvents, getSupabaseEventById } from '../../../src/services/events/event';
+import { getSupabaseEvents, getSupabaseEventById, addSupabaseEvent } from '../../../src/services/events/event';
 
 const mockedSupabaseFrom = jest.fn();
 const mockedSupabaseSelect = jest.fn();
 const mockedSupabaseEq = jest.fn();
+const mockedSupabaseInsert = jest.fn();
 
 (supabase.from as jest.Mock).mockImplementation(mockedSupabaseFrom);
 
+// Supabase setup helper
+function setupSupabaseMocks() {
+  jest.clearAllMocks();
+
+  mockedSupabaseSelect.mockImplementation(() => ({
+    eq: mockedSupabaseEq,
+  }));
+
+  mockedSupabaseFrom.mockReturnValue({
+    select: mockedSupabaseSelect,
+    insert: mockedSupabaseInsert, // add as needed
+  });
+}
+
 describe('getSupabaseEvents', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-
-    mockedSupabaseFrom.mockReturnValue({
-      select: mockedSupabaseSelect,
-    });
+    setupSupabaseMocks();
   });
   
   it('returns event list successfully', async () => {
@@ -61,30 +66,21 @@ describe('getSupabaseEvents', () => {
 
 
 describe('getSupabaseEventsById', () => {
-    const testEvents = [
-      {
-        event_id: "1",
-        name: "Test Event 1",
-        date: "2025-01-01"
-      },
-      {
-        event_id: "2", 
-        name: "Test Event 2",
-        date: "2025-01-02"
-      }
-    ];
+  const testEvents = [
+    {
+      event_id: "1",
+      name: "Test Event 1",
+      date: "2025-01-01"
+    },
+    {
+      event_id: "2", 
+      name: "Test Event 2",
+      date: "2025-01-02"
+    }
+  ];
     
   beforeEach(() => {
-    jest.clearAllMocks();
-
-    mockedSupabaseSelect.mockImplementation(() => ({
-      eq: mockedSupabaseEq
-    }));
-
-    mockedSupabaseFrom.mockReturnValue({
-        select: mockedSupabaseSelect,
-    });
-    
+    setupSupabaseMocks();
   });
   
   it('returns event', async () => {
@@ -125,4 +121,67 @@ describe('getSupabaseEventsById', () => {
     await expect(getSupabaseEventById('1')).rejects.toThrow('Unexpected failure');
   });
 
+});
+
+
+describe('addSupabaseEvent', () => {
+  beforeEach(() => {
+    setupSupabaseMocks();
+  });
+
+  const validEvent = {
+    event_id: '123e4567-e89b-12d3-a456-426614174000',
+    name: 'Test Event',
+    date: '2025-08-01',
+    start_time: '2025-08-01T17:00:00Z',
+    end_time: '2025-08-01T19:00:00Z',
+    description: 'This is a description of the test event.',
+    location: 'Test Location',
+    member_price: 20,
+    non_member_price: 30,
+    max_attendees: 100,
+    event_form_questions: { questions: [{ id: 1, question: "What is your name?" }] }, // example JSON
+    is_disabled: false,
+    media: ['https://example.com/media1.jpg', 'https://example.com/media2.jpg'],
+    thumbnail: 'https://example.com/thumbnail.jpg',
+  };
+
+  it('successfully inserts event', async () => {
+    mockedSupabaseFrom.mockReturnValue({
+      insert: jest.fn().mockResolvedValue({ error: null }),
+    });
+
+  await expect(addSupabaseEvent(validEvent)).resolves.toBeUndefined();
+
+    expect(mockedSupabaseFrom).toHaveBeenCalledWith('Event');
+    expect(mockedSupabaseFrom().insert).toHaveBeenCalledWith(validEvent);
+  });
+
+  it('throws if required fields are missing', async () => {
+    const missingDate = { ...validEvent, date: '' };
+    await expect(addSupabaseEvent(missingDate)).rejects.toThrow('Missing required fields.');
+  });
+
+  it('throws if date format invalid', async () => {
+    const invalidDate = { ...validEvent, date: '07/20/2025' };
+    await expect(addSupabaseEvent(invalidDate)).rejects.toThrow('Event date invalid');
+  });
+
+  it('throws if start_time format invalid', async () => {
+    const invalidStartTime = { ...validEvent, start_time: '09:00:00' };
+    await expect(addSupabaseEvent(invalidStartTime)).rejects.toThrow('Start time invalid');
+  });
+
+  it('throws if end_time format invalid', async () => {
+    const invalidEndTime = { ...validEvent, end_time: '11:00:00' };
+    await expect(addSupabaseEvent(invalidEndTime)).rejects.toThrow('End time invalid');
+  });
+
+  it('throws if supabase insert returns error', async () => {
+    mockedSupabaseFrom.mockReturnValue({
+      insert: jest.fn().mockResolvedValue({ error: { message: 'DB error' } }),
+    });
+
+    await expect(addSupabaseEvent(validEvent)).rejects.toThrow('Failed to insert event due to unexpected error: DB error');
+  });
 });
