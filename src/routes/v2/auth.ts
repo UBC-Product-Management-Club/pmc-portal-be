@@ -15,11 +15,7 @@ interface onboardingBody {
 authRouter.post("/onboard", async (req: Request, res: Response) => {
     const { user, payment }: onboardingBody = req.body;
     try {
-        // Add the user to the database (throws errors)
         await handleSupabaseOnboarding(user);
-        // if (payment) {
-        //     await addSupabaseTransaction(payment)
-        // }
 
         return res.status(200).json({
             message: "Supabase Login success. New user created",
@@ -37,9 +33,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
         const user = await handleSupabaseLogin(userId);
 
         if (user) {
-            return res.status(200).json({
-                message: "Supabase Login success",
-            });
+            return res.status(200).json(user);
         }
 
         // // If user doesn't exist, return 302 to redirect
@@ -64,16 +58,3 @@ authRouter.get("/users", async (req: Request, res: Response) => {
         return res.status(500).send(error);
     }
 });
-
-// for testing authentication. Will probably need to be middleware later
-// authRouter.get("/test", async (req,res) => {
-//     // console.log(req.cookies)
-//     try {
-//         const sessionCookie = req.cookies.session || ''
-//         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true)
-//         // console.log(decodedClaims)
-//         return res.sendStatus(200)
-//     } catch (error) {
-//         return res.sendStatus(401)
-//     }
-// })
