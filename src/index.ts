@@ -4,12 +4,13 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import { v1ApiRouter } from "./routes/v1";
 import { v2ApiRouter } from "./routes/v2";
+import { webhookRouter } from "./routes/v2/webhookRouter";
 
 // CONFIGURE .env
 dotenv.config();
-console.log('Environment Variables:');
-Object.keys(process.env).forEach(key => {
-  console.log(`${key}: ${process.env[key]}`);
+console.log("Environment Variables:");
+Object.keys(process.env).forEach((key) => {
+    console.log(`${key}: ${process.env[key]}`);
 });
 
 const app = express();
@@ -23,28 +24,28 @@ const app = express();
 //   })
 // );
 
-const allowedOrigins = [
-  process.env.ORIGIN,
-  process.env.ADMIN_PORTAL_ORIGIN
-]
+const allowedOrigins = [process.env.ORIGIN, process.env.ADMIN_PORTAL_ORIGIN];
 
 const corsOptions = {
-  origin: function (origin: any, callback: any) {
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  optionsSuccessStatus: 200,
-  credentials: true,
+    origin: function (origin: any, callback: any) {
+        if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    optionsSuccessStatus: 200,
+    credentials: true,
 };
 
-app.use(cors(corsOptions))
+// SET WEBHOOK
+app.use("/webhook", webhookRouter);
+
+// SET MIDDLEWARE
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
-app.use(express.urlencoded({extended: true}))
-
+app.use(express.urlencoded({ extended: true }));
 
 // SET ROUTES
 app.use("/api", v1ApiRouter);
@@ -54,7 +55,5 @@ app.use("/api", v2ApiRouter);
 const PORT = process.env.PORT || 8000;
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
-
-
