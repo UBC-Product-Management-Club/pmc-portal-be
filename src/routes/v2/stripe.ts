@@ -4,7 +4,7 @@ import { Stripe } from "stripe";
 import express from "express";
 export const webhookRouter = Router();
 
-webhookRouter.post("/", express.raw({ type: "application/json" }), async (req, res) => {
+webhookRouter.post("/", express.raw({ type: "application/json" }), (req, res) => {
     try {
         const sig = req.headers["stripe-signature"] as string;
         const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);

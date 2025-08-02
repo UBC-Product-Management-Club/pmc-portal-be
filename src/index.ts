@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import { v1ApiRouter } from "./routes/v1";
 import { v2ApiRouter } from "./routes/v2";
-import { webhookRouter } from "./routes/v2/webhookRouter";
+import { webhookRouter } from "./routes/v2/stripe";
 
 // CONFIGURE .env
 dotenv.config();
