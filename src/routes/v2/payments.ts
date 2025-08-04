@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { addTransaction } from "../../services/payments/add";
 //import { createPaymentIntent } from "../../services/payments/create";
-import { getEventById } from "../../services/events/event";
+import { getEventById, getSupabaseEventById } from "../../services/events/event";
+import { createMembershipPaymentIntent } from "../../services/payments/PaymentService";
 
 export const paymentRouter = Router()
 
@@ -22,11 +23,13 @@ paymentRouter.post("/add-transaction", async (req, res) => {
 paymentRouter.post("/membership", async (req, res) => {
     // Create Stripe PaymentIntent for membership fee
     try {
-        //const paymentIntent = await createPaymentIntent(req.body.amt)
-        return res.status(200).json({
-            message: "supabase success"
+        const userId = req.body.userId;
+        const paymentIntent = await createMembershipPaymentIntent(userId);
+        return res.status(201).json({
+            clientSecret: paymentIntent.client_secret
         })
-    } catch (error) {
+    }
+    catch (error) {
         console.log(error)
         return res.status(500).json({
             message: "Error creating PaymentIntent."
@@ -35,34 +38,23 @@ paymentRouter.post("/membership", async (req, res) => {
 })
 
 paymentRouter.post("/event/:event_id", async (req, res) => {
-    // // Create PaymentIntent for given event_id
-    // // req must include: user uid, user member status
-    // const eventId: string = req.params.event_id
-    // const { uid } = req.body
-    // const event: Event | null = await getSupabaseEventById(eventId)
-    // if (!event) {
-    //     return res.status(500).json({
-    //         message: `No event found with eventId ${eventId}`
+    // Create PaymentIntent for given event_id
+    // req must include: user uid, user member status
+    // try {
+    //     const userId = req.body.userId;
+    //     const type = "event";
+    //     const eventId = req.params.event_id  
+    //     const paymentIntent = await createEventPaymentIntent(userId,eventId)
+    //     return res.status(201).json({
+    //         clientSecret: paymentIntent.client_secret
     //     })
     // }
-
-    try {
-        // let paymentIntent
-        // // If the request was submitted with a UID, then they are a member
-        // // If not, then they are a guest
-        // if (uid) {
-        //     paymentIntent = await createPaymentIntent(+event.member_price)
-        // } else {
-        //     paymentIntent = await createPaymentIntent(+event.non_member_price)
-        // }
-        return res.status(200).json({
-            message: "success"
-        })
-    } catch (error) {
-        return res.status(500).json({
-            message: "Error creating PaymentIntent"
-        })
-    }
+    // catch (error) {
+    //     console.log(error)
+    //     return res.status(500).json({
+    //         message: "Error creating PaymentIntent."
+    //     })
+    // }
 
 })
 
