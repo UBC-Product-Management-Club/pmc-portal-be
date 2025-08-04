@@ -52,14 +52,11 @@ paymentRouter.get("/event/:eventId", async (req, res) => {
 })
 
 paymentRouter.get("/create/membership", async (req, res) => {
-    const isUbcStudent = req.query["ubc"]
-    if (!isUbcStudent) {
-        return res.status(400).json({
-            message: "Missing info!"
-        })
-    }
+    
+
     try {
-        const paymentIntent = await createMembershipPaymentIntent(isUbcStudent === "true")
+        const userId = req.body.userId;
+        const paymentIntent = await createMembershipPaymentIntent(userId)
         if (!paymentIntent.client_secret) {
             throw new Error("Client secret was null!")
         }

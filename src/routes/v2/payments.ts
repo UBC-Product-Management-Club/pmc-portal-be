@@ -2,7 +2,7 @@ import { Router } from "express";
 import { addTransaction } from "../../services/payments/add";
 //import { createPaymentIntent } from "../../services/payments/create";
 import { getEventById, getSupabaseEventById } from "../../services/events/event";
-import { createPaymentIntent } from "../../services/payments/PaymentService";
+import { createMembershipPaymentIntent } from "../../services/payments/PaymentService";
 
 export const paymentRouter = Router()
 
@@ -24,8 +24,7 @@ paymentRouter.post("/membership", async (req, res) => {
     // Create Stripe PaymentIntent for membership fee
     try {
         const userId = req.body.userId;
-        const type = "membership"
-        const paymentIntent = await createPaymentIntent(userId, type);
+        const paymentIntent = await createMembershipPaymentIntent(userId);
         return res.status(201).json({
             clientSecret: paymentIntent.client_secret
         })
@@ -41,21 +40,21 @@ paymentRouter.post("/membership", async (req, res) => {
 paymentRouter.post("/event/:event_id", async (req, res) => {
     // Create PaymentIntent for given event_id
     // req must include: user uid, user member status
-    try {
-        const userId = req.body.userId;
-        const type = "event";
-        const eventId = req.params.event_id  
-        const paymentIntent = await createPaymentIntent(userId, type, eventId)
-        return res.status(201).json({
-            clientSecret: paymentIntent.client_secret
-        })
-    }
-    catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            message: "Error creating PaymentIntent."
-        })
-    }
+    // try {
+    //     const userId = req.body.userId;
+    //     const type = "event";
+    //     const eventId = req.params.event_id  
+    //     const paymentIntent = await createEventPaymentIntent(userId,eventId)
+    //     return res.status(201).json({
+    //         clientSecret: paymentIntent.client_secret
+    //     })
+    // }
+    // catch (error) {
+    //     console.log(error)
+    //     return res.status(500).json({
+    //         message: "Error creating PaymentIntent."
+    //     })
+    // }
 
 })
 
