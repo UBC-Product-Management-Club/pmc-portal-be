@@ -151,6 +151,7 @@ describe('addSupabaseEvent', () => {
     is_disabled: false,
     media: ['https://example.com/media1.jpg', 'https://example.com/media2.jpg'],
     thumbnail: 'https://example.com/thumbnail.jpg',
+    needs_review: true
   };
 
   it('successfully inserts event', async () => {

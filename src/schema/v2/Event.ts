@@ -16,6 +16,7 @@ export const EventSchema = z.object({
     is_disabled: z.boolean().default(false),
     media: z.array(z.string()),
     thumbnail: z.string(), 
+    needs_review: z.boolean()
 });
 
 export type EventInsert = z.infer<typeof EventSchema>;

@@ -82,6 +82,7 @@ adminRouter.post('/events/add', upload.fields([{ name: 'mediaFiles', maxCount: 5
             member_only,
             max_attendees,
             event_form_questions,
+            needs_review
         } = req.body;
 
         const files = req.files as {
@@ -94,7 +95,7 @@ adminRouter.post('/events/add', upload.fields([{ name: 'mediaFiles', maxCount: 5
         const thumbnailFile = files.thumbnail ?? [];
 
         // Checking presence of required files
-        const requiredFields = [name, date, location, description, mediaFiles, thumbnailFile, member_price, non_member_price, max_attendees, event_form_questions];
+        const requiredFields = [name, date, location, description, mediaFiles, thumbnailFile, member_price, non_member_price, max_attendees, event_form_questions, needs_review];
         for (const field of requiredFields) {
             if (!field || (field === mediaFiles && mediaFiles.length === 0)) {
                 return res.status(400).json({
@@ -133,6 +134,7 @@ adminRouter.post('/events/add', upload.fields([{ name: 'mediaFiles', maxCount: 5
             is_disabled: false,
             media: media,
             thumbnail: thumbnail[0], 
+            needs_review: needs_review
         };
 
         const result = EventSchema.safeParse(event);
