@@ -27,7 +27,7 @@ async function checkSupabaseUserExists(id: string) {
 
 function mapToSupabaseUser(userInfo: User) {
     return {
-        user_id: userInfo.id,
+        user_id: userInfo.userId,
         first_name: userInfo.firstName,
         last_name: userInfo.lastName,
         display_name: userInfo.displayName,

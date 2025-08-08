@@ -96,14 +96,3 @@ eventRouter.post('/:eventId/register/guest', async (req, res) => {
         res.status(500).json({ error: error.message })
     }
 })
-
-eventRouter.post("/:id/attendees/isRegistered", async (req, res) => {
-    const { id } = req.params
-    const { email } = req.body
-    try {
-        const isRegistered = await checkIsRegistered(id, email);
-        res.status(200).json({ message: "supabase is registered"})
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
-})
