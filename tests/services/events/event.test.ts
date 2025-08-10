@@ -92,24 +92,44 @@ describe('getSupabaseEventsById', () => {
   
   it('returns event', async () => {
 
-    mockedSupabaseEq.mockReturnValue({
+    mockedSupabaseEq.mockReturnValueOnce({
       single: () => Promise.resolve({ data: testEvents[0], error: null }),
-    });
+    }).mockReturnValueOnce({count: 10, error: null });
+    mockedSupabaseSelect.mockReturnValue({
+        eq: mockedSupabaseEq
+    })
+    mockedSupabaseFrom.mockReturnValue({
+        select: mockedSupabaseSelect
+    })
 
 
     const result = await getSupabaseEventById('1');
-    expect(result).toEqual(testEvents[0]);
-    expect(supabase.from).toHaveBeenCalledWith('Event');
-    expect(mockedSupabaseSelect).toHaveBeenCalled();
-    expect(mockedSupabaseEq).toHaveBeenCalledWith('event_id', '1');
+    expect(result).toEqual({...testEvents[0], registered: 10});
+
+    expect(mockedSupabaseFrom).toHaveBeenCalledWith('Event')
+    expect(mockedSupabaseSelect).toHaveBeenCalled()
+    expect(mockedSupabaseEq).toHaveBeenCalledWith('event_id', '1')
+
+    expect(mockedSupabaseFrom).toHaveBeenCalledWith('Attendee')
+    expect(mockedSupabaseSelect).toHaveBeenCalledWith('*', { count : 'exact', head : true})
+    expect(mockedSupabaseEq).toHaveBeenCalledWith('event_id', '1')
+
   });
 
-  it('throws an error when supabase returns an error', async () => {
-    mockedSupabaseEq.mockReturnValue({
+  it('throws an error when event fetch fails', async () => {
+    mockedSupabaseEq.mockReturnValueOnce({
       single: () => Promise.resolve({ data: null, error: { message: 'Not found' } }),
     });
 
     await expect(getSupabaseEventById('bad-id')).rejects.toThrow('Failed to fetch event bad-id: Not found');
+  });
+
+  it('throws an error when attendee fetch fails', async () => {
+    mockedSupabaseEq.mockReturnValueOnce({
+      single: () => Promise.resolve({ data: testEvents[0], error: null }),
+    }).mockReturnValueOnce({ data: null, error: { message: "failed to calculate registered"}});
+
+    await expect(getSupabaseEventById('bad-id')).rejects.toThrow('Failed to fetch capacity for event bad-id: failed to calculate registered');
   });
 
   it('throws an error when data is null', async () => {

@@ -80,15 +80,21 @@ const getSupabaseEvents = async (): Promise<Partial<Tables<'Event'>>[]> => {
 
 const getSupabaseEventById = async (id: string): Promise<Tables<'Event'> | null> => {
 
-    const {data, error } = await supabase.from('Event').select().eq('event_id', id).single();
+    const { data, error: fetchEventError } = await supabase.from('Event').select().eq('event_id', id).single();
 
-    if (error || !data) {
-        console.error("Error fetching event: ", error);
-        throw new Error(`Failed to fetch event ${id}: ` + error?.message);
+    if (!data || fetchEventError) {
+        console.error("Error fetching event: ", fetchEventError);
+        throw new Error(`Failed to fetch event ${id}: ` + fetchEventError?.message);
     }
 
-    return data;
+    const { count: registered, error: fetchCapacityError } = await supabase.from('Attendee').select('*', { count: 'exact', head: true} ).eq('event_id', id)
+    if (fetchCapacityError || registered === null) {
+        console.error("Error fetching event capacity: ", fetchCapacityError);
+        throw new Error(`Failed to fetch capacity for event ${id}: ${fetchCapacityError?.message}`)
+    }
 
+
+    return { ...data, registered };
 };
 
 
@@ -122,5 +128,15 @@ const addSupabaseEvent = async (event: EventInsert): Promise<void> => {
     } 
 
 }
+
+
+const getEventCapacity = async (eventId: string): Promise<number> => {
+    const { count, error } = await supabase.from('Attendee').select('*', { count: 'exact', head: true} ).eq('event_id', eventId)
+    if (error || count === null) {
+        throw error
+    }
+    return count
+}
+
 
 export { getEvents, getEventById, addEvent, getSupabaseEvents, getSupabaseEventById, addSupabaseEvent};

@@ -15,7 +15,7 @@ jest.mock("../../../src/services/auth/utils", () => ({
 
 describe("register service", () => {
     let mockUser: User = {
-        id: "",
+        userId: "",
         pfp: "",
         firstName: "",
         lastName: "",
@@ -41,17 +41,17 @@ describe("register service", () => {
 
     it("adds a new user to database", async () => {
         (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(false);
-        (mapToSupabaseUser as jest.Mock).mockReturnValue({ user_id: mockUser.id });
+        (mapToSupabaseUser as jest.Mock).mockReturnValue({ user_id: mockUser.userId });
         const insertMock = jest.fn().mockResolvedValueOnce({ error: null });
         (supabase.from as jest.Mock).mockReturnValue({ insert: insertMock });
 
         await expect(handleSupabaseOnboarding(mockUser)).resolves.toEqual({ message: "success" });
-        expect(insertMock).toHaveBeenCalledWith([{ user_id: mockUser.id }]);
+        expect(insertMock).toHaveBeenCalledWith([{ user_id: mockUser.userId }]);
     });
 
     it("throws when adding a user fails", async () => {
         (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(false);
-        (mapToSupabaseUser as jest.Mock).mockReturnValue({ user_id: mockUser.id });
+        (mapToSupabaseUser as jest.Mock).mockReturnValue({ user_id: mockUser.userId });
         const insertMock = jest.fn().mockResolvedValueOnce({ error: { message: "insert error" } });
         (supabase.from as jest.Mock).mockReturnValue({ insert: insertMock });
 

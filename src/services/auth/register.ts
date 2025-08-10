@@ -24,9 +24,9 @@ type UserRow = Database['public']['Tables']['User']['Row'];
 
 // supabase
 const handleSupabaseOnboarding = async (userInfo: User): Promise<{ message: string }> => {
-    const { id } = userInfo;
+    const { userId } = userInfo;
     try {
-        if (await checkSupabaseUserExists(id)) {
+        if (await checkSupabaseUserExists(userId)) {
             throw Error("User already exists.");
         }
 
