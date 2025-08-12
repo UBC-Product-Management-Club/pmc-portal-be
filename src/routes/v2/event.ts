@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getSupabaseEventById, getSupabaseEvents } from "../../services/events/event";
+import { getSupabaseEventById, getSupabaseEvents, getSupabaseUserCurrentEvents } from "../../services/events/event";
 import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent"
 import multer from "multer"
 import { addAttendee, addSupabaseAttendee, getAttendeeById, registerGuestForEvent } from "../../services/events/attendee";
@@ -28,6 +28,15 @@ eventRouter.get('/:id', async (req, res) => {
     try {
         const eventByID = await getSupabaseEventById(req.params.id);
         res.status(200).json(eventByID);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.get('/user-events/:userId', async (req, res) => {
+    try {
+        const userCurrentEvents = await getSupabaseUserCurrentEvents(req.params.userId);
+        res.status(200).json(userCurrentEvents);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
