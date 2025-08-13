@@ -55,12 +55,12 @@ async function createMembershipPaymentIntent(userId: string) {
 }
 
 async function handleStripeEvent(event: Stripe.Event) {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    const userId = paymentIntent.metadata?.user_id;
+    const paymentType = paymentIntent.metadata?.payment_type;
+
     switch (event.type) {
         case "payment_intent.succeeded": {
-            const paymentIntent = event.data.object as Stripe.PaymentIntent;
-            const userId = paymentIntent.metadata?.user_id;
-            const paymentType = paymentIntent.metadata?.payment_type;
-
             const { error } = await supabase.from("Payment").update({ status: Status.PAYMENT_SUCCESS }).eq("payment_id", paymentIntent.id);
             if (error) {
                 console.error("Payment success update err:", error);
@@ -87,10 +87,6 @@ async function handleStripeEvent(event: Stripe.Event) {
         }
 
         case "payment_intent.payment_failed": {
-            const paymentIntent = event.data.object as Stripe.PaymentIntent;
-            const userId = paymentIntent.metadata?.user_id;
-            const paymentType = paymentIntent.metadata?.payment_type;
-
             if (paymentType === "membership") {
                 const { error } = await supabase.from("Payment").update({ status: Status.PAYMENT_FAILED }).eq("payment_id", paymentIntent.id);
                 if (error) {
