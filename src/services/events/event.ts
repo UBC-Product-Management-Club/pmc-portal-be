@@ -101,7 +101,7 @@ const getSupabaseEventById = async (id: string): Promise<Tables<'Event'> | null>
     return { ...data, registered };
 };
 
-const getSupabaseUserCurrentEvents = async (userId: string): Promise<Tables<'Event'>[]> => {
+const getSupabaseUserCurrentEvents = async (userId: string): Promise<Partial<Tables<'Event'>>[]> => {
 
     const { data: attendeeData, error: attendeeError } = await supabase
     .from('Attendee')
@@ -114,7 +114,7 @@ const getSupabaseUserCurrentEvents = async (userId: string): Promise<Tables<'Eve
 
     const { data: eventsData, error: eventsError } = await supabase
     .from('Event')
-    .select('*')
+    .select("event_id, name, description, date, start_time, end_time, location, member_price, non_member_price, thumbnail, is_disabled")
     .in('event_id', eventIds)
     .gte('end_time', new Date().toISOString())
     .order("date", { ascending: false });
