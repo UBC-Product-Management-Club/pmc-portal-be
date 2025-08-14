@@ -1,5 +1,5 @@
 interface User {
-    id: string;
+    userId: string;
     displayName: string;
     firstName: string;
     lastName: string;
@@ -14,9 +14,9 @@ interface User {
     whyPm: string;
 }
 
-type UserRequiredFields = Pick<User, "id" | "firstName" | "lastName" | "email" | "university" | "studentId" | "year" | "faculty" | "major" | "whyPm">;
+type UserRequiredFields = Pick<User, "userId" | "firstName" | "lastName" | "email" | "university" | "studentId" | "year" | "faculty" | "major" | "whyPm">;
 
-const exportUserFieldNames = ["id", "firstName", "lastName", "email", "university", "studentId", "year", "faculty", "major"] as const;
+const exportUserFieldNames = ["userId", "firstName", "lastName", "email", "university", "studentId", "year", "faculty", "major"] as const;
 
 type UserExportFields = Pick<User, (typeof exportUserFieldNames)[number]>;
 

@@ -7,7 +7,7 @@ export const getAllUsers = async (): Promise<UserRequiredFields[]> => {
     try {
         const users = await db.collection("users").get();
 
-        return users.docs.map((doc) => ({ ...doc.data(), id: doc.id } as UserRequiredFields));
+        return users.docs.map((doc) => ({ ...doc.data(), userId: doc.id } as UserRequiredFields));
     } catch (error) {
         console.error("Error fetching users: ", error);
         throw error;
@@ -29,7 +29,7 @@ export const exportUsers = async (password: string, isCSV: boolean = false): Pro
             const data = doc.data();
             return {
                 ...Object.fromEntries(exportUserFieldNames.map((key) => [key, data[key] ?? null])),
-                id: doc.id,
+                userId: doc.id,
             } as UserExportFields;
         });
 

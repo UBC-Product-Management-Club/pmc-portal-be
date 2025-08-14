@@ -1,6 +1,6 @@
-import { supabase } from '../../../src/config/supabase';
-import { stripe } from '../../../src/config/firebase';
-import { createMembershipPaymentIntent } from '../../../src/services/payments/PaymentService';
+import { supabase } from "../../../src/config/supabase";
+import { stripe } from "../../../src/config/firebase";
+import { createMembershipPaymentIntent } from "../../../src/services/payments/PaymentService";
 
 const mockedSupabaseFrom = jest.fn();
 const mockedSupabaseSelect = jest.fn();
@@ -14,107 +14,115 @@ const mockedStripeCreate = jest.fn();
 
 // Setup helper
 function setupMocks() {
-  jest.clearAllMocks();
+    jest.clearAllMocks();
 
-  mockedSupabaseSelect.mockImplementation(() => ({
-    eq: mockedSupabaseEq,
-  }));
+    mockedSupabaseSelect.mockImplementation(() => ({
+        eq: mockedSupabaseEq,
+    }));
 
-  mockedSupabaseEq.mockImplementation(() => ({
-    single: mockedSupabaseSingle,
-  }));
+    mockedSupabaseEq.mockImplementation(() => ({
+        single: mockedSupabaseSingle,
+    }));
 
-  mockedSupabaseInsert.mockImplementation(() => ({
-    select: () => ({
-      single: jest.fn().mockResolvedValue({ data: { id: 'payment-123' }, error: null })
-    })
-  }));
+    mockedSupabaseInsert.mockImplementation(() => ({
+        select: () => ({
+            single: jest.fn().mockResolvedValue({ data: { id: "payment-123" }, error: null }),
+        }),
+    }));
 
-  mockedSupabaseFrom.mockReturnValue({
-    select: mockedSupabaseSelect,
-    insert: mockedSupabaseInsert,
-  });
+    mockedSupabaseFrom.mockReturnValue({
+        select: mockedSupabaseSelect,
+        insert: mockedSupabaseInsert,
+    });
 }
 
-describe('createPaymentIntent', () => {
-  beforeEach(() => {
-    setupMocks();
-  });
-
-  it('creates payment intent for UBC student', async () => {
-    const mockPaymentIntent = { id: 'pi_ubc_test', amount: 5000 };
-
-    mockedSupabaseSingle.mockResolvedValue({
-      data: { university: 'University of British Columbia' },
-      error: null
+describe("createPaymentIntent", () => {
+    beforeEach(() => {
+        setupMocks();
     });
 
-    mockedStripeCreate.mockResolvedValue(mockPaymentIntent);
+    it("creates payment intent for UBC student", async () => {
+        const mockPaymentIntent = { id: "pi_ubc_test", amount: 5000 };
 
-    const result = await createMembershipPaymentIntent('user-123');
+        mockedSupabaseSingle.mockResolvedValue({
+            data: { university: "University of British Columbia" },
+            error: null,
+        });
 
-    expect(result).toEqual(mockPaymentIntent);
-    expect(mockedSupabaseFrom).toHaveBeenCalledWith('User');
-    expect(mockedSupabaseSelect).toHaveBeenCalledWith('university');
-    expect(mockedSupabaseEq).toHaveBeenCalledWith('user_id', 'user-123');
-    expect(mockedStripeCreate).toHaveBeenCalledWith({
-      amount: expect.any(Number),
-      currency: 'cad'
-    });
-  });
+        mockedStripeCreate.mockResolvedValue(mockPaymentIntent);
 
-  it('creates payment intent for non-UBC student', async () => {
-    const mockPaymentIntent = { id: 'pi_non_ubc_test', amount: 7500 };
+        const result = await createMembershipPaymentIntent("user-123");
 
-    mockedSupabaseSingle.mockResolvedValue({
-      data: { university: 'University of Toronto' },
-      error: null
-    });
-
-    mockedStripeCreate.mockResolvedValue(mockPaymentIntent);
-
-    const result = await createMembershipPaymentIntent('user-456');
-
-    expect(result).toEqual(mockPaymentIntent);
-    expect(mockedSupabaseFrom).toHaveBeenCalledWith('User');
-    expect(mockedSupabaseEq).toHaveBeenCalledWith('user_id', 'user-456');
-    expect(mockedStripeCreate).toHaveBeenCalledWith({
-      amount: expect.any(Number),
-      currency: 'cad'
-    });
-  });
-
-  it('throws error when user lookup fails', async () => {
-    mockedSupabaseSingle.mockResolvedValue({
-      data: null,
-      error: { message: 'User not found' }
+        expect(result).toEqual(mockPaymentIntent);
+        expect(mockedSupabaseFrom).toHaveBeenCalledWith("User");
+        expect(mockedSupabaseSelect).toHaveBeenCalledWith("university");
+        expect(mockedSupabaseEq).toHaveBeenCalledWith("user_id", "user-123");
+        expect(mockedStripeCreate).toHaveBeenCalledWith({
+            amount: expect.any(Number),
+            currency: "cad",
+            metadata: {
+                user_id: "user-123",
+                payment_type: "membership",
+            },
+        });
     });
 
-    await expect(createMembershipPaymentIntent('invalid-user')).rejects.toThrow('User not found');
-    expect(mockedStripeCreate).not.toHaveBeenCalled();
-  });
+    it("creates payment intent for non-UBC student", async () => {
+        const mockPaymentIntent = { id: "pi_non_ubc_test", amount: 7500 };
 
-  it('throws error when payment insertion fails', async () => {
-    mockedSupabaseSingle.mockResolvedValue({
-      data: { university: 'University of British Columbia' },
-      error: null
+        mockedSupabaseSingle.mockResolvedValue({
+            data: { university: "University of Toronto" },
+            error: null,
+        });
+
+        mockedStripeCreate.mockResolvedValue(mockPaymentIntent);
+
+        const result = await createMembershipPaymentIntent("user-456");
+
+        expect(result).toEqual(mockPaymentIntent);
+        expect(mockedSupabaseFrom).toHaveBeenCalledWith("User");
+        expect(mockedSupabaseEq).toHaveBeenCalledWith("user_id", "user-456");
+        expect(mockedStripeCreate).toHaveBeenCalledWith({
+            amount: expect.any(Number),
+            currency: "cad",
+            metadata: {
+                user_id: "user-456",
+                payment_type: "membership",
+            },
+        });
     });
 
-    mockedStripeCreate.mockResolvedValue({ id: 'pi_test', amount: 5000 });
+    it("throws error when user lookup fails", async () => {
+        mockedSupabaseSingle.mockResolvedValue({
+            data: null,
+            error: { message: "User not found" },
+        });
 
-    // Mock payment insertion failure
-    mockedSupabaseFrom
-      .mockReturnValueOnce({
-        select: mockedSupabaseSelect,
-      })
-      .mockReturnValueOnce({
-        insert: () => ({
-          select: () => ({
-            single: jest.fn().mockResolvedValue({ data: null, error: { message: 'Insert failed' } })
-          })
-        })
-      });
+        await expect(createMembershipPaymentIntent("invalid-user")).rejects.toThrow("User not found");
+        expect(mockedStripeCreate).not.toHaveBeenCalled();
+    });
 
-    await expect(createMembershipPaymentIntent('user-123')).rejects.toThrow('Insert failed');
-  });
+    it("throws error when payment insertion fails", async () => {
+        mockedSupabaseSingle.mockResolvedValue({
+            data: { university: "University of British Columbia" },
+            error: null,
+        });
+
+        mockedStripeCreate.mockResolvedValue({ id: "pi_test", amount: 5000 });
+
+        // Mock payment insertion failure
+        mockedSupabaseFrom
+            .mockReturnValueOnce({
+                select: mockedSupabaseSelect,
+            })
+            .mockReturnValueOnce({
+                insert: () => ({
+                    select: () => ({
+                        single: jest.fn().mockResolvedValue({ data: null, error: { message: "Insert failed" } }),
+                    }),
+                }),
+            });
+
+        await expect(createMembershipPaymentIntent("user-123")).rejects.toThrow("Insert failed");
+    });
 });

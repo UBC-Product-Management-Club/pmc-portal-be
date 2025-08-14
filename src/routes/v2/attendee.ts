@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getSupabaseAttendeeById } from "../../services/events/attendee";
+import { getAttendee, getSupabaseAttendeeById } from "../../services/events/attendee";
 import { getSupabaseEventById } from "../../services/events/event";
 import { Attendee } from "../../schema/v1/FirebaseEvent";
 import { db } from "../../config/firebase";
@@ -9,29 +9,15 @@ import { checkEmail } from "../../services/qrCode";
 export const attendeeRouter = Router();
 
 attendeeRouter.get("/:eventId", async (req, res) => {
+  const eventId = req.params.eventId
   try {
-    // const { eventId } = req.params;
-
-    // if (!eventId) {
-    //   return res.status(400).json({ error: "Missing event ID" });
-    // }
-
-    // const event = await getSupabaseEventById(eventId);
-    // if (!event) {
-    //   return res.status(404).json({ error: "Event not found" });
-    // }
-
-    // const attendeeList: Attendee[] = [];
-
-    // for (const attendeeId of event.attendee_Ids) {
-    //   const attendee = await getSupabaseAttendeeById(attendeeId);
-
-    //   if (attendee) {
-    //     attendeeList.push(attendee);
-    //   }
-    // }
-
-    res.status(200).json({message: "Supabase success"});
+    if (req.query["userId"]) {
+      const userId = req.query["userId"] as string
+      const attendee = await getAttendee(eventId, userId)
+      return res.status(200).json(attendee)
+    } else {
+      return res.status(200).json({message: `STUB gets all attendees for ${eventId}`});
+    }
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -235,6 +235,14 @@ const registerGuestForEvent = async (guestUser:any, attendee:any, eventId:any) =
     return data;
 }
 
+const getAttendee = async (eventId: string, userId: string): Promise<AttendeeRow> => {
+    const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).maybeSingle()
+    if (error) {
+        throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
+    }
+    return attendee
+}
+
 
 const getSupabaseAttendeeById = async (id: string): Promise<{message: string}> => {
 
@@ -243,4 +251,4 @@ const getSupabaseAttendeeById = async (id: string): Promise<{message: string}> =
 
 
 
-export { getAttendeeById, addAttendee, checkIsRegistered, getSupabaseAttendeeById, addSupabaseAttendee, checkValidAttendee, registerGuestForEvent, findUserByEmail};
+export { getAttendeeById, getAttendee, addAttendee, checkIsRegistered, getSupabaseAttendeeById, addSupabaseAttendee, checkValidAttendee, registerGuestForEvent, findUserByEmail};

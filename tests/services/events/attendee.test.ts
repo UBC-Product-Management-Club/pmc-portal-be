@@ -3,7 +3,7 @@ jest.mock('uuid', () => ({
 }));
 
 import { supabase } from '../../../src/config/supabase';
-import { addSupabaseAttendee, checkValidAttendee, registerGuestForEvent, findUserByEmail } from '../../../src/services/events/attendee';
+import { addSupabaseAttendee, checkValidAttendee, registerGuestForEvent, findUserByEmail, getAttendee } from '../../../src/services/events/attendee';
 import { Database } from '../../../src/schema/v2/database.types';
 
 type AttendeeRow = Database['public']['Tables']['Attendee']['Row'];
@@ -465,3 +465,65 @@ describe('registerGuestForEvent', () => {
   expect(mockFrom).toHaveBeenCalledTimes(5); // no user insert
   });
 });
+
+describe('getAttendee', () => {
+    let mockFrom: jest.Mock = (supabase.from as jest.Mock);
+    let mockSelect : jest.Mock = jest.fn();
+    let mockEq: jest.Mock = jest.fn();
+    let mockEq2: jest.Mock = jest.fn();
+    let mockMaybeSingle: jest.Mock = jest.fn();
+
+    const mockAttendee = {
+        attendee_id: "attendee_id",
+        event_form_answers: {},
+        event_id: "event_id",
+        is_payment_verified: true,
+        payment_id: "payment_id",
+        registration_time: "reg-time",
+        status: "registered",
+        user_id: "user_id"
+    }
+
+    it('fetches event attendee by user id', async () => {
+        const eventId = "event_id";
+        const userId = "user_id";
+        mockFrom.mockReturnValueOnce({
+            select: mockSelect.mockReturnValueOnce({
+                eq: mockEq.mockReturnValueOnce({
+                    eq: mockEq2.mockReturnValueOnce({
+                        maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
+                            data: mockAttendee, error: null
+                        })
+                    })
+                })
+            })
+        })
+
+        const attendee = await getAttendee(eventId, userId)
+
+        expect(attendee).toEqual(mockAttendee)
+        expect(mockFrom).toHaveBeenCalledWith("Attendee")
+        expect(mockEq).toHaveBeenCalledWith("user_id", userId)
+        expect(mockEq2).toHaveBeenCalledWith("event_id", eventId)
+        expect(mockMaybeSingle).toHaveBeenCalled()
+    })
+    
+    it('fails to fetch attendee', async () => {
+        const eventId = "event_id";
+        const userId = "user_id";
+        mockFrom.mockReturnValueOnce({
+            select: mockSelect.mockReturnValueOnce({
+                eq: mockEq.mockReturnValueOnce({
+                    eq: mockEq2.mockReturnValueOnce({
+                        maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
+                            data: null, error: { message: "error" }
+                        })
+                    })
+                })
+            })
+        })
+
+        await expect(getAttendee(eventId, userId)).rejects.toThrow("Failed to check if user user_id is registered for event event_id")
+    })
+    
+})
