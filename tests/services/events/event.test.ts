@@ -18,7 +18,7 @@ function setupSupabaseMocks() {
 
   mockedSupabaseFrom.mockReturnValue({
     select: mockedSupabaseSelect,
-    insert: mockedSupabaseInsert, // add as needed
+    insert: mockedSupabaseInsert, 
   });
 }
 
@@ -215,6 +215,7 @@ describe('addSupabaseEvent', () => {
 
 describe('getSupabaseUserCurrentEvents', () => {
   const mockedSupabaseIn = jest.fn();
+  const mockedSupabaseGte = jest.fn();
   const mockedSupabaseOrder = jest.fn();
 
   beforeEach(() => {
@@ -251,7 +252,9 @@ describe('getSupabaseUserCurrentEvents', () => {
       .mockReturnValueOnce({
         select: jest.fn().mockReturnValue({
           in: mockedSupabaseIn.mockReturnValue({
-            order: mockedSupabaseOrder.mockResolvedValue({ data: mockEventsData, error: null })
+            gte: jest.fn().mockReturnValue({
+              order: mockedSupabaseOrder.mockResolvedValue({ data: mockEventsData, error: null })
+            })
           })
         })
       });
@@ -279,11 +282,12 @@ describe('getSupabaseUserCurrentEvents', () => {
       .mockReturnValueOnce({
         select: jest.fn().mockReturnValue({
           in: mockedSupabaseIn.mockReturnValue({
-            order: mockedSupabaseOrder.mockResolvedValue({ data: mockEventsData, error: null })
+            gte: jest.fn().mockReturnValue({
+              order: mockedSupabaseOrder.mockResolvedValue({ data: mockEventsData, error: null })
+            })
           })
         })
       });
-
     const result = await getSupabaseUserCurrentEvents(userId);
 
     expect(result).toEqual([]);

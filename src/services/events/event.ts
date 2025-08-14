@@ -112,11 +112,11 @@ const getSupabaseUserCurrentEvents = async (userId: string): Promise<Tables<'Eve
 
     const eventIds = attendeeData.map(row => row.event_id);
 
-    // can check here whether isDisabled or not, or make new column like 'isActive?' -> whether or not we display the event
     const { data: eventsData, error: eventsError } = await supabase
     .from('Event')
     .select('*')
     .in('event_id', eventIds)
+    .gte('end_time', new Date().toISOString())
     .order("date", { ascending: false });
 
     if (eventsError || !eventsData) throw new Error(eventsError.message);
