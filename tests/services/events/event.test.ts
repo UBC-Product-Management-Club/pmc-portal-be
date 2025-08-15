@@ -1,5 +1,5 @@
 import { supabase } from '../../../src/config/supabase';
-import { getSupabaseEvents, getSupabaseEventById, addSupabaseEvent } from '../../../src/services/events/event';
+import { getSupabaseEvents, getSupabaseEventById, addSupabaseEvent, getSupabaseUserCurrentEvents } from '../../../src/services/events/event';
 
 const mockedSupabaseFrom = jest.fn();
 const mockedSupabaseSelect = jest.fn();
@@ -18,7 +18,7 @@ function setupSupabaseMocks() {
 
   mockedSupabaseFrom.mockReturnValue({
     select: mockedSupabaseSelect,
-    insert: mockedSupabaseInsert, // add as needed
+    insert: mockedSupabaseInsert, 
   });
 }
 
@@ -150,7 +150,6 @@ describe('getSupabaseEventsById', () => {
 
 });
 
-
 describe('addSupabaseEvent', () => {
   beforeEach(() => {
     setupSupabaseMocks();
@@ -211,5 +210,97 @@ describe('addSupabaseEvent', () => {
     });
 
     await expect(addSupabaseEvent(validEvent)).rejects.toThrow('Failed to insert event due to unexpected error: DB error');
+  });
+});
+
+describe('getSupabaseUserCurrentEvents', () => {
+  const mockedSupabaseIn = jest.fn();
+  const mockedSupabaseGte = jest.fn();
+  const mockedSupabaseOrder = jest.fn();
+
+  beforeEach(() => {
+    setupSupabaseMocks();
+  });
+
+  it('returns user events successfully', async () => {
+    const userId = 'user123';
+    const mockAttendeeData = [
+      { event_id: 'event1' },
+      { event_id: 'event2' }
+    ];
+    const mockEventsData = [
+      { 
+        event_id: 'event1', 
+        name: 'Event 1', 
+        date: '2024-12-01',
+        description: 'First event'
+      },
+      { 
+        event_id: 'event2', 
+        name: 'Event 2', 
+        date: '2024-11-15',
+        description: 'Second event'
+      }
+    ];
+
+    mockedSupabaseFrom
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ data: mockAttendeeData, error: null })
+        })
+      })
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          in: mockedSupabaseIn.mockReturnValue({
+            gte: jest.fn().mockReturnValue({
+              order: mockedSupabaseOrder.mockResolvedValue({ data: mockEventsData, error: null })
+            })
+          })
+        })
+      });
+
+    const result = await getSupabaseUserCurrentEvents(userId);
+
+    expect(result).toEqual(mockEventsData);
+    expect(mockedSupabaseFrom).toHaveBeenNthCalledWith(1, 'Attendee');
+    expect(mockedSupabaseFrom).toHaveBeenNthCalledWith(2, 'Event');
+    expect(mockedSupabaseIn).toHaveBeenCalledWith('event_id', ['event1', 'event2']);
+    expect(mockedSupabaseOrder).toHaveBeenCalledWith('date', { ascending: false });
+  });
+
+  it('handles empty attendee data', async () => {
+    const userId = 'user123';
+    const mockAttendeeData: any[] = [];
+    const mockEventsData: any[] = [];
+
+    mockedSupabaseFrom
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ data: mockAttendeeData, error: null })
+        })
+      })
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          in: mockedSupabaseIn.mockReturnValue({
+            gte: jest.fn().mockReturnValue({
+              order: mockedSupabaseOrder.mockResolvedValue({ data: mockEventsData, error: null })
+            })
+          })
+        })
+      });
+    const result = await getSupabaseUserCurrentEvents(userId);
+
+    expect(result).toEqual([]);
+    expect(mockedSupabaseIn).toHaveBeenCalledWith('event_id', []);
+  });
+
+  it('throws on unexpected exception', async () => {
+    const userId = 'user123';
+
+    mockedSupabaseFrom.mockImplementation(() => {
+      throw new Error('Unexpected error');
+    });
+
+    await expect(getSupabaseUserCurrentEvents(userId)).rejects.toThrow('Unexpected error');
   });
 });

@@ -7,6 +7,10 @@ import type { Database } from '../../schema/v2/database.types';
 
 type EventInsert = Database['public']['Tables']['Event']['Insert'];
 
+type AttendeeWithEvent = {
+  Event: Tables<'Event'>;
+};
+
 const getEvents = async (): Promise<FirebaseEvent[]> => {
     const eventsCollection = db.collection('events');
     const snapshot = await eventsCollection.orderBy('date').get();
@@ -97,6 +101,29 @@ const getSupabaseEventById = async (id: string): Promise<Tables<'Event'> | null>
     return { ...data, registered };
 };
 
+const getSupabaseUserCurrentEvents = async (userId: string): Promise<Partial<Tables<'Event'>>[]> => {
+
+    const { data: attendeeData, error: attendeeError } = await supabase
+    .from('Attendee')
+    .select('event_id')
+    .eq('user_id', userId);
+
+    if (attendeeError || !attendeeData) throw new Error(attendeeError.message);
+
+    const eventIds = attendeeData.map(row => row.event_id);
+
+    const { data: eventsData, error: eventsError } = await supabase
+    .from('Event')
+    .select("event_id, name, description, date, start_time, end_time, location, member_price, non_member_price, thumbnail, is_disabled")
+    .in('event_id', eventIds)
+    .gte('end_time', new Date().toISOString())
+    .order("date", { ascending: false });
+
+    if (eventsError || !eventsData) throw new Error(eventsError.message);
+
+    return eventsData;
+};
+
 
 const addSupabaseEvent = async (event: EventInsert): Promise<void> => {
     const { date, start_time, end_time } = event;
@@ -129,7 +156,6 @@ const addSupabaseEvent = async (event: EventInsert): Promise<void> => {
 
 }
 
-
 const getEventCapacity = async (eventId: string): Promise<number> => {
     const { count, error } = await supabase.from('Attendee').select('*', { count: 'exact', head: true} ).eq('event_id', eventId)
     if (error || count === null) {
@@ -139,4 +165,5 @@ const getEventCapacity = async (eventId: string): Promise<number> => {
 }
 
 
-export { getEvents, getEventById, addEvent, getSupabaseEvents, getSupabaseEventById, addSupabaseEvent};
+export { getEvents, getEventById, addEvent, getSupabaseEvents, getSupabaseEventById, addSupabaseEvent, getSupabaseUserCurrentEvents, getEventCapacity};
+
