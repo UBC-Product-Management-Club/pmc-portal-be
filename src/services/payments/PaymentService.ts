@@ -54,6 +54,37 @@ async function createMembershipPaymentIntent(userId: string) {
     return paymentIntent;
 }
 
+async function createCheckoutSession(userId: string) {
+    const { data, error } = await supabase.from("User").select("university").eq("user_id", userId).single();
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    const isUBC = data.university === "University of British Columbia";
+    
+    // i think the priceId here should be an env variable?, for stripe testing and for stripe prod ? 
+    // ie sm like this 
+    // const priceId = isUBC ? process.env.UBC_PRICE_STRIPE_ID : process.env.NON_UBC_PRICE_STRIPE_ID;
+    const priceId = isUBC ? 'price_1RwTQrL4ingF9CfzZgPtZI5t' : 'price_1RwTRSL4ingF9CfzFqt4smhc';
+
+    const session = await stripe.checkout.sessions.create({
+        line_items: [
+        {
+            
+            price: priceId,
+            quantity: 1,
+        },
+        ],
+        mode: 'payment',
+        
+        success_url: `${process.env.ORIGIN}?success=true`,
+        cancel_url: `${process.env.ORIGIN}?canceled=true`,
+    });
+
+    return session
+}
+
 async function handleStripeEvent(event: Stripe.Event) {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
     const userId = paymentIntent.metadata?.user_id;
@@ -103,4 +134,4 @@ async function handleStripeEvent(event: Stripe.Event) {
     }
 }
 
-export { MEMBERSHIP_FEE_UBC, MEMBERSHIP_FEE_NONUBC, createMembershipPaymentIntent, handleStripeEvent };
+export { MEMBERSHIP_FEE_UBC, MEMBERSHIP_FEE_NONUBC, createMembershipPaymentIntent, handleStripeEvent, createCheckoutSession };

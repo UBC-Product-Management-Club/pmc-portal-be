@@ -87,4 +87,5 @@ paymentRouter.get("/create/membership", async (req, res) => {
 //     console.log(paymentIntent)
 // })
 
+
 export type {createPaymentIntentBody}
