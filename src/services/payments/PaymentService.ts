@@ -2,6 +2,7 @@ import { stripe } from "../../config/firebase";
 import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
 import Stripe from "stripe";
+import { fetchMembershipPriceId } from "./ProductService";
 
 type PaymentInsert = Database["public"]["Tables"]["Payment"]["Insert"];
 
@@ -62,11 +63,8 @@ async function createCheckoutSession(userId: string) {
     }
 
     const isUBC = data.university === "University of British Columbia";
-    
-    // i think the priceId here should be an env variable?, for stripe testing and for stripe prod ? 
-    // ie sm like this 
-    // const priceId = isUBC ? process.env.UBC_PRICE_STRIPE_ID : process.env.NON_UBC_PRICE_STRIPE_ID;
-    const priceId = isUBC ? 'price_1RwTQrL4ingF9CfzZgPtZI5t' : 'price_1RwTRSL4ingF9CfzFqt4smhc';
+
+    const priceId = await fetchMembershipPriceId(isUBC)
 
     const session = await stripe.checkout.sessions.create({
         line_items: [
@@ -77,8 +75,9 @@ async function createCheckoutSession(userId: string) {
         },
         ],
         mode: 'payment',
+        payment_method_configuration: 'pmc_1RwtRfL4ingF9CfzbEtiSzOS',
         
-        success_url: `${process.env.ORIGIN}?success=true`,
+        success_url: `${process.env.ORIGIN}/dashboard/success`,
         cancel_url: `${process.env.ORIGIN}?canceled=true`,
     });
 

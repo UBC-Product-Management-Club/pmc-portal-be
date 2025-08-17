@@ -83,7 +83,7 @@ paymentRouter.post("/event/:event_id", async (req, res) => {
 
 })
 
-paymentRouter.post("/create-checkout-session", async(req, res) => {
+paymentRouter.post("/checkout-session/membership", async(req, res) => {
     try {
         const userId = req.body.userId;
         const session = await createCheckoutSession(userId);
