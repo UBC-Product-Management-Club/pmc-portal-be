@@ -1,6 +1,18 @@
+jest.mock("../../../src/services/payments/ProductService", () => ({
+  fetchMembershipPriceId: jest.fn(),
+}));
+
+jest.mock("../../../src/config/firebase", () => ({
+  stripe: {
+    paymentIntents: { create: jest.fn() },
+    checkout: { sessions: { create: jest.fn() } },
+  },
+}));
+
 import { supabase } from "../../../src/config/supabase";
 import { stripe } from "../../../src/config/firebase";
-import { createMembershipPaymentIntent } from "../../../src/services/payments/PaymentService";
+import { createCheckoutSession, createMembershipPaymentIntent } from "../../../src/services/payments/PaymentService";
+import { fetchMembershipPriceId } from "../../../src/services/payments/ProductService";
 
 const mockedSupabaseFrom = jest.fn();
 const mockedSupabaseSelect = jest.fn();
@@ -8,10 +20,12 @@ const mockedSupabaseEq = jest.fn();
 const mockedSupabaseInsert = jest.fn();
 const mockedSupabaseSingle = jest.fn();
 const mockedStripeCreate = jest.fn();
+const mockedStripeSessionCreate = jest.fn();
+
 
 (supabase.from as jest.Mock).mockImplementation(mockedSupabaseFrom);
 (stripe.paymentIntents.create as jest.Mock).mockImplementation(mockedStripeCreate);
-
+(stripe.checkout.sessions.create as jest.Mock).mockImplementation(mockedStripeSessionCreate);
 // Setup helper
 function setupMocks() {
     jest.clearAllMocks();
@@ -126,3 +140,46 @@ describe("createPaymentIntent", () => {
         await expect(createMembershipPaymentIntent("user-123")).rejects.toThrow("Insert failed");
     });
 });
+
+describe("create membership checkout session", () => {
+    beforeEach(() => {
+        setupMocks();
+    })
+
+    it("creates payment intent for UBC student", async () => {
+
+        mockedSupabaseSingle.mockResolvedValue({
+            data: { university: "University of British Columbia" },
+            error: null,
+        });
+
+        (fetchMembershipPriceId as jest.Mock).mockResolvedValue("price_ubc_test");
+        mockedStripeSessionCreate.mockResolvedValue({ id: "sess_test" });
+
+        const result = await createCheckoutSession("user-123");
+
+        expect(fetchMembershipPriceId).toHaveBeenCalledWith(true);
+        expect(mockedStripeSessionCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+            line_items: [
+                {
+                price: "price_ubc_test",
+                quantity: 1,
+                },
+            ],
+            })
+        );
+        expect(result).toEqual({ id: "sess_test" });
+    });
+
+    it("throws error when user lookup fails", async () => {
+        mockedSupabaseSingle.mockResolvedValue({
+            data: null,
+            error: { message: "User not found" },
+        });
+
+        await expect(createCheckoutSession("invalid-user")).rejects.toThrow("User not found");
+        expect(mockedStripeSessionCreate).not.toHaveBeenCalled();
+    });
+
+})

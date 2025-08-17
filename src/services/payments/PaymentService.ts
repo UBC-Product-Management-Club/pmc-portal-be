@@ -2,6 +2,7 @@ import { stripe } from "../../config/firebase";
 import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
 import Stripe from "stripe";
+import { fetchMembershipPriceId } from "./ProductService";
 
 type PaymentInsert = Database["public"]["Tables"]["Payment"]["Insert"];
 
@@ -54,6 +55,35 @@ async function createMembershipPaymentIntent(userId: string) {
     return paymentIntent;
 }
 
+async function createCheckoutSession(userId: string) {
+    const { data, error } = await supabase.from("User").select("university").eq("user_id", userId).single();
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    const isUBC = data.university === "University of British Columbia";
+
+    const priceId = await fetchMembershipPriceId(isUBC)
+
+    const session = await stripe.checkout.sessions.create({
+        line_items: [
+        {
+            
+            price: priceId,
+            quantity: 1,
+        },
+        ],
+        mode: 'payment',
+        payment_method_configuration: 'pmc_1RwtRfL4ingF9CfzbEtiSzOS',
+        
+        success_url: `${process.env.ORIGIN}/dashboard/success`,
+        cancel_url: `${process.env.ORIGIN}/dashboard/canceled`,
+    });
+
+    return session
+}
+
 async function handleStripeEvent(event: Stripe.Event) {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
     const userId = paymentIntent.metadata?.user_id;
@@ -103,4 +133,4 @@ async function handleStripeEvent(event: Stripe.Event) {
     }
 }
 
-export { MEMBERSHIP_FEE_UBC, MEMBERSHIP_FEE_NONUBC, createMembershipPaymentIntent, handleStripeEvent };
+export { MEMBERSHIP_FEE_UBC, MEMBERSHIP_FEE_NONUBC, createMembershipPaymentIntent, handleStripeEvent, createCheckoutSession };
