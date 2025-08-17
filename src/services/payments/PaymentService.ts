@@ -78,7 +78,7 @@ async function createCheckoutSession(userId: string) {
         payment_method_configuration: 'pmc_1RwtRfL4ingF9CfzbEtiSzOS',
         
         success_url: `${process.env.ORIGIN}/dashboard/success`,
-        cancel_url: `${process.env.ORIGIN}?canceled=true`,
+        cancel_url: `${process.env.ORIGIN}/dashboard/canceled`,
     });
 
     return session

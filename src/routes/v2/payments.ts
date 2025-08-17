@@ -87,9 +87,7 @@ paymentRouter.post("/checkout-session/membership", async(req, res) => {
     try {
         const userId = req.body.userId;
         const session = await createCheckoutSession(userId);
-        console.log(session.url)
         return res.json({url: session.url})
-
     }
     catch (error) {
         console.log(error)
