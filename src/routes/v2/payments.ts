@@ -1,7 +1,4 @@
 import { Router } from "express";
-import { addTransaction } from "../../services/payments/add";
-//import { createPaymentIntent } from "../../services/payments/create";
-import { getEventById, getSupabaseEventById } from "../../services/events/event";
 import { createCheckoutSession, createMembershipPaymentIntent, MEMBERSHIP_FEE_NONUBC, MEMBERSHIP_FEE_UBC } from "../../services/payments/PaymentService";
 
 export const paymentRouter = Router()
@@ -11,20 +8,6 @@ paymentRouter.get("/membership", async (req, res) => {
         ubcPrice: MEMBERSHIP_FEE_UBC,
         nonUbcPrice: MEMBERSHIP_FEE_NONUBC 
     })
-})
-
-paymentRouter.post("/add-transaction", async (req, res) => {
-    // add transaction to supabase
-    try {
-        //const id = await addSupabaseTransaction(req.body)
-        return res.status(200).json({
-            message: `Added supabase transaction`
-        })
-    } catch (error) {
-        return res.status(500).json({
-            message: "Failed to add transaction"
-        })
-    }
 })
 
 paymentRouter.get("/create/membership", async (req, res) => {

@@ -2,9 +2,9 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import express from "express";
-import { v1ApiRouter } from "./routes/v1";
 import { v2ApiRouter } from "./routes/v2";
 import { webhookRouter } from "./routes/v2/stripe";
+import { paymentRouter } from "./routes/v1/payments";
 
 // CONFIGURE .env
 dotenv.config();
@@ -48,7 +48,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // SET ROUTES
-app.use("/api", v1ApiRouter);
+app.use("/api/v1/payments", paymentRouter);
 
 app.use("/api", v2ApiRouter);
 

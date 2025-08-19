@@ -1,11 +1,10 @@
 import { Request, Response, Router } from "express";
-import { exportSupabaseUsers, getAllSupabaseUsers} from "../../services/auth/users";
-import { getSupabaseProfile } from "../../services/profile/get";
 import { EventSchema, EventInsert } from "../../schema/v2/Event";
-import { uploadFiles, uploadSupabaseFiles } from "../../utils/files";
+import { uploadSupabaseFiles } from "../../utils/files";
 import { v4 as uuidv4 } from 'uuid';
-import { addSupabaseEvent } from "../../services/events/event";
 import multer from "multer"
+import { exportUsers, getUser, getUsers } from "../../services/User/UserService";
+import { addEvent } from "../../services/events/EventService";
 
 export const adminRouter = Router();
 
@@ -14,7 +13,7 @@ const upload = multer({ storage: memStorage })
 
 adminRouter.get("/users", async (req: Request, res: Response) => {
     try {
-        const users = await getAllSupabaseUsers();
+        const users = await getUsers();
         return res.status(200).send(users);
     } catch (error) {
         console.error(error);
@@ -31,7 +30,7 @@ adminRouter.get("/users/export", async (req: Request, res: Response) => {
         }
 
         const isCSV = req.query.csv === "true";
-        const users = await exportSupabaseUsers(password, isCSV);
+        const users = await exportUsers(password, isCSV);
 
         if (isCSV) {
             res.setHeader("Content-Type", "text/csv");
@@ -53,7 +52,7 @@ adminRouter.get("/users/export", async (req: Request, res: Response) => {
 
 adminRouter.get("/users/:id", async (req: Request, res: Response) => {
     try {
-        const user = await getSupabaseProfile(req.params.id);
+        const user = await getUser(req.params.id);
         if (user) {
             return res.status(200).json(user);
         } else {
@@ -130,7 +129,7 @@ adminRouter.post('/events/add', upload.fields([{ name: 'mediaFiles', maxCount: 5
             member_price: member_price,
             non_member_price: non_member_price,
             max_attendees: max_attendees,
-            event_form_questions: event_form_questions, 
+            event_form_questions: event_form_questions,
             is_disabled: false,
             media: media,
             thumbnail: thumbnail[0], 
@@ -142,9 +141,7 @@ adminRouter.post('/events/add', upload.fields([{ name: 'mediaFiles', maxCount: 5
             throw new Error(result.error.message);
         };
 
-        const parsedEvent: EventInsert = result.data;
-
-        await addSupabaseEvent(parsedEvent) // TODO make addSupabaseEvent function
+        await addEvent(result.data)
         res.status(201).json({
             message: `Supabase Event with ID ${event_Id} has been added successfully.`,
         });

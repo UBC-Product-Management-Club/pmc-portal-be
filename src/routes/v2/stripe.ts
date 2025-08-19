@@ -1,9 +1,7 @@
 import { Router } from "express";
 import { stripe } from "../../config/stripe";
-import { supabase } from "../../config/supabase";
-import { Stripe } from "stripe";
 import express from "express";
-import { handleStripeEvent } from "../../services/payments/PaymentService";
+import { handleStripeEvent } from "../../services/Payment/PaymentService";
 
 export const webhookRouter = Router();
 
