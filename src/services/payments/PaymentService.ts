@@ -3,6 +3,7 @@ import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
 import Stripe from "stripe";
 import { fetchMembershipPriceId } from "./ProductService";
+import { ConfirmationEvent, sendConfirmationEmail } from "../emails/confirmation";
 
 type PaymentInsert = Database["public"]["Tables"]["Payment"]["Insert"];
 
@@ -64,24 +65,23 @@ async function createCheckoutSession(userId: string) {
 
     const isUBC = data.university === "University of British Columbia";
 
-    const priceId = await fetchMembershipPriceId(isUBC)
+    const priceId = await fetchMembershipPriceId(isUBC);
 
     const session = await stripe.checkout.sessions.create({
         line_items: [
-        {
-            
-            price: priceId,
-            quantity: 1,
-        },
+            {
+                price: priceId,
+                quantity: 1,
+            },
         ],
-        mode: 'payment',
-        payment_method_configuration: 'pmc_1RwtRfL4ingF9CfzbEtiSzOS',
-        
+        mode: "payment",
+        payment_method_configuration: "pmc_1RwtRfL4ingF9CfzbEtiSzOS",
+
         success_url: `${process.env.ORIGIN}/dashboard/success`,
         cancel_url: `${process.env.ORIGIN}/dashboard/canceled`,
     });
 
-    return session
+    return session;
 }
 
 async function handleStripeEvent(event: Stripe.Event) {
@@ -103,6 +103,8 @@ async function handleStripeEvent(event: Stripe.Event) {
                 }
 
                 console.log(`Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`);
+
+                await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
             }
 
             break;
