@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { getEvent, getEvents, getRegisteredEvents } from "../../services/events/EventService";
+import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
 import { Database } from "../../schema/v2/database.types";
-import { addAttendee, registerGuestForEvent } from "../../services/Attendee/AttendeeService";
+import { addAttendee } from "../../services/Attendee/AttendeeService";
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
 
@@ -57,40 +57,6 @@ eventRouter.post('/:eventId/register/member', async (req, res) => {
         res.status(201).json({
             message: 'Registration successful',
             attendee: result
-        });
-
-    } catch (error: any) {
-        res.status(500).json({ error: error.message })
-    }
-})
-
-eventRouter.post('/:eventId/register/guest', async (req, res) => {
-    try {
-
-        const {guestUser, attendee } = req.body;
-        const eventId = req.params.eventId;
-
-        const result = await registerGuestForEvent(guestUser, attendee, eventId);
-        res.status(201).json({
-            message: "Registration successful", 
-            attendee:result
-        });
-
-    } catch (error: any) {
-        res.status(500).json({ error: error.message })
-    }
-})
-
-eventRouter.post('/:eventId/register/guest', async (req, res) => {
-    try {
-
-        const {guestUser, attendee } = req.body;
-        const eventId = req.params.eventId;
-
-        const result = await registerGuestForEvent(guestUser, attendee, eventId);
-        res.status(201).json({
-            message: "Registration successful", 
-            attendee:result
         });
 
     } catch (error: any) {

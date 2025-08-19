@@ -1,8 +1,4 @@
 import { Router } from "express";
-import { Attendee } from "../../schema/v1/FirebaseEvent";
-import { db } from "../../config/firebase";
-import { FieldValue } from "firebase-admin/firestore";
-import { checkEmail } from "../../services/qrCode";
 import { getAttendee } from "../../services/Attendee/AttendeeService";
 
 export const attendeeRouter = Router();

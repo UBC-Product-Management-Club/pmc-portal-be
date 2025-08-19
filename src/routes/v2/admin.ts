@@ -1,10 +1,10 @@
 import { Request, Response, Router } from "express";
 import { EventSchema, EventInsert } from "../../schema/v2/Event";
-import { uploadSupabaseFiles } from "../../utils/files";
+import { uploadSupabaseFiles } from "../../storage/Storage";
 import { v4 as uuidv4 } from 'uuid';
 import multer from "multer"
 import { exportUsers, getUser, getUsers } from "../../services/User/UserService";
-import { addEvent } from "../../services/events/EventService";
+import { addEvent } from "../../services/Event/EventService";
 
 export const adminRouter = Router();
 

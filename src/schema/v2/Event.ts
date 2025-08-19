@@ -1,5 +1,4 @@
 import { z } from "zod/v4";
-import { Json } from "./database.types";
 
 export const EventSchema = z.object({
     event_id: z.string(),
