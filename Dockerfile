@@ -26,9 +26,9 @@ COPY --from=build /app/build ./build
 COPY --from=build /app/package.json ./
 COPY --from=build /app/package-lock.json ./
 
-# Copy any other necessary files (e.g., .env)
-COPY --from=build /app/.env ./
-COPY --from=build /app/.secret ./
+# # Copy any other necessary files (e.g., .env)
+# COPY --from=build /app/.env ./
+# COPY --from=build /app/.secret ./
 
 # Install only production dependencies
 COPY --from=build /app/node_modules ./node_modules
@@ -37,9 +37,9 @@ COPY --from=build /app/node_modules ./node_modules
 RUN echo "Container directory structure:" && \
     ls -la && \
     echo "Build directory:" && \
-    ls -la build/ && \
-    echo "Secret directory:" && \
-    ls -la .secret/ || true
+    ls -la build/
+    # echo "Secret directory:" && \
+    # ls -la .secret/ || true
 
 # Set the command to run the application
 CMD ["node", "build/src/index.js"]
