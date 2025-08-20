@@ -1,6 +1,5 @@
 import { Request, Response, Router } from "express";
-import { getSupabaseProfile, getProfileByEmail, getRegisteredEvents } from "../../services/profile/get";
-import { deleteUser } from "../../services/profile/delete";
+import { getUser } from "../../services/User/UserService";
 // import { editProfile } from "../controllers/profile/edit";
 
 export const profileRouter = Router();
@@ -8,7 +7,7 @@ export const profileRouter = Router();
 // Get profile information
 profileRouter.get("/:id", async (req: Request, res: Response) => {
     const uid: string = req.params.id;
-    const user = await getSupabaseProfile(uid);
+    const user = await getUser(uid);
     if (user) {
         return res.status(200).json(user);
     } else {
@@ -31,18 +30,6 @@ profileRouter.get("/email/:email", async (req: Request, res: Response) => {
     // }
 });
 
-// Takes ID, deletes user. Temporary endpoint for firebase -> auth0 migration.
-profileRouter.get("/:id/delete", async (req: Request, res: Response) => {
-    const uid: string = req.params.id;
-    try {
-        //await deleteSupabaseUser(uid)
-        return res.status(200).json("Successfully deleted supabase user");
-    } catch (e) {
-        return res.status(400).json({
-            error: e,
-        });
-    }
-});
 
 // Takes member ID, returns list of event IDs that member registered for
 profileRouter.get("/:id/events", async (req: Request, res: Response) => {
@@ -58,6 +45,3 @@ profileRouter.get("/:id/events", async (req: Request, res: Response) => {
     //     })
     // }
 });
-
-// Edit proflie
-// profileRouter.put("/:id/edit", editProfile)

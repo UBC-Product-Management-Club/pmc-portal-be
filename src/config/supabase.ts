@@ -11,6 +11,6 @@ if (!supabaseUrl || !supabaseKey) {
     throw new Error("Missing required Supabase environment variables");
 }
 
-const supabase: SupabaseClient = createClient<Database>(supabaseUrl, supabaseKey);
+const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
 export { supabase };

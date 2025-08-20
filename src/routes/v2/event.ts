@@ -1,23 +1,15 @@
 import { Router } from "express";
-import { getSupabaseEventById, getSupabaseEvents, getSupabaseUserCurrentEvents } from "../../services/events/event";
-import { Attendee, FirebaseEvent } from "../../schema/v1/FirebaseEvent"
-import multer from "multer"
-import { addAttendee, addSupabaseAttendee, getAttendeeById, registerGuestForEvent } from "../../services/events/attendee";
-import { addTransaction } from "../../services/payments/add";
-import { addTransactionBody } from "../../schema/v1/Transaction";
-import { sendEmail } from "../../services/emails/send";
-import { checkIsRegistered } from "../../services/events/attendee";
+import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
 import { Database } from "../../schema/v2/database.types";
-
+import { addAttendee } from "../../services/Attendee/AttendeeService";
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
-type UserInsert = Database['public']['Tables']['User']['Insert'];
 
 export const eventRouter = Router()
 
 eventRouter.get('/', async (req, res) => {
     try {
-        const events = await getSupabaseEvents();
+        const events = await getEvents();
         res.status(200).json(events);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -26,7 +18,7 @@ eventRouter.get('/', async (req, res) => {
 
 eventRouter.get('/:id', async (req, res) => {
     try {
-        const eventByID = await getSupabaseEventById(req.params.id);
+        const eventByID = await getEvent(req.params.id);
         res.status(200).json(eventByID);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -35,7 +27,7 @@ eventRouter.get('/:id', async (req, res) => {
 
 eventRouter.get('/user-events/:userId', async (req, res) => {
     try {
-        const userCurrentEvents = await getSupabaseUserCurrentEvents(req.params.userId);
+        const userCurrentEvents = await getRegisteredEvents(req.params.userId);
         res.status(200).json(userCurrentEvents);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -60,45 +52,11 @@ eventRouter.post('/:eventId/register/member', async (req, res) => {
             event_form_answers: eventFormAnswers
         }
 
-        const result = await addSupabaseAttendee(insertData);
+        const result = await addAttendee(insertData);
         
         res.status(201).json({
             message: 'Registration successful',
             attendee: result
-        });
-
-    } catch (error: any) {
-        res.status(500).json({ error: error.message })
-    }
-})
-
-eventRouter.post('/:eventId/register/guest', async (req, res) => {
-    try {
-
-        const {guestUser, attendee } = req.body;
-        const eventId = req.params.eventId;
-
-        const result = await registerGuestForEvent(guestUser, attendee, eventId);
-        res.status(201).json({
-            message: "Registration successful", 
-            attendee:result
-        });
-
-    } catch (error: any) {
-        res.status(500).json({ error: error.message })
-    }
-})
-
-eventRouter.post('/:eventId/register/guest', async (req, res) => {
-    try {
-
-        const {guestUser, attendee } = req.body;
-        const eventId = req.params.eventId;
-
-        const result = await registerGuestForEvent(guestUser, attendee, eventId);
-        res.status(201).json({
-            message: "Registration successful", 
-            attendee:result
         });
 
     } catch (error: any) {

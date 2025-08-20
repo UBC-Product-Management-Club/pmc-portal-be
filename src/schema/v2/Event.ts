@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { Json } from "./database.types";
+import { z } from "zod/v4";
 
 export const EventSchema = z.object({
     event_id: z.string(),
@@ -12,7 +11,7 @@ export const EventSchema = z.object({
     member_price: z.string().transform(Number),
     non_member_price: z.string().transform(Number),
     max_attendees: z.string().transform(Number),
-    event_form_questions: z.string().transform<Json>((val) => JSON.parse(val)), 
+    event_form_questions: z.json(),
     is_disabled: z.boolean().default(false),
     media: z.array(z.string()),
     thumbnail: z.string(), 
