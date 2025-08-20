@@ -42,7 +42,7 @@ RUN echo "Container directory structure:" && \
     # ls -la .secret/ || true
 
 # Set the command to run the application
-CMD ["node", "build/src/index.js"]
+CMD ["node", "build/index.js"]
 
 # Expose the application port
 EXPOSE 8000
