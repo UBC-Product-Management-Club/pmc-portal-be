@@ -10,7 +10,7 @@ interface User {
     year: string;
     major: string;
     pfp: string;
-    studentId: number;
+    studentId: string;
     whyPm: string;
 }
 

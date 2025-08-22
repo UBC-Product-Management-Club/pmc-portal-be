@@ -1,9 +1,7 @@
 import { Request, Response, Router } from "express";
-import { handleSupabaseOnboarding } from "../../services/auth/register";
-import { getAllSupabaseUsers } from "../../services/auth/users";
 import Stripe from "stripe";
 import { User } from "../../schema/v1/User";
-import { handleSupabaseLogin } from "../../services/auth/login";
+import { addUser, getUser, getUsers } from "../../services/User/UserService";
 
 export const authRouter = Router();
 
@@ -15,7 +13,7 @@ interface onboardingBody {
 authRouter.post("/onboard", async (req: Request, res: Response) => {
     const { user, payment }: onboardingBody = req.body;
     try {
-        await handleSupabaseOnboarding(user);
+        await addUser(user);
 
         return res.status(200).json({
             message: "Supabase Login success. New user created",
@@ -30,7 +28,7 @@ authRouter.post("/onboard", async (req: Request, res: Response) => {
 authRouter.post("/login", async (req: Request, res: Response) => {
     const { userId }: { userId: string } = req.body;
     try {
-        const user = await handleSupabaseLogin(userId);
+        const user = await getUser(userId);
 
         if (user) {
             return res.status(200).json(user);
@@ -51,7 +49,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 // TO DO: Add role-based access control to this in the future
 authRouter.get("/users", async (req: Request, res: Response) => {
     try {
-        const users = await getAllSupabaseUsers();
+        const users = await getUsers();
         return res.status(200).send(users);
     } catch (error) {
         console.error(error);

@@ -1,6 +1,5 @@
 import { Parser } from "@json2csv/plainjs";
 import { User, UserExportFields, exportUserFieldNames } from "../../schema/v1/User";
-import { db } from "../../config/firebase";
 import { supabase } from "../../config/supabase";
 
 const TABLES = {
@@ -9,12 +8,6 @@ const TABLES = {
     EVENT: "Event",
     PAYMENT: "Payment",
 } as const;
-
-async function checkUserExists(uid: string) {
-    const userRef = db.collection("users").doc(uid);
-    const user = await userRef.get();
-    return user.exists;
-}
 
 async function checkSupabaseUserExists(id: string) {
     const { data, error } = await supabase.from(TABLES.USER).select().eq("user_id", id).maybeSingle();
@@ -51,4 +44,4 @@ const formatCSV = (users: UserExportFields[]) => {
     return parser.parse(users);
 };
 
-export { checkUserExists, formatCSV, checkSupabaseUserExists, TABLES, mapToSupabaseUser };
+export { formatCSV, checkSupabaseUserExists, TABLES, mapToSupabaseUser };

@@ -1,11 +1,13 @@
-import { stripe } from "../../config/firebase";
+import { stripe } from "../../config/stripe";
 import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
+import { fetchMembershipPriceId } from "../Product/ProductService";
 import Stripe from "stripe";
-import { fetchMembershipPriceId } from "./ProductService";
 import { ConfirmationEvent, sendConfirmationEmail } from "../emails/confirmation";
 
 type PaymentInsert = Database["public"]["Tables"]["Payment"]["Insert"];
+
+const CARD_PAYMENT_METHOD_ID = "pmc_1RwtRfL4ingF9CfzbEtiSzOS";
 
 export enum Status {
     PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
@@ -14,12 +16,10 @@ export enum Status {
 }
 
 // in cents
-const MEMBERSHIP_FEE_UBC = 1067;
-const MEMBERSHIP_FEE_NONUBC = 1567;
+export const MEMBERSHIP_FEE_UBC = 1067;
+export const MEMBERSHIP_FEE_NONUBC = 1567;
 
-async function createEventPaymentIntent(eventId: string) {}
-
-async function createMembershipPaymentIntent(userId: string) {
+export const createMembershipPaymentIntent = async (userId: string) => {
     const { data, error } = await supabase.from("User").select("university").eq("user_id", userId).single();
 
     if (error) {
@@ -47,16 +47,12 @@ async function createMembershipPaymentIntent(userId: string) {
         status: Status.PAYMENT_PENDING,
     };
 
-    const { data: payment, error: paymentError } = await supabase.from("Payment").insert(paymentInsertion).select().single();
-
-    if (paymentError) {
-        throw new Error(paymentError.message);
-    }
+    await logTransaction(paymentInsertion);
 
     return paymentIntent;
-}
+};
 
-async function createCheckoutSession(userId: string) {
+export const createCheckoutSession = async (userId: string) => {
     const { data, error } = await supabase.from("User").select("university").eq("user_id", userId).single();
 
     if (error) {
@@ -82,9 +78,9 @@ async function createCheckoutSession(userId: string) {
     });
 
     return session;
-}
+};
 
-async function handleStripeEvent(event: Stripe.Event) {
+export const handleStripeEvent = async (event: Stripe.Event) => {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
     const userId = paymentIntent.metadata?.user_id;
     const paymentType = paymentIntent.metadata?.payment_type;
@@ -133,6 +129,10 @@ async function handleStripeEvent(event: Stripe.Event) {
         default:
         // console.log(`Unhandled event type ${event.type}`);
     }
-}
+};
 
-export { MEMBERSHIP_FEE_UBC, MEMBERSHIP_FEE_NONUBC, createMembershipPaymentIntent, handleStripeEvent, createCheckoutSession };
+export const logTransaction = async (transaction: PaymentInsert) => {
+    const { data: payment, error } = await supabase.from("Payment").insert(transaction).select().single();
+    if (error) throw error;
+    return payment;
+};
