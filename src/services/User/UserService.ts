@@ -1,18 +1,7 @@
 import { supabase } from "../../config/supabase";
 import { User } from "../../schema/v1/User";
 import { Database, Tables } from "../../schema/v2/database.types";
-import { checkSupabaseUserExists, mapToSupabaseUser, TABLES } from "./utils";
-
-export const getUser = async (uid: string): Promise<Tables<"User"> | null> => {
-    if (!uid) {
-        throw Error("400: Bad request");
-    }
-    try {
-        return getUserById(uid);
-    } catch (error) {
-        throw Error("500: something went wrong fetching users");
-    }
-};
+import { checkSupabaseUserExists, mapToSupabaseUser } from "./utils";
 
 export const addUser = async (userInfo: User): Promise<{ message: string }> => {
     const { userId } = userInfo;
@@ -23,7 +12,7 @@ export const addUser = async (userInfo: User): Promise<{ message: string }> => {
 
         const newUser = mapToSupabaseUser(userInfo);
 
-        const { error } = await supabase.from(TABLES.USER).insert(newUser);
+        const { error } = await supabase.from("User").insert(newUser);
         if (error) {
             throw new Error("Error creating user: " + error.message);
         }
@@ -78,7 +67,7 @@ export const findUserByEmail = async (email: string): Promise<Tables<"User">> =>
 
 export const getUsers = async (): Promise<Tables<"User">[]> => {
     try {
-        const { data, error } = await supabase.from(TABLES.USER).select();
+        const { data, error } = await supabase.from("User").select();
         if (error || !data) {
             throw new Error("Failed to fetch users: " + error?.message);
         }
@@ -89,9 +78,10 @@ export const getUsers = async (): Promise<Tables<"User">[]> => {
     }
 };
 
-export const getUserById = async (userID: string): Promise<Tables<"User"> | null> => {
+export const getUser = async (userId: string): Promise<Tables<"User"> | null> => {
+    if (!userId) throw Error("User Id is required!")
     try {
-        const { data, error } = await supabase.from(TABLES.USER).select().eq("user_id", userID).maybeSingle();
+        const { data, error } = await supabase.from("User").select().eq("user_id", userId).maybeSingle();
 
         if (error) {
             throw new Error("Failed to fetch user: " + error.message);

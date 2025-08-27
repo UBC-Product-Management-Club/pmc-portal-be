@@ -33,7 +33,7 @@ describe("UserService", () => {
 
     describe("getUser", () => {
         it("throws error if no userId is provided", async () => {
-            await expect(getUser("")).rejects.toThrow("400: Bad request");
+            await expect(getUser("")).rejects.toThrow("User Id is required!");
         });
 
         it("returns user data if userId is valid", async () => {

@@ -86,6 +86,7 @@ export const createCheckoutSession = async (userId: string) => {
 export const handleStripeEvent = async (event: Stripe.Event) => {
     const stripeEventType = event.data.object.object 
 
+    console.log(stripeEventType)
     switch (stripeEventType) {
         case "checkout.session": {
             handleCheckoutSession(event)

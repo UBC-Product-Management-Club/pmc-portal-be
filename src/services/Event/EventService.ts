@@ -31,7 +31,7 @@ export const getRegisteredEvents = async (userId: string) => {
     const { data, error } = await supabase
         .from("Attendee")
         .select(`
-            Event (
+            Event!inner (
             event_id,
             name,
             description,
@@ -46,11 +46,10 @@ export const getRegisteredEvents = async (userId: string) => {
             )
         `)
         .eq("user_id", userId)
-        .gte("Event.end_time", new Date().toISOString)
-        .order("Event.date", { ascending: false }); 
+        .gte("Event.end_time", new Date().toISOString())
+        .order("date", { referencedTable: "Event", ascending: false }); 
 
-    if (!data || error) throw error
-
+    if (error) throw error
 
     return data;
 };
