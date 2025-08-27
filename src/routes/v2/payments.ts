@@ -1,6 +1,7 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { createMembershipPaymentIntent, MEMBERSHIP_FEE_NONUBC, MEMBERSHIP_FEE_UBC } from "../../services/Payment/PaymentService";
 import { createCheckoutSession } from "../../services/Payment/PaymentService";
+import { authenticated } from "../../middleware/Session";
 
 export const paymentRouter = Router()
 
@@ -11,10 +12,11 @@ paymentRouter.get("/membership", async (req, res) => {
     })
 })
 
-paymentRouter.get("/create/membership", async (req, res) => {
+paymentRouter.get("/create/membership", authenticated, async (req: Request, res: Response) => {
+    const userId = req.user?.user_id
+    if (!userId) throw Error("userId is required!")
+        
     try {
-        const userId = req.query["userId"] as string
-        if (!userId) throw Error("userId is required!")
         const paymentIntent = await createMembershipPaymentIntent(userId)
         if (!paymentIntent.client_secret) {
             throw new Error("Client secret was null!")
@@ -29,9 +31,11 @@ paymentRouter.get("/create/membership", async (req, res) => {
     }
 })
 
-paymentRouter.post("/checkout-session/membership", async(req, res) => {
+paymentRouter.get("/checkout-session/membership", authenticated, async(req: Request, res: Response) => {
+    const userId = req.user?.user_id
+    if (!userId) throw Error("userId is required!")
+
     try {
-        const userId = req.body.userId;
         const session = await createCheckoutSession(userId);
         return res.json({url: session.url})
     }

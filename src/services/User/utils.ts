@@ -44,4 +44,4 @@ const formatCSV = (users: UserExportFields[]) => {
     return parser.parse(users);
 };
 
-export { formatCSV, checkSupabaseUserExists, TABLES, mapToSupabaseUser };
+export { formatCSV, checkSupabaseUserExists, mapToSupabaseUser };

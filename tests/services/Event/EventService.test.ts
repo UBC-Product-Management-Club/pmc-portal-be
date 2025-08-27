@@ -229,16 +229,16 @@ describe("EventService", () => {
 
        mockFrom.mockReturnValueOnce({
             select: mockSelect.mockReturnValueOnce({
-              eq: mockEq.mockReturnValueOnce({
-                gte: mockGte.mockReturnValueOnce({
-                    order: mockOrder.mockResolvedValueOnce({
-                        data: mockEventsData,
-                        error: null
+                eq: mockEq.mockReturnValueOnce({
+                    gte: mockGte.mockReturnValueOnce({
+                        order: mockOrder.mockResolvedValueOnce({
+                            data: mockEventsData,
+                            error: null
+                        })
                     })
                 })
-              })
             })
-          })
+        })
 
         const result = await getRegisteredEvents(userId);
 
@@ -247,8 +247,33 @@ describe("EventService", () => {
         expect(mockSelect).toHaveBeenCalled()
         expect(mockEq).toHaveBeenCalledWith("user_id", userId)
         expect(mockGte).toHaveBeenCalled()
-        expect(mockOrder).toHaveBeenCalledWith("Event.date", { ascending: false })
+        expect(mockOrder).toHaveBeenCalledWith("date", { referencedTable: "Event", ascending: false })
       });
+
+      it('returns no events', async () => {
+
+        mockFrom.mockReturnValueOnce({
+                select: mockSelect.mockReturnValueOnce({
+                    eq: mockEq.mockReturnValueOnce({
+                        gte: mockGte.mockReturnValueOnce({
+                            order: mockOrder.mockResolvedValueOnce({
+                                data: [],
+                                error: null
+                            })
+                        })
+                    })
+                })
+            })
+
+        const result = await getRegisteredEvents('user-id');
+
+        expect(result).toEqual([])
+        expect(mockFrom).toHaveBeenCalledWith('Attendee');
+        expect(mockSelect).toHaveBeenCalled()
+        expect(mockEq).toHaveBeenCalledWith("user_id", 'user-id')
+        expect(mockGte).toHaveBeenCalled()
+        expect(mockOrder).toHaveBeenCalledWith("date", { referencedTable: "Event", ascending: false })
+      })
 
       it('throws on unexpected exception', async () => {
         const userId = 'user123';

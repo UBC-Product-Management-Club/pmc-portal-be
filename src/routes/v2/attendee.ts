@@ -4,18 +4,18 @@ import { getAttendee } from "../../services/Attendee/AttendeeService";
 export const attendeeRouter = Router();
 
 attendeeRouter.get("/:eventId", async (req, res) => {
-  const eventId = req.params.eventId
-  try {
-    if (req.query["userId"]) {
-      const userId = req.query["userId"] as string
-      const attendee = await getAttendee(eventId, userId)
-      return res.status(200).json(attendee)
+    const userId = req.user?.user_id
+    const eventId = req.params.eventId
+    try {
+    if (userId) {
+        const attendee = await getAttendee(eventId, userId)
+        return res.status(200).json(attendee)
     } else {
-      return res.status(200).json({message: `STUB gets all attendees for ${eventId}`});
+        return res.status(200).json({message: `STUB gets all attendees for ${eventId}`});
     }
-  } catch (error: any) {
+    } catch (error: any) {
     res.status(500).json({ error: error.message });
-  }
+    }
 });
 
 attendeeRouter.get('/:eventId/:email/qr', async (req, res) => {

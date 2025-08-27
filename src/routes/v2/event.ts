@@ -25,12 +25,16 @@ eventRouter.get('/:id', async (req, res) => {
     }
 });
 
-eventRouter.get('/user-events/:userId', async (req, res) => {
+eventRouter.get('/events/registered', async (req, res) => {
+    const user = req.user
     try {
-        const userCurrentEvents = await getRegisteredEvents(req.params.userId);
-        res.status(200).json(userCurrentEvents);
+        if (user) {
+            const userCurrentEvents = await getRegisteredEvents(user.user_id);
+            return res.status(200).json(userCurrentEvents);
+        }
+        return res.status(200).json([]);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 });
 
