@@ -86,6 +86,7 @@ export const createCheckoutSession = async (userId: string) => {
 export const handleStripeEvent = async (event: Stripe.Event) => {
     const stripeEventType = event.data.object.object 
 
+    console.log(stripeEventType)
     switch (stripeEventType) {
         case "checkout.session": {
             handleCheckoutSession(event)
@@ -155,6 +156,8 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
     const sessionIntent = stripeEvent.data.object as Stripe.Checkout.Session;
     const userId = sessionIntent.metadata?.user_id;
     const paymentType = sessionIntent.metadata?.payment_type;
+
+    console.log(sessionIntent)
 
     if (!userId) {
         throw new Error("user_id is missing in metadata!");
