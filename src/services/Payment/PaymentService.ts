@@ -3,10 +3,11 @@ import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
 import { fetchMembershipPriceId } from "../Product/ProductService";
 import Stripe from "stripe";
+import { ConfirmationEvent, sendConfirmationEmail } from "../emails/confirmation";
 
 type PaymentInsert = Database["public"]["Tables"]["Payment"]["Insert"];
 
-const CARD_PAYMENT_METHOD_ID = "pmc_1RwtRfL4ingF9CfzbEtiSzOS"
+const CARD_PAYMENT_METHOD_ID = "pmc_1RwtRfL4ingF9CfzbEtiSzOS";
 
 export enum Status {
     PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
@@ -33,7 +34,7 @@ export const createMembershipPaymentIntent = async (userId: string) => {
         currency: "cad",
         metadata: {
             user_id: userId,
-            payment_type: "membership"
+            payment_type: "membership",
         },
     });
 
@@ -46,10 +47,10 @@ export const createMembershipPaymentIntent = async (userId: string) => {
         status: Status.PAYMENT_PENDING,
     };
 
-    await logTransaction(paymentInsertion)
+    await logTransaction(paymentInsertion);
 
     return paymentIntent;
-}
+};
 
 export const createCheckoutSession = async (userId: string) => {
     const { data, error } = await supabase.from("User").select("university").eq("user_id", userId).single();
@@ -60,18 +61,18 @@ export const createCheckoutSession = async (userId: string) => {
 
     const isUBC = data.university === "University of British Columbia";
 
-    const priceId = await fetchMembershipPriceId(isUBC)
+    const priceId = await fetchMembershipPriceId(isUBC);
 
     const session = await stripe.checkout.sessions.create({
         line_items: [
-        {
-            price: priceId,
-            quantity: 1,
-        },
+            {
+                price: priceId,
+                quantity: 1,
+            },
         ],
-        mode: 'payment',
-        payment_method_configuration: CARD_PAYMENT_METHOD_ID,
-        
+        mode: "payment",
+        payment_method_configuration: "pmc_1RwtRfL4ingF9CfzbEtiSzOS",
+
         success_url: `${process.env.ORIGIN}/dashboard/success`,
         cancel_url: `${process.env.ORIGIN}/dashboard/canceled`,
         metadata : {
@@ -80,8 +81,8 @@ export const createCheckoutSession = async (userId: string) => {
         }
     });
 
-    return session
-}
+    return session;
+};
 
 export const handleStripeEvent = async (event: Stripe.Event) => {
     const stripeEventType = event.data.object.object 
@@ -121,6 +122,8 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
                 }
 
                 console.log(`Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`);
+
+                await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
             }
             console.log(paymentIntent.id)
             break;
@@ -149,7 +152,7 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
         default:
         // console.log(`Unhandled event type ${event.type}`);
     }
-}
+};
 
 
 const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
@@ -189,6 +192,6 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
 
 export const logTransaction = async (transaction: PaymentInsert) => {
     const { data: payment, error } = await supabase.from("Payment").insert(transaction).select().single();
-    if (error) throw error
-    return payment
-}
+    if (error) throw error;
+    return payment;
+};
