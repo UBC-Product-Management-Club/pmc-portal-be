@@ -104,21 +104,26 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
 
     await upsertPaymentTransaction(paymentIntent);
 
-    if (stripeEvent.type === "payment_intent.succeeded") {
-        const userId = paymentIntent.metadata?.user_id;
-        const paymentType = paymentIntent.metadata?.payment_type;
+    switch (stripeEvent.type) {
+        case "payment_intent.succeeded": {
+            const userId = paymentIntent.metadata?.user_id;
+            const paymentType = paymentIntent.metadata?.payment_type;
 
-        if (paymentType === "membership" && userId) {
-            const { error } = await supabase.from("User").update({ is_payment_verified: true }).eq("user_id", userId);
+            if (paymentType === "membership" && userId) {
+                const { error } = await supabase.from("User").update({ is_payment_verified: true }).eq("user_id", userId);
 
-            if (error) {
-                console.error("User verify update err:", error);
-                return;
+                if (error) {
+                    console.error("User verify update err:", error);
+                    return;
+                }
+
+                console.log(`Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`);
+                await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
             }
-
-            console.log(`Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`);
-            await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
+            break;
         }
+        default:
+            break;
     }
 };
 
