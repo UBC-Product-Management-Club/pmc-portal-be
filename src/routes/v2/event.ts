@@ -34,10 +34,10 @@ eventRouter.get('/user-events/:userId', async (req, res) => {
     }
 });
 
+// Adds attendee (payment not verified, payment id set to null)
 eventRouter.post('/:eventId/register/member', async (req, res) => {
     try {
         const userId = req.body.userId;
-        const paymentId = req.body.paymentId;
         const eventId = req.params.eventId;
         const eventFormAnswers = req.body.eventFormAnswers;
         
@@ -48,7 +48,7 @@ eventRouter.post('/:eventId/register/member', async (req, res) => {
         const insertData: AttendeeInsert = {
             user_id: userId,
             event_id:eventId,
-            payment_id:paymentId,
+            payment_id:null,
             event_form_answers: eventFormAnswers
         }
 
@@ -62,4 +62,4 @@ eventRouter.post('/:eventId/register/member', async (req, res) => {
     } catch (error: any) {
         res.status(500).json({ error: error.message })
     }
-})
+});

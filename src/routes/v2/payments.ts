@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createMembershipPaymentIntent, MEMBERSHIP_FEE_NONUBC, MEMBERSHIP_FEE_UBC } from "../../services/Payment/PaymentService";
-import { createCheckoutSession } from "../../services/Payment/PaymentService";
+import { createCheckoutSession, createEventCheckoutSession } from "../../services/Payment/PaymentService";
 
 export const paymentRouter = Router()
 
@@ -33,6 +33,23 @@ paymentRouter.post("/checkout-session/membership", async(req, res) => {
     try {
         const userId = req.body.userId;
         const session = await createCheckoutSession(userId);
+        return res.json({url: session.url})
+    }
+    catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: "Error creating checkout session."
+        })
+    }
+})
+
+// Creates event checkout session 
+paymentRouter.post("/checkout-session/event/:eventId", async(req, res) => {
+    try {
+        const userId = req.body.userId;
+        const attendeeId = req.body.attendeeId
+        const { eventId } = req.params;
+        const session = await createEventCheckoutSession(userId, eventId, attendeeId);
         return res.json({url: session.url})
     }
     catch (error) {

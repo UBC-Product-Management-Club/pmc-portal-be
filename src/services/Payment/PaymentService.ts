@@ -1,7 +1,9 @@
+import { boolean } from "zod/v4";
 import { stripe } from "../../config/stripe";
 import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
 import { fetchMembershipPriceId } from "../Product/ProductService";
+import { getEventPrice } from "../Event/EventService";
 import Stripe from "stripe";
 
 type PaymentInsert = Database["public"]["Tables"]["Payment"]["Insert"];
@@ -79,12 +81,62 @@ export const createCheckoutSession = async (userId: string) => {
     return session
 }
 
+export const createEventCheckoutSession = async (userId: string, eventId: string, attendeeId: string) => {
+    const { data, error } = await supabase.from("User").select("is_payment_verified").eq("user_id", userId).single();
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    const isMember = data.is_payment_verified ?? false;
+
+    try {
+        const priceId = await getEventPrice(eventId, isMember);
+        const session = await stripe.checkout.sessions.create({
+            line_items: [
+            {
+                price: priceId,
+                quantity: 1,
+            },
+            ],
+            mode: 'payment',
+            payment_method_configuration: CARD_PAYMENT_METHOD_ID,
+            metadata: {user_id: userId, payment_type: "event", attendee_id: attendeeId},
+            success_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&success=true`,
+            cancel_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&canceled=true`,
+        });
+        return session
+
+    } catch (error: any) {
+        console.log(error.message);
+        throw new Error(error.message);
+    }
+}
+
 export const handleStripeEvent = async (event: Stripe.Event) => {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    const stripeEventType = event.data.object.object 
+
+    switch (stripeEventType) {
+        case "checkout.session": {
+            handleCheckoutSession(event)
+            break
+        }
+        case "payment_intent": {
+            handlePaymentIntent(event)
+            break
+        }
+        default:
+            //console.log(stripeEventType)
+    }
+}
+
+const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
+    const paymentIntent = stripeEvent.data.object as Stripe.PaymentIntent
     const userId = paymentIntent.metadata?.user_id;
     const paymentType = paymentIntent.metadata?.payment_type;
 
-    switch (event.type) {
+    switch (stripeEvent.type) {
+
         case "payment_intent.succeeded": {
             const { error } = await supabase.from("Payment").update({ status: Status.PAYMENT_SUCCESS }).eq("payment_id", paymentIntent.id);
             if (error) {
@@ -98,8 +150,10 @@ export const handleStripeEvent = async (event: Stripe.Event) => {
                 }
 
                 console.log(`Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`);
-            }
 
+                //await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
+            }
+            console.log(paymentIntent.id)
             break;
         }
 
@@ -125,6 +179,71 @@ export const handleStripeEvent = async (event: Stripe.Event) => {
         }
         default:
         // console.log(`Unhandled event type ${event.type}`);
+    }
+};
+
+// Handle Event Registration Payment
+export const updateEventPaymentStatus = async (attendeeId: string | undefined, sessionIntent: Stripe.Checkout.Session) => {
+    if (!attendeeId) {
+        throw new Error("attendee_id is missing in metadata!")
+    }
+
+    const { error } = await supabase.from("Attendee").update({ is_payment_verified: true}).eq("attendee_id", attendeeId);
+    if (error) {
+        console.error("User verify update err:", error);
+        return
+    }
+    console.log(`Membership PaymentIntent for ${attendeeId} succeeded: ${sessionIntent.id}`);
+}
+
+
+// Handle Membership Payment
+export const updateMembershipPaymentStatus = async (userId: string, sessionIntent: Stripe.Checkout.Session) => {
+    const { error } = await supabase.from("User").update({ is_payment_verified: true }).eq("user_id", userId);
+        if (error) {
+            console.error("User verify update err:", error);
+            return
+        }
+        console.log(`Membership PaymentIntent for ${userId} succeeded: ${sessionIntent.id}`);
+}
+
+
+export const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
+
+    // Early return if checkout session was not completed 
+    if (stripeEvent.type !== "checkout.session.completed") {
+        console.log(`Ignoring non-completed session: ${stripeEvent.type}`);
+        return;
+    }
+
+    const sessionIntent = stripeEvent.data.object as Stripe.Checkout.Session;
+    const userId = sessionIntent.metadata?.user_id;
+    const paymentType = sessionIntent.metadata?.payment_type;
+    const attendeeId = sessionIntent.metadata?.attendee_id;
+
+    if (!userId) {
+        throw new Error("user_id is missing in metadata!");
+    }
+
+    // Recording successful payment session
+    const { error } = await supabase.from("Payment").insert({ 
+        payment_id: sessionIntent.payment_intent as string, 
+        user_id: userId, 
+        amount: sessionIntent.amount_total!, 
+        status: Status.PAYMENT_SUCCESS, 
+        payment_date: new Date().toISOString(),
+        type: paymentType
+    });
+
+    if (error) {
+        console.error("Payment success update err:", error);
+        return;
+    }
+
+    if (paymentType === "membership") {
+        await updateMembershipPaymentStatus(userId, sessionIntent);
+    } else if (paymentType === "event") {
+        await updateEventPaymentStatus(attendeeId, sessionIntent);
     }
 }
 
