@@ -14,15 +14,6 @@ Object.keys(process.env).forEach((key) => {
 
 const app = express();
 
-// SET MIDDLEWARE
-
-// app.use(
-//   cors({
-//     origin: process.env.ORIGIN,
-//     credentials: true,
-//   })
-// );
-
 const allowedOrigins = [process.env.ORIGIN, process.env.ADMIN_PORTAL_ORIGIN];
 
 const corsOptions = {

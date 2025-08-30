@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon --exec ts-node --project tsconfig.prod.json src/index.ts",
+    "start": "nodemon --exec ts-node --project tsconfig.prod.json --files src/index.ts",
     "test": "jest",
     "build": "tsc --project tsconfig.prod.json"
   },
@@ -38,10 +38,12 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
+    "express-oauth2-jwt-bearer": "^1.6.1",
     "firebase-admin": "^13.4.0",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "lodash": "^4.17.21",
+    "loops": "^5.0.1",
     "moment": "^2.30.1",
     "multer": "^2.0.0",
     "nodemailer": "^7.0.3",

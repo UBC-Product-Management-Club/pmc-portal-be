@@ -1,7 +1,8 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
 import { Database } from "../../schema/v2/database.types";
 import { addAttendee } from "../../services/Attendee/AttendeeService";
+import { authenticated } from "../../middleware/Session";
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
 
@@ -25,19 +26,25 @@ eventRouter.get('/:id', async (req, res) => {
     }
 });
 
-eventRouter.get('/user-events/:userId', async (req, res) => {
+eventRouter.get('/events/registered', async (req, res) => {
+    const user = req.user
     try {
-        const userCurrentEvents = await getRegisteredEvents(req.params.userId);
-        res.status(200).json(userCurrentEvents);
+        if (user) {
+            const userCurrentEvents = await getRegisteredEvents(user.user_id);
+            return res.status(200).json(userCurrentEvents);
+        }
+        return res.status(200).json([]);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 });
 
-// Adds attendee (payment not verified, payment id set to null)
-eventRouter.post('/:eventId/register/member', async (req, res) => {
+// Adds event attendee (payment not verified, payment id set to null)
+eventRouter.post('/:eventId/register/member', authenticated, async (req: Request, res: Response) => {
+    const userId = req.user?.user_id
+    if (!userId) throw Error("userId is required!")
+
     try {
-        const userId = req.body.userId;
         const eventId = req.params.eventId;
         const eventFormAnswers = req.body.eventFormAnswers;
         

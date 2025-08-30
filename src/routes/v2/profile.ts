@@ -5,7 +5,7 @@ import { getUser } from "../../services/User/UserService";
 export const profileRouter = Router();
 
 // Get profile information
-profileRouter.get("/:id", async (req: Request, res: Response) => {
+profileRouter.get("/profile", async (req: Request, res: Response) => {
     const uid: string = req.params.id;
     const user = await getUser(uid);
     if (user) {
