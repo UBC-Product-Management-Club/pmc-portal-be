@@ -88,12 +88,6 @@ export const handleStripeEvent = async (event: Stripe.Event) => {
             await handlePaymentIntent(event);
             break;
 
-        case "checkout.session.completed":
-        case "checkout.session.async_payment_succeeded":
-        case "checkout.session.async_payment_failed":
-            await handleCheckoutSession(event);
-            break;
-
         default:
             break;
     }
@@ -124,14 +118,6 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
         }
         default:
             break;
-    }
-};
-
-const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
-    const session = stripeEvent.data.object as Stripe.Checkout.Session;
-
-    if (!session.payment_intent) {
-        console.warn("Checkout Session has no payment_intent:", session.id);
     }
 };
 
