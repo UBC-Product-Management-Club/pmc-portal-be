@@ -3,10 +3,9 @@ name: Build Image on PR
 on:
   pull_request:
     branches:
-        - "*"
+      - "*"
 
 jobs:
-
   # run tests
   test-backend:
     name: Run Backend Jest Tests
@@ -33,27 +32,28 @@ jobs:
           echo EXPORT_PASSWORD=${{ secrets.EXPORT_PASSWORD }} >> .env
           echo SUPABASE_URL=${{ secrets.SUPABASE_URL }} >> .env
           echo SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} >> .env
+          echo LOOPS_API_KEY=${{ secrets.LOOPS_API_KEY }} >> .env
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x' 
+          node-version: "20.x"
 
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Ensure output directory exists
         run: mkdir -p output
 
       - name: Run Jest tests
         run: npm test
-      
+
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
         with:
           name: jest-results
           path: ./pmc-portal-be/output/test-results.xml
-      
+
   # run linting
 
   build-verify-image:
@@ -89,23 +89,21 @@ jobs:
 
       - name: Build the Docker image
         run: |
-            set -e
-            echo "Building Docker image."
-            docker build -t pmc-portal-fe:${{ github.event.pull_request.number }} .
-            echo "Docker image successfully created."
-            
+          set -e
+          echo "Building Docker image."
+          docker build -t pmc-portal-fe:${{ github.event.pull_request.number }} .
+          echo "Docker image successfully created."
+
       - name: Verify Docker image
         run: |
-            set -e
-            echo "Verifying Docker image exists..."    
-            docker images pmc-portal-fe:${{ github.event.pull_request.number }}
-            echo "Docker image verified."
+          set -e
+          echo "Verifying Docker image exists..."    
+          docker images pmc-portal-fe:${{ github.event.pull_request.number }}
+          echo "Docker image verified."
 
       - name: Remove Docker image
         run: |
-            set -e
-            echo "Deleting Docker image..."
-            docker rmi pmc-portal-fe:${{ github.event.pull_request.number }}
-            echo "Docker image deleted."
-            
-
+          set -e
+          echo "Deleting Docker image..."
+          docker rmi pmc-portal-fe:${{ github.event.pull_request.number }}
+          echo "Docker image deleted."
