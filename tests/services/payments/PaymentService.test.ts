@@ -1,9 +1,7 @@
-import { supabase } from "../../../src/config/supabase";
-import { createCheckoutSession, createMembershipPaymentIntent } from "../../../src/services/Payment/PaymentService";
-import * as PaymentService from "../../../src/services/Payment/PaymentService";
-import * as EmailConfirmation from "../../../src/services/emails/confirmation";
-import { stripe } from "../../../src/config/stripe";
-import Stripe from "stripe";
+jest.mock("../../../src/services/emails/confirmation", () => ({
+    sendConfirmationEmail: jest.fn(),
+    ConfirmationEvent: { MembershipPayment: "membership_payment" }, // match your code’s value
+}));
 
 jest.mock("../../../src/config/stripe", () => ({
     stripe: {
@@ -17,6 +15,13 @@ jest.mock("../../../src/config/stripe", () => ({
         },
     },
 }));
+
+import { supabase } from "../../../src/config/supabase";
+import { createCheckoutSession, createMembershipPaymentIntent } from "../../../src/services/Payment/PaymentService";
+import * as PaymentService from "../../../src/services/Payment/PaymentService";
+import * as EmailConfirmation from "../../../src/services/emails/confirmation";
+import { stripe } from "../../../src/config/stripe";
+import Stripe from "stripe";
 
 describe("PaymentService", () => {
     let mockFrom = supabase.from as jest.Mock;
