@@ -11,7 +11,7 @@ export const v2ApiRouter = Router();
 
 v2ApiRouter.use("/v2/admin", adminRouter);
 v2ApiRouter.use("/v2/payments", paymentRouter);
-v2ApiRouter.use("/v2/auth", authenticated, authRouter);
 v2ApiRouter.use("/v2/events", eventRouter);
+v2ApiRouter.use("/v2/auth", authenticated, authRouter);
 v2ApiRouter.use("/v2/profile", authenticated, profileRouter);
 v2ApiRouter.use("/v2/attendee", authenticated, attendeeRouter);
