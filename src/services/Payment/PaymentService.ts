@@ -138,8 +138,8 @@ const mapPaymentStatus = (pi: Stripe.PaymentIntent): Status => {
 };
 
 const upsertPaymentTransaction = async (paymentIntent: Stripe.PaymentIntent) => {
-    const userId = paymentIntent.metadata?.user_id as string | undefined;
-    const paymentType = paymentIntent.metadata?.payment_type as string | undefined;
+    const userId = paymentIntent.metadata.user_id;
+    const paymentType = paymentIntent.metadata.payment_type;
 
     if (!userId) {
         console.error("Missing user_id in PaymentIntent metadata", paymentIntent.id);
