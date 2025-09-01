@@ -2,12 +2,14 @@ import { Router } from "express";
 import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
 import { Database } from "../../schema/v2/database.types";
 import { addAttendee } from "../../services/Attendee/AttendeeService";
+import { authenticated } from "../../middleware/Session";
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
 
 export const eventRouter = Router()
 
-eventRouter.get('/', async (req, res) => {
+
+eventRouter.get('/', ...authenticated, async (req, res) => {
     try {
         const events = await getEvents();
         res.status(200).json(events);
@@ -25,7 +27,7 @@ eventRouter.get('/:id', async (req, res) => {
     }
 });
 
-eventRouter.get('/events/registered', async (req, res) => {
+eventRouter.get('/events/registered', ...authenticated, async (req, res) => {
     const user = req.user
     try {
         if (user) {
@@ -38,7 +40,7 @@ eventRouter.get('/events/registered', async (req, res) => {
     }
 });
 
-eventRouter.post('/:eventId/register/member', async (req, res) => {
+eventRouter.post('/:eventId/register/member', ...authenticated, async (req, res) => {
     try {
         const userId = req.body.userId;
         const paymentId = req.body.paymentId;
