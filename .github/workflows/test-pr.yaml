@@ -32,7 +32,6 @@ jobs:
           echo EXPORT_PASSWORD=${{ secrets.EXPORT_PASSWORD }} >> .env
           echo SUPABASE_URL=${{ secrets.SUPABASE_URL }} >> .env
           echo SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} >> .env
-          echo LOOPS_API_KEY=${{ secrets.LOOPS_API_KEY }} >> .env
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
