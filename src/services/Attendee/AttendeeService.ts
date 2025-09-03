@@ -24,11 +24,7 @@ export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tab
         throw new Error(`Failed to create attendee: ${error.message}`);
     }
     
-    // Modify time stamp to fix zod validation error
-    return {
-        ...data,
-        registration_time: new Date(data.registration_time).toISOString()
-    };
+    return data
 }
 
 export const getAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {

@@ -3,10 +3,15 @@ import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/E
 import { Database } from "../../schema/v2/database.types";
 import { addAttendee } from "../../services/Attendee/AttendeeService";
 import { authenticated } from "../../middleware/Session";
+import multer from "multer"
+import { uploadSupabaseFiles } from "../../storage/Storage";
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
 
 export const eventRouter = Router()
+
+const memStorage = multer.memoryStorage()
+const upload = multer({ storage: memStorage })
 
 eventRouter.get('/', async (req, res) => {
     try {
@@ -40,24 +45,30 @@ eventRouter.get('/events/registered', async (req, res) => {
 });
 
 // Adds event attendee (payment not verified, payment id set to null)
-eventRouter.post('/:eventId/register/member', authenticated, async (req: Request, res: Response) => {
+eventRouter.post('/:eventId/register', authenticated, upload.any(), async (req: Request, res: Response) => {
     const userId = req.user?.user_id
-    if (!userId) throw Error("userId is required!")
+    const eventId = req.params.eventId;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+    }
+    //console.log(req.body)
+    //console.log(req.files)
 
     try {
-        const eventId = req.params.eventId;
-        const eventFormAnswers = req.body.eventFormAnswers;
-        
-        if (!userId) {
-            return res.status(401).json({ error: 'User not authenticated' });
-        }
+        const files = req.files as Express.Multer.File[];
+        const bucketName = process.env.SUPABASE_ATTENDEE_BUCKET_NAME!;
+        const parentPath = `attendee/${eventId}/`;
+
+        const fileRefs = await uploadSupabaseFiles(files, {parentPath, bucketName, isPublic: false}) 
+        const eventFormAnswers = Object.assign(req.body, fileRefs);
 
         const insertData: AttendeeInsert = {
             user_id: userId,
-            event_id:eventId,
-            payment_id:null,
-            event_form_answers: eventFormAnswers
-        }
+            event_id: eventId,
+            payment_id: null,
+            event_form_answers: eventFormAnswers,
+        };
 
         const result = await addAttendee(insertData);
         
