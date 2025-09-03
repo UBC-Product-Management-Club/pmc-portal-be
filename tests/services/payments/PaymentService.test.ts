@@ -330,7 +330,8 @@ describe("PaymentService", () => {
         const mockUserData = { is_payment_verified: true };
 
         it("creates event registration checkout session for members", async () => {
-
+            process.env.ORIGIN = 'http://localhost:5173';
+            process.env.CARD_PAYMENT_METHOD_ID = 'pm_mocked_123';
             mockFrom.mockReturnValueOnce({
                 select: mockSelect.mockReturnValueOnce({
                     eq: mockEq.mockReturnValueOnce({
@@ -353,12 +354,12 @@ describe("PaymentService", () => {
             expect.objectContaining({
                     line_items: [{ price: fakePriceId, quantity: 1 }],
                     mode: "payment",
-                    payment_method_configuration: "pmc_1RwtRfL4ingF9CfzbEtiSzOS",
+                    payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
                     payment_intent_data: {
                     metadata: { user_id: userId, payment_type: "event", attendee_id: attendeeId },
                     },
-                    success_url: `http://localhost:5173/events/${eventId}?attendeeId=${attendeeId}&success=true`,
-                    cancel_url: `http://localhost:5173/events/${eventId}?attendeeId=${attendeeId}&canceled=true`,
+                    success_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&success=true`,
+                    cancel_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&canceled=true`,
                 })
             );
             expect(result).toEqual(fakeSession);

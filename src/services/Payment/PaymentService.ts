@@ -9,8 +9,6 @@ import { ConfirmationEvent, sendConfirmationEmail } from "../emails/confirmation
 
 type PaymentInsert = Database["public"]["Tables"]["Payment"]["Insert"];
 
-const CARD_PAYMENT_METHOD_ID = "pmc_1RwtRfL4ingF9CfzbEtiSzOS";
-
 export enum Status {
     PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
     PAYMENT_FAILED = "PAYMENT_FAILED",
@@ -63,7 +61,7 @@ export const createCheckoutSession = async (userId: string) => {
             },
         ],
         mode: "payment",
-        payment_method_configuration: CARD_PAYMENT_METHOD_ID,
+        payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
 
         success_url: `${process.env.ORIGIN}/dashboard/success`,
         cancel_url: `${process.env.ORIGIN}/dashboard/canceled`,
@@ -97,7 +95,7 @@ export const createEventCheckoutSession = async (userId: string, eventId: string
             },
             ],
             mode: 'payment',
-            payment_method_configuration: CARD_PAYMENT_METHOD_ID,
+            payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
             success_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&success=true`,
             cancel_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&canceled=true`,
 
