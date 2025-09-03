@@ -55,7 +55,7 @@ export const getRegisteredEvents = async (userId: string) => {
 };
 
 // Retrieves event price id
-export const getEventPrice = async (eventId: string, isMember: boolean) => {
+export const getEventPriceId = async (eventId: string, isMember: boolean) => {
     const selectCondition = isMember ? "member_price_id" : "non_member_price_id";
 
     const { data, error } = await supabase

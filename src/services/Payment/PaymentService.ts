@@ -3,7 +3,7 @@ import { stripe } from "../../config/stripe";
 import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
 import { fetchMembershipPriceId } from "../Product/ProductService";
-import { getEventPrice } from "../Event/EventService";
+import { getEventPriceId } from "../Event/EventService";
 import Stripe from "stripe";
 import { ConfirmationEvent, sendConfirmationEmail } from "../emails/confirmation";
 
@@ -92,7 +92,7 @@ export const createEventCheckoutSession = async (userId: string, eventId: string
     const isMember = data.is_payment_verified ?? false;
 
     try {
-        const priceId = await getEventPrice(eventId, isMember);
+        const priceId = await getEventPriceId(eventId, isMember);
         const session = await stripe.checkout.sessions.create({
             line_items: [
             {

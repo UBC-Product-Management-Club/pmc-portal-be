@@ -13,7 +13,7 @@ jest.mock("../../../src/config/stripe", () => ({
 }));
 
 jest.mock("../../../src/services/Event/EventService", () => ({
-    getEventPrice: jest.fn(),
+    getEventPriceId: jest.fn(),
 }));
 
 jest.mock("../../../src/config/supabase", () => ({
@@ -26,7 +26,7 @@ import { supabase } from "../../../src/config/supabase";
 import { createCheckoutSession, createMembershipPaymentIntent, createEventCheckoutSession, updateMembershipPaymentStatus, updateEventPaymentStatus} from "../../../src/services/Payment/PaymentService";
 import * as PaymentService from "../../../src/services/Payment/PaymentService";
 import { stripe } from "../../../src/config/stripe";
-import { getEventPrice } from "../../../src/services/Event/EventService";
+import { getEventPriceId } from "../../../src/services/Event/EventService";
 
 describe("PaymentService", () => {
     // Declare mocks
@@ -237,13 +237,13 @@ describe("PaymentService", () => {
                 })
             });
 
-            (getEventPrice as jest.Mock).mockResolvedValue(fakePriceId);
+            (getEventPriceId as jest.Mock).mockResolvedValue(fakePriceId);
             mockCreateCheckoutSession.mockResolvedValue(fakeSession);
 
             const result = await createEventCheckoutSession(userId, eventId, attendeeId);
             const expectedIsMember = mockUserData.is_payment_verified ?? false;
 
-            expect(getEventPrice).toHaveBeenCalledWith(eventId, expectedIsMember);
+            expect(getEventPriceId).toHaveBeenCalledWith(eventId, expectedIsMember);
             expect(stripe.checkout.sessions.create).toHaveBeenCalledWith(
             expect.objectContaining({
                     line_items: [{ price: fakePriceId, quantity: 1 }],
@@ -285,7 +285,7 @@ describe("PaymentService", () => {
                 })
             });
         
-            (getEventPrice as jest.Mock).mockResolvedValue(fakePriceId);
+            (getEventPriceId as jest.Mock).mockResolvedValue(fakePriceId);
             mockCreateCheckoutSession.mockRejectedValue(new Error("Stripe failed"));
             await expect(createEventCheckoutSession(userId, eventId, attendeeId))
                 .rejects
