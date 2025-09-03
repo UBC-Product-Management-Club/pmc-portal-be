@@ -1,8 +1,12 @@
-// Mock before import plz
+jest.mock("../../../src/services/emails/confirmation", () => ({
+    sendConfirmationEmail: jest.fn(),
+    ConfirmationEvent: { MembershipPayment: "membership_payment" }, // match your code’s value
+}));
+
 jest.mock("../../../src/config/stripe", () => ({
     stripe: {
         paymentIntents: {
-            create: jest.fn()
+            create: jest.fn(),
         },
         checkout: {
             sessions: {
@@ -23,10 +27,12 @@ jest.mock("../../../src/config/supabase", () => ({
 }));
 
 import { supabase } from "../../../src/config/supabase";
-import { createCheckoutSession, createMembershipPaymentIntent, createEventCheckoutSession, updateMembershipPaymentStatus, updateEventPaymentStatus} from "../../../src/services/Payment/PaymentService";
+import { createCheckoutSession, createMembershipPaymentIntent, createEventCheckoutSession} from "../../../src/services/Payment/PaymentService";
 import * as PaymentService from "../../../src/services/Payment/PaymentService";
+import * as EmailConfirmation from "../../../src/services/emails/confirmation";
 import { stripe } from "../../../src/config/stripe";
 import { getEventPriceId } from "../../../src/services/Event/EventService";
+import Stripe from "stripe";
 
 describe("PaymentService", () => {
     // Declare mocks
@@ -58,21 +64,19 @@ describe("PaymentService", () => {
     });
 
     describe("createPaymentIntent", () => {
-
         it("creates payment intent for UBC student", async () => {
             const mockPaymentIntent = { id: "pi_ubc_test", amount: 5000 };
-            mockCreatePaymentIntent.mockResolvedValueOnce(mockPaymentIntent)
+            mockCreatePaymentIntent.mockResolvedValueOnce(mockPaymentIntent);
             mockFrom.mockReturnValueOnce({
                 select: mockSelect.mockReturnValueOnce({
                     eq: mockEq.mockReturnValueOnce({
                         single: mockSingle.mockResolvedValueOnce({
                             data: { university: "University of British Columbia" },
-                            error: null
-                        })
-                    })
-                })
-            })
-            spyLogTransaction.mockResolvedValueOnce(undefined)
+                            error: null,
+                        }),
+                    }),
+                }),
+            });
 
             const result = await createMembershipPaymentIntent("user-123");
 
@@ -92,19 +96,17 @@ describe("PaymentService", () => {
 
         it("creates payment intent for non-UBC student", async () => {
             const mockPaymentIntent = { id: "pi_non_ubc_test", amount: 7500 };
-            mockCreatePaymentIntent.mockResolvedValueOnce(mockPaymentIntent)
+            mockCreatePaymentIntent.mockResolvedValueOnce(mockPaymentIntent);
             mockFrom.mockReturnValueOnce({
                 select: mockSelect.mockReturnValueOnce({
                     eq: mockEq.mockReturnValueOnce({
                         single: mockSingle.mockResolvedValueOnce({
                             data: { university: "Simon Fraser University" },
-                            error: null
-                        })
-                    })
-                })
-            })
-            spyLogTransaction.mockResolvedValueOnce(undefined)
-
+                            error: null,
+                        }),
+                    }),
+                }),
+            });
 
             const result = await createMembershipPaymentIntent("user-456");
 
@@ -128,58 +130,161 @@ describe("PaymentService", () => {
                         single: mockSingle.mockResolvedValueOnce({
                             data: null,
                             error: { message: "User not found" },
-                        })
-                    })
-                })
-            })
+                        }),
+                    }),
+                }),
+            });
 
             await expect(createMembershipPaymentIntent("invalid-user")).rejects.toThrow("User not found");
             expect(mockCreatePaymentIntent).not.toHaveBeenCalled();
         });
+    });
 
-        it("throws error when payment insertion fails", async () => {
-            mockFrom.mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        single: mockSingle.mockResolvedValueOnce({
-                            data: { university: "University of British Columbia" },
-                            error: null,
-                        })
-                    })
-                })
-            })
-
-            mockCreatePaymentIntent.mockResolvedValueOnce({ id: "pi_test", amount: 5000 });
-            spyLogTransaction.mockRejectedValueOnce(new Error("Insert failed"))
-
-            // Mock payment insertion failure
-            await expect(createMembershipPaymentIntent("user-123")).rejects.toThrow("Insert failed");
+    describe("handleStripeEvent", () => {
+        beforeEach(() => {
+            spyLogTransaction.mockResolvedValue(undefined);
         });
+
+        const paymentIntentMembership = {
+            id: "pi_test",
+            amount: 1234,
+            metadata: { user_id: "user-123", payment_type: "membership" },
+        } as any;
+
+        const paymentIntentEventRegistration = {
+            id: "pi_event_test",
+            amount: 5678,
+            metadata: { user_id: "user-123", payment_type: "event", attendee_id: "att-456"},
+        } as any;
+
+        const makeEvent = (type: Stripe.Event.Type, status: Stripe.PaymentIntent.Status, baseIntent: any = paymentIntentMembership): Stripe.Event => {
+            return {
+                id: "event_test",
+                type,
+                data: { object: { ...baseIntent, status } as Stripe.PaymentIntent },
+            } as unknown as Stripe.Event;
+        };
+
+        it("check canceled", async () => {
+            await PaymentService.handleStripeEvent(makeEvent("payment_intent.canceled", "canceled", paymentIntentMembership));
+            expect(spyLogTransaction).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    payment_id: "pi_test",
+                    user_id: "user-123",
+                    type: "membership",
+                    amount: 1234,
+                    status: PaymentService.Status.PAYMENT_CANCELED,
+                    payment_date: expect.any(String),
+                })
+            );
+            expect(mockFrom).not.toHaveBeenCalledWith("User");
+        });
+
+        it("check payment_failed", async () => {
+            await PaymentService.handleStripeEvent(makeEvent("payment_intent.payment_failed", "requires_payment_method", paymentIntentMembership));
+            expect(spyLogTransaction).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    payment_id: "pi_test",
+                    user_id: "user-123",
+                    type: "membership",
+                    amount: 1234,
+                    status: PaymentService.Status.PAYMENT_FAILED,
+                    payment_date: expect.any(String),
+                })
+            );
+            expect(mockFrom).not.toHaveBeenCalledWith("User");
+        });
+
+        it("check processing", async () => {
+            await PaymentService.handleStripeEvent(makeEvent("payment_intent.processing", "processing", paymentIntentMembership));
+            expect(spyLogTransaction).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    payment_id: "pi_test",
+                    user_id: "user-123",
+                    type: "membership",
+                    amount: 1234,
+                    status: PaymentService.Status.PAYMENT_PENDING,
+                    payment_date: expect.any(String),
+                })
+            );
+            expect(mockFrom).not.toHaveBeenCalledWith("User");
+        });
+
+        it("check membership payment succeeded", async () => {
+            jest.spyOn(EmailConfirmation, "sendConfirmationEmail").mockResolvedValue(undefined as any);
+
+            mockFrom.mockReturnValueOnce({
+                update: mockUpdate.mockReturnValue({
+                    eq: mockEq.mockResolvedValue({ data: null, error: null }),
+                }),
+            });
+
+            await PaymentService.handleStripeEvent(makeEvent("payment_intent.succeeded", "succeeded", paymentIntentMembership));
+            expect(spyLogTransaction).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    payment_id: "pi_test",
+                    user_id: "user-123",
+                    type: "membership",
+                    amount: 1234,
+                    status: PaymentService.Status.PAYMENT_SUCCESS,
+                    payment_date: expect.any(String),
+                })
+            );
+            expect(mockFrom).toHaveBeenCalledWith("User");
+            expect(mockUpdate).toHaveBeenCalledWith({ is_payment_verified: true });
+            expect(mockEq).toHaveBeenCalledWith("user_id", "user-123");
+            expect(EmailConfirmation.sendConfirmationEmail).toHaveBeenCalledWith("user-123", "membership_payment");
+        });
+
+        it("check event payment succeeded", async () => {
+            mockFrom.mockReturnValueOnce({
+                update: mockUpdate.mockReturnValue({
+                    eq: mockEq.mockResolvedValue({ data: null, error: null }),
+                }),
+            });
+
+            await PaymentService.handleStripeEvent(makeEvent("payment_intent.succeeded", "succeeded", paymentIntentEventRegistration));
+
+            expect(spyLogTransaction).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    payment_id: "pi_event_test",
+                    user_id: "user-123",
+                    type: "event",
+                    amount: 5678,
+                    status: PaymentService.Status.PAYMENT_SUCCESS,
+                    payment_date: expect.any(String),
+                })
+            );
+            expect(mockFrom).toHaveBeenCalledWith("Attendee");
+            expect(mockUpdate).toHaveBeenCalledWith({ is_payment_verified: true });
+            expect(mockEq).toHaveBeenCalledWith("attendee_id", "att-456");
+        });
+
     });
 
     describe("create membership checkout session", () => {
-
         it("creates payment intent for UBC student", async () => {
-
-            mockFrom.mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        single: mockSingle.mockResolvedValueOnce({
-                            data: { university: "University of British Columbia"},
-                            error: null
-                        })
-                    })
+            mockFrom
+                .mockReturnValueOnce({
+                    select: mockSelect.mockReturnValueOnce({
+                        eq: mockEq.mockReturnValueOnce({
+                            single: mockSingle.mockResolvedValueOnce({
+                                data: { university: "University of British Columbia" },
+                                error: null,
+                            }),
+                        }),
+                    }),
                 })
-            }).mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        single: mockSingle.mockResolvedValueOnce({
-                            data: { product: "price_ubc_test"},
-                            error: null
-                        })
-                    })
-                })
-            })
+                .mockReturnValueOnce({
+                    select: mockSelect.mockReturnValueOnce({
+                        eq: mockEq.mockReturnValueOnce({
+                            single: mockSingle.mockResolvedValueOnce({
+                                data: { product: "price_ubc_test" },
+                                error: null,
+                            }),
+                        }),
+                    }),
+                });
 
             mockCreateCheckoutSession.mockResolvedValue({ id: "sess_test" });
 
@@ -187,12 +292,12 @@ describe("PaymentService", () => {
 
             expect(mockCreateCheckoutSession).toHaveBeenCalledWith(
                 expect.objectContaining({
-                line_items: [
-                    {
-                    price: "price_ubc_test",
-                    quantity: 1,
-                    },
-                ],
+                    line_items: [
+                        {
+                            price: "price_ubc_test",
+                            quantity: 1,
+                        },
+                    ],
                 })
             );
             expect(result).toEqual({ id: "sess_test" });
@@ -204,11 +309,11 @@ describe("PaymentService", () => {
                     eq: mockEq.mockReturnValueOnce({
                         single: mockSingle.mockResolvedValueOnce({
                             data: null,
-                            error: { message: "User not found"}
-                        })
-                    })
-                })
-            })
+                            error: { message: "User not found" },
+                        }),
+                    }),
+                }),
+            });
 
             await expect(createCheckoutSession("invalid-user")).rejects.toThrow("User not found");
             expect(mockCreateCheckoutSession).not.toHaveBeenCalled();
@@ -247,9 +352,11 @@ describe("PaymentService", () => {
             expect(stripe.checkout.sessions.create).toHaveBeenCalledWith(
             expect.objectContaining({
                     line_items: [{ price: fakePriceId, quantity: 1 }],
-                    mode: 'payment',
+                    mode: "payment",
                     payment_method_configuration: "pmc_1RwtRfL4ingF9CfzbEtiSzOS",
+                    payment_intent_data: {
                     metadata: { user_id: userId, payment_type: "event", attendee_id: attendeeId },
+                    },
                     success_url: `http://localhost:5173/events/${eventId}?attendeeId=${attendeeId}&success=true`,
                     cancel_url: `http://localhost:5173/events/${eventId}?attendeeId=${attendeeId}&canceled=true`,
                 })
@@ -292,102 +399,6 @@ describe("PaymentService", () => {
                 .toThrow("Stripe failed");
         });
     })
-
-    describe("handle membership payment verification", () => {
-        const userId = "user_123";
-        const sessionIntent = { id: "sess_pmc" } as any;
-
-
-        it("updates Supabase and logs success", async () => {
-            mockFrom.mockReturnValueOnce({
-                update: mockUpdate.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        error: null
-                    })
-                })
-            });
-
-            const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-            await updateMembershipPaymentStatus(userId, sessionIntent);
-            expect(mockFrom).toHaveBeenCalledWith("User");
-            expect(mockUpdate).toHaveBeenCalledWith({ is_payment_verified: true });
-            expect(mockEq).toHaveBeenCalledWith("user_id", userId);
-            expect(consoleSpy).toHaveBeenCalledWith(
-                `Membership PaymentIntent for ${userId} succeeded: ${sessionIntent.id}`
-            );
-
-            consoleSpy.mockRestore();
-        });
-
-        it("logs error if Supabase update fails", async () => {
-            const supabaseError = { message: "DB error" };
-            mockFrom.mockReturnValueOnce({
-                update: mockUpdate.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        error: supabaseError
-                    })
-                })
-            });
-            const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-
-            await updateMembershipPaymentStatus(userId, sessionIntent);
-            expect(consoleSpy).toHaveBeenCalledWith("User verify update err:", supabaseError);
-            consoleSpy.mockRestore();
-        });
-
-    })
-
-    describe("handle event payment verification", () => {
-        const attendeeId = "attendee_123";
-        const sessionIntent = { id: "sess_pmc" } as any;
-
-
-        it("throws error if attendeeId is missing", async () => {
-            await expect(updateEventPaymentStatus(undefined, sessionIntent))
-                .rejects
-                .toThrow("attendee_id is missing in metadata!");
-        });
-        
-        it("updates Supabase and logs success", async () => {
-            mockFrom.mockReturnValueOnce({
-                update: mockUpdate.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        error: null
-                    })
-                })
-            });
-
-            const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-
-            await updateEventPaymentStatus(attendeeId, sessionIntent);
-
-            expect(mockFrom).toHaveBeenCalledWith("Attendee");
-            expect(mockUpdate).toHaveBeenCalledWith({ is_payment_verified: true });
-            expect(mockEq).toHaveBeenCalledWith("attendee_id", attendeeId);
-            expect(consoleSpy).toHaveBeenCalledWith(
-                `Membership PaymentIntent for ${attendeeId} succeeded: ${sessionIntent.id}`
-            );
-
-            consoleSpy.mockRestore();
-        });
-    
-        it("logs error if Supabase update fails", async () => {
-            const supabaseError = { message: "DB error" };
-            mockFrom.mockReturnValueOnce({
-                update: mockUpdate.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        error: supabaseError
-                    })
-                })
-            });
-            const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-
-            await updateEventPaymentStatus(attendeeId, sessionIntent);
-            expect(consoleSpy).toHaveBeenCalledWith("User verify update err:", supabaseError);
-            consoleSpy.mockRestore();
-        });
-    })
-
 })
 
 

@@ -15,6 +15,7 @@ export enum Status {
     PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
     PAYMENT_FAILED = "PAYMENT_FAILED",
     PAYMENT_PENDING = "PAYMENT_PENDING",
+    PAYMENT_CANCELED = "PAYMENT_CANCELED",
 }
 
 // in cents
@@ -40,17 +41,6 @@ export const createMembershipPaymentIntent = async (userId: string) => {
         },
     });
 
-    const paymentInsertion: PaymentInsert = {
-        amount,
-        payment_date: new Date().toISOString(),
-        payment_id: paymentIntent.id,
-        type: "membership",
-        user_id: userId,
-        status: Status.PAYMENT_PENDING,
-    };
-
-    await logTransaction(paymentInsertion);
-
     return paymentIntent;
 };
 
@@ -73,10 +63,16 @@ export const createCheckoutSession = async (userId: string) => {
             },
         ],
         mode: "payment",
-        payment_method_configuration: "pmc_1RwtRfL4ingF9CfzbEtiSzOS",
+        payment_method_configuration: CARD_PAYMENT_METHOD_ID,
 
         success_url: `${process.env.ORIGIN}/dashboard/success`,
         cancel_url: `${process.env.ORIGIN}/dashboard/canceled`,
+        payment_intent_data: {
+            metadata: {
+                user_id: userId,
+                payment_type: "membership",
+            },
+        },
     });
 
     return session
@@ -102,9 +98,16 @@ export const createEventCheckoutSession = async (userId: string, eventId: string
             ],
             mode: 'payment',
             payment_method_configuration: CARD_PAYMENT_METHOD_ID,
-            metadata: {user_id: userId, payment_type: "event", attendee_id: attendeeId},
             success_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&success=true`,
             cancel_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&canceled=true`,
+
+            payment_intent_data: {
+                metadata: {
+                    user_id: userId,
+                    payment_type: "event",
+                    attendee_id: attendeeId
+                },
+            },
         });
         return session
 
@@ -115,141 +118,100 @@ export const createEventCheckoutSession = async (userId: string, eventId: string
 }
 
 export const handleStripeEvent = async (event: Stripe.Event) => {
-    const stripeEventType = event.data.object.object 
+    const stripeEventType = event.type;
 
+    // console.log(stripeEventType);
     switch (stripeEventType) {
-        case "checkout.session": {
-            handleCheckoutSession(event)
-            break
-        }
-        case "payment_intent": {
-            handlePaymentIntent(event)
-            break
-        }
+        case "payment_intent.succeeded":
+        case "payment_intent.payment_failed":
+        case "payment_intent.processing":
+        case "payment_intent.canceled":
+            await handlePaymentIntent(event);
+            break;
+
         default:
-            //console.log(stripeEventType)
-    }
-}
-
-const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
-    const paymentIntent = stripeEvent.data.object as Stripe.PaymentIntent
-    const userId = paymentIntent.metadata?.user_id;
-    const paymentType = paymentIntent.metadata?.payment_type;
-
-    switch (stripeEvent.type) {
-
-        case "payment_intent.succeeded": {
-            const { error } = await supabase.from("Payment").update({ status: Status.PAYMENT_SUCCESS }).eq("payment_id", paymentIntent.id);
-            if (error) {
-                console.error("Payment success update err:", error);
-            }
-
-            if (paymentType === "membership") {
-                const { error } = await supabase.from("User").update({ is_payment_verified: true }).eq("user_id", userId);
-                if (error) {
-                    console.error("User verify update err:", error);
-                }
-
-                console.log(`Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`);
-
-                await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
-            }
-            console.log(paymentIntent.id)
             break;
-        }
-
-        case "payment_intent.canceled": {
-            break;
-        }
-
-        case "payment_intent.processing": {
-            break;
-        }
-
-        case "payment_intent.payment_failed": {
-            if (paymentType === "membership") {
-                const { error } = await supabase.from("Payment").update({ status: Status.PAYMENT_FAILED }).eq("payment_id", paymentIntent.id);
-                if (error) {
-                    console.error("Payment fail update err:", error);
-                }
-
-                console.log(`Membership PaymentIntent for ${userId} failed: ${paymentIntent.id}`);
-            }
-
-            break;
-        }
-        default:
-        // console.log(`Unhandled event type ${event.type}`);
     }
 };
 
-// Handle Event Registration Payment
-export const updateEventPaymentStatus = async (attendeeId: string | undefined, sessionIntent: Stripe.Checkout.Session) => {
-    if (!attendeeId) {
-        throw new Error("attendee_id is missing in metadata!")
-    }
+const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
+    const paymentIntent = stripeEvent.data.object as Stripe.PaymentIntent;
 
-    const { error } = await supabase.from("Attendee").update({ is_payment_verified: true}).eq("attendee_id", attendeeId);
-    if (error) {
-        console.error("User verify update err:", error);
-        return
-    }
-    console.log(`Membership PaymentIntent for ${attendeeId} succeeded: ${sessionIntent.id}`);
-}
+    await upsertPaymentTransaction(paymentIntent);
 
+    switch (stripeEvent.type) {
+        case "payment_intent.succeeded": {
+            const userId = paymentIntent.metadata?.user_id;
+            const attendeeId = paymentIntent.metadata?.attendee_id;
+            const paymentType = paymentIntent.metadata?.payment_type;
 
-// Handle Membership Payment
-export const updateMembershipPaymentStatus = async (userId: string, sessionIntent: Stripe.Checkout.Session) => {
-    const { error } = await supabase.from("User").update({ is_payment_verified: true }).eq("user_id", userId);
-        if (error) {
-            console.error("User verify update err:", error);
-            return
+            if (paymentType === "membership" && userId) {
+                const { error } = await supabase.from("User").update({ is_payment_verified: true }).eq("user_id", userId);
+
+                if (error) {
+                    console.error("User verify update err:", error);
+                    return;
+                }
+
+                console.log(`Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`);
+                await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
+
+            } else if (paymentType === "event" && attendeeId) {
+                const { error } = await supabase.from("Attendee").update({ is_payment_verified: true}).eq("attendee_id", attendeeId);
+
+                if (error) {
+                    console.error("Attendee verify update err:", error);
+                    return;
+                }
+
+                console.log(`Event PaymentIntent for ${attendeeId} succeeded: ${paymentIntent.id}`);
+            }
+            break;
         }
-        console.log(`Membership PaymentIntent for ${userId} succeeded: ${sessionIntent.id}`);
-}
-
-
-export const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
-
-    // Early return if checkout session was not completed 
-    if (stripeEvent.type !== "checkout.session.completed") {
-        console.log(`Ignoring non-completed session: ${stripeEvent.type}`);
-        return;
+        default:
+            break;
     }
+};
 
-    const sessionIntent = stripeEvent.data.object as Stripe.Checkout.Session;
-    const userId = sessionIntent.metadata?.user_id;
-    const paymentType = sessionIntent.metadata?.payment_type;
-    const attendeeId = sessionIntent.metadata?.attendee_id;
+// helper functions
+const mapPaymentStatus = (pi: Stripe.PaymentIntent): Status => {
+    switch (pi.status) {
+        case "succeeded":
+            return Status.PAYMENT_SUCCESS;
+        case "processing":
+            return Status.PAYMENT_PENDING;
+        case "canceled":
+            return Status.PAYMENT_CANCELED;
+        case "requires_payment_method":
+            return Status.PAYMENT_FAILED;
+        default:
+            return Status.PAYMENT_PENDING;
+    }
+};
+
+const upsertPaymentTransaction = async (paymentIntent: Stripe.PaymentIntent) => {
+    const userId = paymentIntent.metadata.user_id;
+    const paymentType = paymentIntent.metadata.payment_type;
 
     if (!userId) {
-        throw new Error("user_id is missing in metadata!");
-    }
-
-    // Recording successful payment session
-    const { error } = await supabase.from("Payment").insert({ 
-        payment_id: sessionIntent.payment_intent as string, 
-        user_id: userId, 
-        amount: sessionIntent.amount_total!, 
-        status: Status.PAYMENT_SUCCESS, 
-        payment_date: new Date().toISOString(),
-        type: paymentType
-    });
-
-    if (error) {
-        console.error("Payment success update err:", error);
+        console.error("Missing user_id in PaymentIntent metadata", paymentIntent.id);
         return;
     }
 
-    if (paymentType === "membership") {
-        await updateMembershipPaymentStatus(userId, sessionIntent);
-    } else if (paymentType === "event") {
-        await updateEventPaymentStatus(attendeeId, sessionIntent);
-    }
-}
+    const row: PaymentInsert = {
+        payment_id: paymentIntent.id,
+        user_id: userId,
+        type: paymentType,
+        amount: paymentIntent.amount,
+        status: mapPaymentStatus(paymentIntent),
+        payment_date: new Date().toISOString(),
+    };
+
+    await logTransaction(row);
+};
 
 export const logTransaction = async (transaction: PaymentInsert) => {
-    const { data: payment, error } = await supabase.from("Payment").insert(transaction).select().single();
+    const { data: payment, error } = await supabase.from("Payment").upsert(transaction, { onConflict: "payment_id" }).select().single();
     if (error) throw error;
     return payment;
 };

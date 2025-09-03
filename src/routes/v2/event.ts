@@ -13,7 +13,7 @@ export const eventRouter = Router()
 const memStorage = multer.memoryStorage()
 const upload = multer({ storage: memStorage })
 
-eventRouter.get('/', async (req, res) => {
+eventRouter.get('/', ...authenticated, async (req, res) => {
     try {
         const events = await getEvents();
         res.status(200).json(events);
@@ -31,7 +31,7 @@ eventRouter.get('/:id', async (req, res) => {
     }
 });
 
-eventRouter.get('/events/registered', async (req, res) => {
+eventRouter.get('/events/registered', ...authenticated, async (req, res) => {
     const user = req.user
     try {
         if (user) {
@@ -45,15 +45,13 @@ eventRouter.get('/events/registered', async (req, res) => {
 });
 
 // Adds event attendee (payment not verified, payment id set to null)
-eventRouter.post('/:eventId/register', authenticated, upload.any(), async (req: Request, res: Response) => {
+eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (req: Request, res: Response) => {
     const userId = req.user?.user_id
     const eventId = req.params.eventId;
 
     if (!userId) {
         return res.status(401).json({ error: 'User not authenticated' });
     }
-    //console.log(req.body)
-    //console.log(req.files)
 
     try {
         const files = req.files as Express.Multer.File[];
