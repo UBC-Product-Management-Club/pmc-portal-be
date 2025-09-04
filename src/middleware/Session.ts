@@ -3,7 +3,7 @@ import { auth } from "express-oauth2-jwt-bearer";
 import { getUser } from "../services/User/UserService";
 
 export const jwtCheck = auth({
-    audience: process.env.jwt_audience ?? "http://localhost:8000",
+    audience: process.env.JWT_AUDIENCE ?? "http://localhost:8000",
     issuerBaseURL: process.env.AUTH0_DOMAIN,
     tokenSigningAlg: "RS256",
 });
