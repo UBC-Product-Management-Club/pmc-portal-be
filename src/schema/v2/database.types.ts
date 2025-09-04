@@ -60,7 +60,7 @@ export type Database = {
           event_id: string
           is_payment_verified: boolean | null
           payment_id: string | null
-          registration_time: string | null
+          registration_time: string 
           status: string | null
           user_id: string
         }
@@ -70,7 +70,7 @@ export type Database = {
           event_id: string
           is_payment_verified?: boolean | null
           payment_id?: string | null
-          registration_time?: string | null
+          registration_time?: string 
           status?: string | null
           user_id: string
         }
@@ -80,7 +80,7 @@ export type Database = {
           event_id?: string
           is_payment_verified?: boolean | null
           payment_id?: string | null
-          registration_time?: string | null
+          registration_time?: string 
           status?: string | null
           user_id?: string
         }
@@ -120,9 +120,11 @@ export type Database = {
           max_attendees: number | null
           media: string[] | null
           member_price: number | null
+          member_price_id: string
           name: string | null
           needs_review: boolean
           non_member_price: number | null
+          non_member_price_id: string
           start_time: string | null
           thumbnail: string | null
         }
@@ -137,9 +139,11 @@ export type Database = {
           max_attendees?: number | null
           media?: string[] | null
           member_price?: number | null
+          member_price_id?: string
           name?: string | null
           needs_review?: boolean
           non_member_price?: number | null
+          non_member_price_id?: string
           start_time?: string | null
           thumbnail?: string | null
         }
@@ -154,9 +158,11 @@ export type Database = {
           max_attendees?: number | null
           media?: string[] | null
           member_price?: number | null
+          member_price_id?: string
           name?: string | null
           needs_review?: boolean
           non_member_price?: number | null
+          non_member_price_id?: string
           start_time?: string | null
           thumbnail?: string | null
         }

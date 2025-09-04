@@ -54,11 +54,27 @@ export const getRegisteredEvents = async (userId: string) => {
     return data;
 };
 
+// Retrieves event price id
+export const getEventPriceId = async (eventId: string, isMember: boolean) => {
+    const selectCondition = isMember ? "member_price_id" : "non_member_price_id";
 
+    const { data, error } = await supabase
+        .from("Event")
+        .select(selectCondition)
+        .eq("event_id", eventId)
+        .single();
+
+    if (!data) throw new Error("Event not found");
+    if (error) throw error;
+
+    return (data as Record<string, string>)[selectCondition];
+};
+
+// WIP (need to be adjusted to call stripe api to generate price ID) [JEFF]
 export const addEvent = async (event: EventInsert): Promise<void> => {
     const { date, start_time, end_time } = event;
 
-    // This should never trigger if controller properly validates the fields
+    // Should never trigger if controller properly validates the fields
     if (!date || !start_time || !end_time) {
         throw new Error("Missing required fields.");
     }

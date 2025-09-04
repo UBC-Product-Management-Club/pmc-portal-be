@@ -1,21 +1,31 @@
 import { supabase } from "../config/supabase";
 
-const uploadSupabaseFiles = async (input: Express.Multer.File[], parentPath: string): Promise<string[]> => {
-    const bucketName = process.env.SUPABASE_BUCKET_NAME!;
-    const publicURLs: string[] = [];
+type UploadOptions = {
+    parentPath: string;
+    bucketName: string;
+    isPublic: boolean;
+};
 
-    for (const file of input) {
-        const filePath = `${parentPath}${file.originalname}`;
+const uploadSupabaseFiles = async (files: Express.Multer.File[],  { parentPath, bucketName, isPublic }: UploadOptions): Promise<Record<string, string>> => {
+    const result: Record<string, string> = {};
 
-        // Upload file to Supabase bucket and get download url (bucket must be set to public)
+    for (const file of files) {
+        const filePath = `${parentPath}${file.fieldname}-${file.originalname}`;
+
+        // Upload file to Supabase bucket 
         const { data: uploadData, error: uploadError} = await supabase.storage.from(bucketName).upload(filePath, file.buffer, {upsert: true})
         if (uploadError) {
             throw uploadError;
         }
-        const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(uploadData.path)
-        publicURLs.push(publicUrlData.publicUrl);
+
+        if (isPublic) {
+            const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(uploadData.path)
+            result[file.fieldname] = publicUrlData.publicUrl;
+        } else {
+            result[file.fieldname] = filePath;
+        }
     }
-    return publicURLs
+    return result
 }
 
 

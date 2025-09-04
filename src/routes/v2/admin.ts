@@ -64,6 +64,7 @@ adminRouter.get("/users/:id", async (req: Request, res: Response) => {
     }
 });
 
+//[WIP Needs to be retested]
 adminRouter.post('/events/add', upload.fields([{ name: 'mediaFiles', maxCount: 5 },{ name: 'thumbnail', maxCount: 1 }]), async (req, res) => {
     const event_Id = uuidv4();
 
@@ -109,13 +110,18 @@ adminRouter.post('/events/add', upload.fields([{ name: 'mediaFiles', maxCount: 5
         }
 
         // Constructing proper time fields
-        const startTimestamp = `${date}T${start_time}`; // → e.g. "2025-07-18T17:00:00"
+        const startTimestamp = `${date}T${start_time}`; 
         const endTimestamp = `${date}T${end_time}`;
 
         // Upload files to get download url
+        const bucketName = process.env.SUPABASE_BUCKET_NAME!;
         const parentPath = `events/${event_Id}/media/`
-        const media = await uploadSupabaseFiles(mediaFiles, parentPath) 
-        const thumbnail = await uploadSupabaseFiles(thumbnailFile, parentPath) // Guaranteed to be an one element array
+        const mediaData = await uploadSupabaseFiles(mediaFiles, {parentPath, bucketName, isPublic: true}) 
+        const thumbnailData = await uploadSupabaseFiles(thumbnailFile, {parentPath, bucketName, isPublic: true}) 
+
+        // Convert object into expected type
+        const media = Object.values(mediaData);
+        const thumbnail = Object.values(thumbnailData)[0]; // Guaranteed to have one element
 
         // Creates event object for insertion
         const event = {
