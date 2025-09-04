@@ -1,7 +1,7 @@
 name: Build and Deploy to Cloud Run (PROD)
 
 on:
-    workflow_dispatch:
+  workflow_dispatch:
 
 env:
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -18,33 +18,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Create .secret folder
-        run: mkdir .secret
-
-      - name: Create Credential JSON
-        id: create-json-1
-        uses: jsdaniell/create-json@v1.2.2
-        with:
-          name: "pmc-portal-credential.json"
-          json: ${{ secrets.GCLOUD_AUTH }}
-          dir: ".secret/"
-
-      - name: Create env file
-        run: |
-          touch .env
-          echo ORIGIN=${{ secrets.ORIGIN }} >> .env
-          echo ADMIN_PORTAL_ORIGIN=${{ secrets.PRODUCTION_ADMIN_ORIGIN }} >> .env
-          echo BUCKET_NAME=${{ secrets.BUCKET_NAME }} >> .env
-          echo STRIPE_SECRET=${{ secrets.STRIPE_SECRET }} >> .env
-          echo STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }} >> .env
-          echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_DATABASE_ID }} >> .env
-          echo PMC_EMAIL_SENDER=${{ secrets.PMC_EMAIL_SENDER }} >> .env
-          echo PMC_EMAIL_LOGIN=${{ secrets.PMC_EMAIL_LOGIN }} >> .env
-          echo PMC_EMAIL_PWD="${{ secrets.PMC_EMAIL_PWD }}" >> .env
-          echo SUPABASE_URL=${{ secrets.SUPABASE_URL }} >> .env
-          echo SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} >> .env
-          echo SUPABASE_BUCKET_NAME=${{ secrets.SUPABASE_BUCKET_NAME }} >> .env
-
       - name: Log into Google Cloud
         uses: "google-github-actions/auth@v1"
         with:
@@ -55,10 +28,7 @@ jobs:
 
       - name: Run Cloud Build
         run: |
-          # Debug to verify .secret exists and has content
-          ls -la .secret/
-          # Submit build with explicit include of .secret directory
-          gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.APP_NAME }} --ignore-file=.gcloudignore
+          gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.APP_NAME }}
 
       - name: Deploy to Cloud Run
         run: |
@@ -67,5 +37,3 @@ jobs:
             --image gcr.io/${{ env.PROJECT_ID }}/${{ env.APP_NAME }} \
             --region ${{ env.REGION }} \
             --allow-unauthenticated \
-            --set-env-vars ORIGIN=${{ secrets.ORIGIN }},ADMIN_PORTAL_ORIGIN=${{ secrets.ADMIN_ORIGIN }},BUCKET_NAME=${{ secrets.BUCKET_NAME }},STRIPE_SECRET=${{ secrets.STRIPE_SECRET }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_DATABASE_ID }},PMC_EMAIL_SENDER="${{ secrets.PMC_EMAIL_SENDER }}",PMC_EMAIL_LOGIN=${{ secrets.PMC_EMAIL_LOGIN }},PMC_EMAIL_PWD="${{ secrets.PMC_EMAIL_PWD }}",EXPORT_PASSWORD=${{ secrets.EXPORT_PASSWORD }},SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }},SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }},SUPABASE_BUCKET_NAME=${{ secrets.SUPABASE_BUCKET_NAME }}
-        
