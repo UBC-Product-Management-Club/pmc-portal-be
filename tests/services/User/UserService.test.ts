@@ -12,6 +12,7 @@ jest.mock("../../../src/services/User/utils", () => ({
 describe("UserService", () => {
     let mockFrom: jest.Mock;
     let mockInsert: jest.Mock;
+    let mockUpsert: jest.Mock;
     let mockSelect: jest.Mock;
     let mockEq: jest.Mock;
     let mockMaybeSingle: jest.Mock;
@@ -22,6 +23,7 @@ describe("UserService", () => {
         mockEq = jest.fn()
         mockMaybeSingle = jest.fn()
         mockInsert = jest.fn()
+        mockUpsert = jest.fn()
         mockFrom = (supabase.from as jest.Mock).mockReturnValue({
             select: mockSelect,
             eq: mockEq,
@@ -102,29 +104,45 @@ describe("UserService", () => {
             whyPm: "",
         };
 
-        it("throws error when onboarding existing user", async () => {
-            (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(true);
-            await expect(addUser(mockUser)).rejects.toThrow("User already exists.");
-        });
-
         it("adds a new user to database", async () => {
             (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(false);
             (mapToSupabaseUser as jest.Mock).mockReturnValue({ user_id: mockUser.userId });
             mockFrom.mockReturnValueOnce({
-                insert: mockInsert.mockResolvedValueOnce({
+                upsert: mockUpsert.mockResolvedValueOnce({
                      error: null
                 })
             })
 
             await expect(addUser(mockUser)).resolves.toEqual({ message: "success" });
-            expect(mockInsert).toHaveBeenCalledWith({ user_id: mockUser.userId });
+            expect(mockUpsert).toHaveBeenCalledWith({ user_id: mockUser.userId });
+        });
+
+        it("can update existing user", async () => {
+            (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(false);
+            (mapToSupabaseUser as jest.Mock).mockReturnValueOnce({ user_id: mockUser.userId })
+                .mockReturnValueOnce({ user_id: mockUser.userId + "2"});
+            mockFrom.mockReturnValueOnce({
+                upsert: mockUpsert.mockResolvedValueOnce({
+                     error: null
+                })
+            }).mockReturnValueOnce({
+                upsert: mockUpsert.mockReturnValueOnce({
+                   error: null        
+                })
+            })
+
+            await expect(addUser(mockUser)).resolves.toEqual({ message: "success" });
+            expect(mockUpsert).toHaveBeenCalledWith({ user_id: mockUser.userId });
+
+            await expect(addUser({...mockUser, userId: mockUser.userId + "2"})).resolves.toEqual({ message: "success" });
+            expect(mockUpsert).toHaveBeenCalledWith({ user_id: mockUser.userId + "2" });
         });
 
         it("throws when adding a user fails", async () => {
             (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(false);
             (mapToSupabaseUser as jest.Mock).mockReturnValue({ user_id: mockUser.userId });
             mockFrom.mockReturnValueOnce({
-                insert: mockInsert.mockResolvedValueOnce({ error: { message: "insert error" }})
+                upsert: mockUpsert.mockResolvedValueOnce({ error: { message: "insert error" }})
             })
 
             await expect(addUser(mockUser)).rejects.toThrow("Error creating user: insert error");
