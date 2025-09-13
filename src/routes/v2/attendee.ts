@@ -1,20 +1,39 @@
 import { Router } from "express";
-import { getAttendee } from "../../services/Attendee/AttendeeService";
+import { getAttendee, deleteAttendee } from "../../services/Attendee/AttendeeService";
+import { authenticated } from "../../middleware/Session";
 
 export const attendeeRouter = Router();
 
-attendeeRouter.get("/:eventId", async (req, res) => {
+attendeeRouter.get("/:eventId", ...authenticated, async (req, res) => {
     const userId = req.user?.user_id
     const eventId = req.params.eventId
+
+    if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+    }
+
     try {
-    if (userId) {
         const attendee = await getAttendee(eventId, userId)
         return res.status(200).json(attendee)
-    } else {
-        return res.status(200).json({message: `STUB gets all attendees for ${eventId}`});
-    }
+        
     } catch (error: any) {
-    res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+attendeeRouter.delete("/:attendeeId/delete", ...authenticated, async (req, res) => {
+    const userId = req.user?.user_id
+    const attendeeId = req.params.attendeeId;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    try {
+        const response = await deleteAttendee(attendeeId);
+        return res.status(200).json(response);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
     }
 });
 

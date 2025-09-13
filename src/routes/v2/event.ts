@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
 import { Database } from "../../schema/v2/database.types";
-import { addAttendee } from "../../services/Attendee/AttendeeService";
+import { addAttendee, getRegisteredAttendee } from "../../services/Attendee/AttendeeService";
 import { authenticated } from "../../middleware/Session";
 import multer from "multer"
 import { uploadSupabaseFiles } from "../../storage/Storage";
@@ -44,6 +44,24 @@ eventRouter.get('/events/registered', ...authenticated, async (req, res) => {
     }
 });
 
+// Checks if user is registered for event
+eventRouter.get('/:eventId/attendee', ...authenticated, async (req: Request, res: Response) => {
+    const userId = req.user?.user_id
+    const eventId = req.params.eventId;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    try {
+        const attendee = await getRegisteredAttendee(eventId, userId);
+        return res.status(200).json(attendee);
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+
 // Adds event attendee (payment not verified, payment id set to null)
 eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (req: Request, res: Response) => {
     const userId = req.user?.user_id
@@ -65,6 +83,7 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
             user_id: userId,
             event_id: eventId,
             payment_id: null,
+            is_payment_verified: false,
             event_form_answers: eventFormAnswers,
         };
 

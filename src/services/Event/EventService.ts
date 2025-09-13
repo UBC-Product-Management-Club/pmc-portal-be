@@ -14,8 +14,9 @@ export const getEvents = async (): Promise<Partial<Tables<'Event'>>[]> => {
     return data;
 };
 
+//WIP (maybe need to add additional condition to check if payment is verified) [this must change]
 export const getEvent = async (id: string): Promise<Tables<'Event'> & { registered: number } | null> => {
-    const { data, error: fetchEventError } = await supabase.from('Event').select('*, Attendee(count)').eq('event_id', id).maybeSingle();
+    const { data, error: fetchEventError } = await supabase.from('Event').select('*, Attendee(count)').eq('event_id', id).eq('Attendee.is_payment_verified', true).maybeSingle();
 
     if (fetchEventError) {
         console.error("Error fetching event: ", fetchEventError);
@@ -51,7 +52,7 @@ export const getRegisteredEvents = async (userId: string) => {
 
     if (error) throw error
 
-    return data;
+    return data.map((row) => row.Event);
 };
 
 // Retrieves event price id
@@ -70,7 +71,7 @@ export const getEventPriceId = async (eventId: string, isMember: boolean) => {
     return (data as Record<string, string>)[selectCondition];
 };
 
-// WIP (need to be adjusted to call stripe api to generate price ID) [JEFF]
+// WIP (need to be adjusted to call stripe api to generate price ID) [JEFF] (part of admin route)
 export const addEvent = async (event: EventInsert): Promise<void> => {
     const { date, start_time, end_time } = event;
 

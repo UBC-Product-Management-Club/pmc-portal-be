@@ -96,8 +96,8 @@ export const createEventCheckoutSession = async (userId: string, eventId: string
             ],
             mode: 'payment',
             payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
-            success_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&success=true`,
-            cancel_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&canceled=true`,
+            success_url: `${process.env.ORIGIN}/events/${eventId}/register/?attendeeId=${attendeeId}&success=true`,
+            cancel_url: `${process.env.ORIGIN}/events/${eventId}/register/?attendeeId=${attendeeId}&canceled=true`,
 
             payment_intent_data: {
                 metadata: {
@@ -142,6 +142,7 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
             const userId = paymentIntent.metadata?.user_id;
             const attendeeId = paymentIntent.metadata?.attendee_id;
             const paymentType = paymentIntent.metadata?.payment_type;
+            const paymentId = paymentIntent.id;
 
             if (paymentType === "membership" && userId) {
                 const { error } = await supabase.from("User").update({ is_payment_verified: true }).eq("user_id", userId);
@@ -155,12 +156,14 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
                 await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
 
             } else if (paymentType === "event" && attendeeId) {
-                const { error } = await supabase.from("Attendee").update({ is_payment_verified: true}).eq("attendee_id", attendeeId);
 
+                const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId}).eq("attendee_id", attendeeId);
+ 
                 if (error) {
                     console.error("Attendee verify update err:", error);
                     return;
                 }
+
 
                 console.log(`Event PaymentIntent for ${attendeeId} succeeded: ${paymentIntent.id}`);
             }
