@@ -4,19 +4,12 @@ import { Database, Tables } from "../../schema/v2/database.types";
 import { checkSupabaseUserExists, mapToSupabaseUser } from "./utils";
 
 export const addUser = async (userInfo: User): Promise<{ message: string }> => {
-    const { userId } = userInfo;
     try {
-        if (await checkSupabaseUserExists(userId)) {
-            throw Error("User already exists.");
-        }
-
         const newUser = mapToSupabaseUser(userInfo);
-
-        const { error } = await supabase.from("User").insert(newUser);
+        const { error } = await supabase.from("User").upsert(newUser);
         if (error) {
             throw new Error("Error creating user: " + error.message);
         }
-
         return { message: "success" };
     } catch (error) {
         console.error("Error onboarding user: ", error);

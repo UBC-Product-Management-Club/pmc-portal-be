@@ -1,4 +1,3 @@
-import { boolean } from "zod/v4";
 import { stripe } from "../../config/stripe";
 import { supabase } from "../../config/supabase";
 import { Database } from "../../schema/v2/database.types";
@@ -18,7 +17,7 @@ export enum Status {
 
 // in cents
 export const MEMBERSHIP_FEE_UBC = 1067;
-export const MEMBERSHIP_FEE_NONUBC = 1567;
+export const MEMBERSHIP_FEE_NONUBC = 2067;
 
 export const createMembershipPaymentIntent = async (userId: string) => {
     const { data, error } = await supabase.from("User").select("university").eq("user_id", userId).single();

@@ -6,6 +6,7 @@ import { authenticated } from "../../middleware/Session";
 import multer from "multer"
 import { uploadSupabaseFiles } from "../../storage/Storage";
 
+
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
 
 export const eventRouter = Router()

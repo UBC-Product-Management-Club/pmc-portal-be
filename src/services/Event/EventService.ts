@@ -76,6 +76,7 @@ export const addEvent = async (event: EventInsert): Promise<void> => {
     const { date, start_time, end_time } = event;
 
     // Should never trigger if controller properly validates the fields
+    // Should never trigger if controller properly validates the fields
     if (!date || !start_time || !end_time) {
         throw new Error("Missing required fields.");
     }

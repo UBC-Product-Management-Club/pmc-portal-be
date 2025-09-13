@@ -1,6 +1,7 @@
 import { Parser } from "@json2csv/plainjs";
 import { User, UserExportFields, exportUserFieldNames } from "../../schema/v1/User";
 import { supabase } from "../../config/supabase";
+import _ from "lodash";
 
 const TABLES = {
     USER: "User",
@@ -9,8 +10,8 @@ const TABLES = {
     PAYMENT: "Payment",
 } as const;
 
-async function checkSupabaseUserExists(id: string) {
-    const { data, error } = await supabase.from(TABLES.USER).select().eq("user_id", id).maybeSingle();
+async function checkSupabaseUserExists(user: User) {
+    const { data, error } = await supabase.from(TABLES.USER).select().eq("user_id", user.userId).maybeSingle();
     if (error) {
         throw new Error("Failed to verify if user already exists: " + error.message);
     }

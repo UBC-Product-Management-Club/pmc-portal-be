@@ -24,7 +24,7 @@ export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tab
     if (error) {
         throw new Error(`Failed to create attendee: ${error.message}`);
     }
-    console.log("Created attendee: ", data);
+    
     return data
 }
 
