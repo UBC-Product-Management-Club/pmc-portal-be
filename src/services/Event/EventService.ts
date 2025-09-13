@@ -14,7 +14,6 @@ export const getEvents = async (): Promise<Partial<Tables<'Event'>>[]> => {
     return data;
 };
 
-//WIP (maybe need to add additional condition to check if payment is verified) [this must change]
 export const getEvent = async (id: string): Promise<Tables<'Event'> & { registered: number } | null> => {
     const { data, error: fetchEventError } = await supabase.from('Event').select('*, Attendee(count)').eq('event_id', id).eq('Attendee.is_payment_verified', true).maybeSingle();
 
@@ -50,9 +49,9 @@ export const getRegisteredEvents = async (userId: string) => {
         .gte("Event.end_time", new Date().toISOString())
         .order("date", { referencedTable: "Event", ascending: false }); 
 
-    if (error) throw error
+    if (error) throw error;
 
-    return data.map((row) => row.Event);
+    return data.map((row) => row.Event); 
 };
 
 // Retrieves event price id

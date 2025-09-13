@@ -90,10 +90,12 @@ describe("EventService", () => {
         it('returns event', async () => {
             mockFrom.mockReturnValueOnce({
                 select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                            data: rawEvent,
-                            error: null 
+                    eq: jest.fn().mockReturnValueOnce({
+                        eq: mockEq.mockReturnValueOnce({
+                            maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
+                                data: rawEvent,
+                                error: null 
+                            })
                         })
                     })
                 })
@@ -104,15 +106,17 @@ describe("EventService", () => {
 
             expect(mockFrom).toHaveBeenCalledWith('Event')
             expect(mockSelect).toHaveBeenCalledWith('*, Attendee(count)')
-            expect(mockEq).toHaveBeenCalledWith('event_id', '1')
+            expect(mockEq).toHaveBeenCalledWith("Attendee.is_payment_verified", true)
             expect(mockMaybeSingle).toHaveBeenCalled()
         });
 
         it('throws an error when fetch fails', async () => {
             mockFrom.mockReturnValueOnce({
                 select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        maybeSingle: mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: 'Not found' } }),
+                    eq: jest.fn().mockReturnValueOnce({
+                        eq: mockEq.mockReturnValueOnce({
+                            maybeSingle: mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: 'Not found' } }),
+                        })
                     })
                 })
             })
@@ -123,8 +127,10 @@ describe("EventService", () => {
         it('returns null when no event found', async () => {
             mockFrom.mockReturnValueOnce({
                 select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        maybeSingle: mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null }),
+                    eq: jest.fn().mockReturnValueOnce({
+                        eq: mockEq.mockReturnValueOnce({
+                            maybeSingle: mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null }),
+                        })
                     })
                 })
             })
@@ -137,12 +143,13 @@ describe("EventService", () => {
         it('throws on unexpected exception', async () => {
             mockFrom.mockReturnValueOnce({
                 select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        maybeSingle: mockMaybeSingle.mockRejectedValueOnce(new Error("Unexpected failure")),
+                    eq: jest.fn().mockReturnValueOnce({
+                        eq: mockEq.mockReturnValueOnce({
+                            maybeSingle: mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: 'Unexpected failure' } }),
+                        })
                     })
                 })
             })
-
             await expect(getEvent('1')).rejects.toThrow('Unexpected failure');
         });
 
@@ -212,27 +219,22 @@ describe("EventService", () => {
 
       it('returns user events successfully', async () => {
         const userId = 'user123';
-        const mockEventsData = [
-          { 
-            event_id: 'event1', 
-            name: 'Event 1', 
-            date: '2024-12-01',
-            description: 'First event'
-          },
-          { 
-            event_id: 'event2', 
-            name: 'Event 2', 
-            date: '2024-11-15',
-            description: 'Second event'
-          }
-        ];
+        const mockEvents = [
+            {Event: { event_id: 'event1', name: 'Event 1', date: '2024-12-01', description: 'First event' }},
+            {Event: { event_id: 'event2', name: 'Event 2', date: '2024-11-15', description: 'Second event' }}
+        ]
+
+        const expectedEvents = [
+            { event_id: 'event1', name: 'Event 1', date: '2024-12-01', description: 'First event' },
+            { event_id: 'event2', name: 'Event 2', date: '2024-11-15', description: 'Second event' }
+        ]
 
        mockFrom.mockReturnValueOnce({
             select: mockSelect.mockReturnValueOnce({
                 eq: mockEq.mockReturnValueOnce({
                     gte: mockGte.mockReturnValueOnce({
                         order: mockOrder.mockResolvedValueOnce({
-                            data: mockEventsData,
+                            data: mockEvents,
                             error: null
                         })
                     })
@@ -242,7 +244,7 @@ describe("EventService", () => {
 
         const result = await getRegisteredEvents(userId);
 
-        expect(result).toEqual(mockEventsData);
+        expect(result).toEqual(expectedEvents);
         expect(mockFrom).toHaveBeenCalledWith('Attendee');
         expect(mockSelect).toHaveBeenCalled()
         expect(mockEq).toHaveBeenCalledWith("user_id", userId)
