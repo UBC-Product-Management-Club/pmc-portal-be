@@ -256,7 +256,7 @@ describe("PaymentService", () => {
                 })
             );
             expect(mockFrom).toHaveBeenCalledWith("Attendee");
-            expect(mockUpdate).toHaveBeenCalledWith({ is_payment_verified: true });
+            expect(mockUpdate).toHaveBeenCalledWith({ is_payment_verified: true, payment_id: "pi_event_test"});
             expect(mockEq).toHaveBeenCalledWith("attendee_id", "att-456");
         });
 
@@ -358,8 +358,8 @@ describe("PaymentService", () => {
                     payment_intent_data: {
                     metadata: { user_id: userId, payment_type: "event", attendee_id: attendeeId },
                     },
-                    success_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&success=true`,
-                    cancel_url: `${process.env.ORIGIN}/events/${eventId}?attendeeId=${attendeeId}&canceled=true`,
+                    success_url: `${process.env.ORIGIN}/events/${eventId}/register/?attendeeId=${attendeeId}&success=true`,
+                    cancel_url: `${process.env.ORIGIN}/events/${eventId}/register/?attendeeId=${attendeeId}&canceled=true`,
                 })
             );
             expect(result).toEqual(fakeSession);

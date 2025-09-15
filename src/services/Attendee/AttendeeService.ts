@@ -4,6 +4,7 @@ import { getEvent } from "../Event/EventService";
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
 
+// Adds correctly 
 export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tables<"Attendee">> => {
 
     await checkValidAttendee(registrationData);
@@ -27,6 +28,7 @@ export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tab
     return data
 }
 
+// Returns attendee (not gurarenteed to be payment verified) [Ngl don't know why we need this still]
 export const getAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
     const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).maybeSingle()
     if (error) {
@@ -35,9 +37,23 @@ export const getAttendee = async (eventId: string, userId: string): Promise<Tabl
     return attendee
 }
 
-export const getSupabaseAttendeeById = async (id: string): Promise<{message: string}> => {
-    return {message: `getting attendee by ${id}`};
-};
+// Returns only registered and payment verified anttendees
+export const getRegisteredAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
+    const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).eq('is_payment_verified', true).maybeSingle()
+    if (error) {
+        throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
+    }
+    return attendee
+}
+
+export const deleteAttendee = async (attendeeId: string): Promise<{message: string}> => {
+    const { error } = await supabase.from("Attendee").delete().eq('attendee_id', attendeeId)
+    if (error) {
+        throw new Error(`Failed to delete attendee ${attendeeId}: ${error.message}`) 
+    }
+
+    return {message: `deleting attendee ${attendeeId}`};
+}
 
 export const checkValidAttendee = async (registrationData: AttendeeInsert) => {
     const { user_id, event_id } = registrationData;
@@ -55,7 +71,7 @@ export const checkValidAttendee = async (registrationData: AttendeeInsert) => {
         throw new Error(`Event ${event_id} is full!`)
     }
 
-    if (await getAttendee(event_id, user_id)) {
+    if (await getRegisteredAttendee(event_id, user_id)) {
         throw new Error(`User already registered for event`)
     }
 }

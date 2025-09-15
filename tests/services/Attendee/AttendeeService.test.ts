@@ -62,10 +62,12 @@ describe("AttendeeService", () => {
             mockFrom.mockReturnValueOnce({
                 select: mockSelect.mockReturnValueOnce({
                     eq: jest.fn().mockReturnValueOnce({
-                        eq: mockEq.mockReturnValueOnce({
-                            maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                                data: existingAttendee,
-                                error: null
+                        eq: jest.fn().mockReturnValueOnce({ 
+                            eq: mockEq.mockReturnValueOnce({
+                                maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
+                                    data: existingAttendee,
+                                    error: null
+                                })
                             })
                         })
                     })
@@ -93,12 +95,14 @@ describe("AttendeeService", () => {
             mockFrom.mockReturnValueOnce({
                 select: mockSelect.mockReturnValueOnce({
                     eq: jest.fn().mockReturnValueOnce({
-                        eq: mockEq.mockReturnValueOnce({
-                            maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                                data: null,
-                                error: {}
+                        eq: jest.fn().mockReturnValueOnce({
+                            eq: mockEq.mockReturnValueOnce({ 
+                                maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
+                                    data: null,
+                                    error: {}
+                                })
                             })
-                        })
+                      })
                     })
                 })
             })
@@ -114,10 +118,12 @@ describe("AttendeeService", () => {
             mockFrom.mockReturnValueOnce({
                 select: mockSelect.mockReturnValueOnce({
                     eq: jest.fn().mockReturnValueOnce({
-                        eq: mockEq.mockReturnValueOnce({
-                            maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                                data: null,
-                                error: null
+                        eq: jest.fn().mockReturnValueOnce({
+                            eq: mockEq.mockReturnValueOnce({
+                                maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
+                                    data: null,
+                                    error: null
+                                })
                             })
                         })
                     })
@@ -259,7 +265,7 @@ describe("AttendeeService", () => {
             payment_id: "payment_id",
             registration_time: "reg-time",
             status: "registered",
-            user_id: "user_id"
+            user_id: "user_id",
         }
 
         it('fetches event attendee by user id', async () => {
