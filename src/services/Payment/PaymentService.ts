@@ -97,7 +97,11 @@ export const createEventCheckoutSession = async (userId: string, eventId: string
             payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
             success_url: `${process.env.ORIGIN}/events/${eventId}/register/?attendeeId=${attendeeId}&success=true`,
             cancel_url: `${process.env.ORIGIN}/events/${eventId}/register/?attendeeId=${attendeeId}&canceled=true`,
-
+            metadata: {
+                user_id: userId,
+                payment_type: "event",
+                attendee_id: attendeeId
+            },
             payment_intent_data: {
                 metadata: {
                     user_id: userId,
@@ -119,6 +123,9 @@ export const handleStripeEvent = async (event: Stripe.Event) => {
 
     // console.log(stripeEventType);
     switch (stripeEventType) {
+        case "checkout.session.completed":
+            await handleCheckoutSession(event)
+            break;
         case "payment_intent.succeeded":
         case "payment_intent.payment_failed":
         case "payment_intent.processing":
@@ -135,7 +142,7 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
     const paymentIntent = stripeEvent.data.object as Stripe.PaymentIntent;
 
     await upsertPaymentTransaction(paymentIntent);
-
+ 
     switch (stripeEvent.type) {
         case "payment_intent.succeeded": {
             const userId = paymentIntent.metadata?.user_id;
@@ -145,25 +152,18 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
 
             if (paymentType === "membership" && userId) {
                 const { error } = await supabase.from("User").update({ is_payment_verified: true }).eq("user_id", userId);
-
                 if (error) {
                     console.error("User verify update err:", error);
                     return;
                 }
-
                 console.log(`Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`);
                 await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
-
             } else if (paymentType === "event" && attendeeId) {
-
                 const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId}).eq("attendee_id", attendeeId);
- 
                 if (error) {
                     console.error("Attendee verify update err:", error);
                     return;
                 }
-
-
                 console.log(`Event PaymentIntent for ${attendeeId} succeeded: ${paymentIntent.id}`);
             }
             break;
@@ -173,9 +173,31 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
     }
 };
 
+const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
+    const checkoutSession = stripeEvent.data.object as Stripe.Checkout.Session;
+    const paymentId = checkoutSession.id;
+    const userId = checkoutSession.metadata?.user_id;
+    const attendeeId = checkoutSession.metadata?.attendee_id;
+    const paymentType = checkoutSession.metadata?.payment_type;
+
+    if (!userId || !attendeeId || !paymentType) {
+        console.error("Missing required info! " + paymentId);
+        return;
+    }
+    
+    // work around for free events
+    if (checkoutSession.amount_total === 0) {
+        await upsertPaymentTransaction(checkoutSession)
+        const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId}).eq("attendee_id", attendeeId);
+        if (error) console.error(`Failed to update attendee ${attendeeId}! ${error.message}`);
+        console.log(`Payment ${paymentId} succeeded for attendee ${attendeeId}`)
+    }
+}
+
 // helper functions
-const mapPaymentStatus = (pi: Stripe.PaymentIntent): Status => {
-    switch (pi.status) {
+const mapTransactionStatus = (transaction: Stripe.PaymentIntent | Stripe.Checkout.Session): Status => {
+    switch (transaction.status) {
+        case "complete":
         case "succeeded":
             return Status.PAYMENT_SUCCESS;
         case "processing":
@@ -189,21 +211,24 @@ const mapPaymentStatus = (pi: Stripe.PaymentIntent): Status => {
     }
 };
 
-const upsertPaymentTransaction = async (paymentIntent: Stripe.PaymentIntent) => {
-    const userId = paymentIntent.metadata.user_id;
-    const paymentType = paymentIntent.metadata.payment_type;
+const upsertPaymentTransaction = async (transaction: Stripe.PaymentIntent | Stripe.Checkout.Session) => {
+    const userId = transaction.metadata?.user_id;
+    const paymentType = transaction.metadata?.payment_type;
 
     if (!userId) {
-        console.error("Missing user_id in PaymentIntent metadata", paymentIntent.id);
+        console.error("Missing user_id in PaymentIntent metadata", transaction.id);
+        return;
+    } else if (!paymentType) {
+        console.error("Missing paymentType in PaymentIntent metadata", transaction.id);
         return;
     }
 
     const row: PaymentInsert = {
-        payment_id: paymentIntent.id,
+        payment_id: transaction.id,
         user_id: userId,
         type: paymentType,
-        amount: paymentIntent.amount,
-        status: mapPaymentStatus(paymentIntent),
+        amount: transaction.object === "checkout.session" ? transaction.amount_total || 0 : transaction.amount,
+        status: mapTransactionStatus(transaction),
         payment_date: new Date().toISOString(),
     };
 

@@ -149,7 +149,7 @@ describe("PaymentService", () => {
             id: "pi_test",
             amount: 1234,
             metadata: { user_id: "user-123", payment_type: "membership" },
-        } as any;
+        };
 
         const paymentIntentEventRegistration = {
             id: "pi_event_test",
@@ -157,11 +157,18 @@ describe("PaymentService", () => {
             metadata: { user_id: "user-123", payment_type: "event", attendee_id: "att-456"},
         } as any;
 
-        const makeEvent = (type: Stripe.Event.Type, status: Stripe.PaymentIntent.Status, baseIntent: any = paymentIntentMembership): Stripe.Event => {
+        const checkoutSessionCompletedEventRegistration = {
+            id: "pi_event_test",
+            amount_total: 0,
+            object: "checkout.session",
+            metadata: { user_id: "user-123", payment_type: "event", attendee_id: "att-456"},
+        } as any;
+
+        const makeEvent = (type: Stripe.Event.Type, status: Stripe.PaymentIntent.Status | Stripe.Checkout.Session.Status, baseIntent: any = paymentIntentMembership): Stripe.Event => {
             return {
                 id: "event_test",
                 type,
-                data: { object: { ...baseIntent, status } as Stripe.PaymentIntent },
+                data: { object: { ...baseIntent, status } as Stripe.PaymentIntent | Stripe.Checkout.Session },
             } as unknown as Stripe.Event;
         };
 
@@ -230,6 +237,7 @@ describe("PaymentService", () => {
                     payment_date: expect.any(String),
                 })
             );
+
             expect(mockFrom).toHaveBeenCalledWith("User");
             expect(mockUpdate).toHaveBeenCalledWith({ is_payment_verified: true });
             expect(mockEq).toHaveBeenCalledWith("user_id", "user-123");
@@ -260,6 +268,29 @@ describe("PaymentService", () => {
             expect(mockEq).toHaveBeenCalledWith("attendee_id", "att-456");
         });
 
+        it("check free event payment succeeded", async () => {
+            mockFrom.mockReturnValueOnce({
+                update: mockUpdate.mockReturnValue({
+                    eq: mockEq.mockResolvedValue({ data: null, error: null }),
+                }),
+            });
+
+            await PaymentService.handleStripeEvent(makeEvent("checkout.session.completed", "complete", checkoutSessionCompletedEventRegistration));
+
+            expect(spyLogTransaction).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    payment_id: "pi_event_test",
+                    user_id: "user-123",
+                    type: "event",
+                    amount: 0,
+                    status: PaymentService.Status.PAYMENT_SUCCESS,
+                    payment_date: expect.any(String),
+                })
+            );
+            expect(mockFrom).toHaveBeenCalledWith("Attendee");
+            expect(mockUpdate).toHaveBeenCalledWith({ is_payment_verified: true, payment_id: "pi_event_test"});
+            expect(mockEq).toHaveBeenCalledWith("attendee_id", "att-456");
+        })
     });
 
     describe("create membership checkout session", () => {
