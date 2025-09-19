@@ -111,6 +111,7 @@ export type Database = {
       Event: {
         Row: {
           date: string | null
+          blurb: string | null
           description: string | null
           end_time: string | null
           event_form_questions: Json
