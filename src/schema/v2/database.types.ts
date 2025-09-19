@@ -112,6 +112,7 @@ export type Database = {
         Row: {
           date: string | null
           blurb: string | null
+          mailing_list: string | null
           description: string | null
           end_time: string | null
           event_form_questions: Json
@@ -147,6 +148,7 @@ export type Database = {
           non_member_price_id?: string
           start_time?: string | null
           thumbnail?: string | null
+          mailing_list?: string | null
         }
         Update: {
           date?: string | null
@@ -166,6 +168,7 @@ export type Database = {
           non_member_price_id?: string
           start_time?: string | null
           thumbnail?: string | null
+          mailing_list?: string | null
         }
         Relationships: []
       }
