@@ -44,8 +44,7 @@ const addToMailingList = async (userId: string, attendeeId: string) => {
         }
 
         if (!data.Event.mailing_list) {
-            console.log("No mailing list associated with this event.");
-            return;
+            throw new Error("Event does not have a mailing list configured.");
         }
 
         const resp = await loops.updateContact(data.User.email, {}, { [data.Event.mailing_list]: true });
