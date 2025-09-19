@@ -5,7 +5,7 @@ import { EventInsert } from "../../schema/v2/Event";
 
 export const getEvents = async (): Promise<Partial<Tables<'Event'>>[]> => {
     const {data, error} = await supabase.from('Event')
-        .select("event_id, name, description, date, start_time, end_time, location, member_price, non_member_price, thumbnail, is_disabled")
+        .select("event_id, name, blurb, date, start_time, end_time, location, member_price, non_member_price, thumbnail, is_disabled")
         .order("date", { ascending: false })
     if (error || !data) {
         console.error("Error fetching events: ", error);

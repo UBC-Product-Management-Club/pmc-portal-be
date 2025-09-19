@@ -18,7 +18,7 @@ describe("EventService", () => {
     describe('getEvents', () => {
 
         it('returns event list successfully', async () => {
-            const columns = "event_id, name, description, date, start_time, end_time, location, member_price, non_member_price, thumbnail, is_disabled"
+            const columns = "event_id, name, blurb, date, start_time, end_time, location, member_price, non_member_price, thumbnail, is_disabled"
             const testEvents = [
             {
                 event_id: "1",
