@@ -34,7 +34,7 @@ export const getRegisteredEvents = async (userId: string) => {
             Event!inner (
             event_id,
             name,
-            description,
+            blurb,
             date,
             start_time,
             end_time,
