@@ -26,4 +26,34 @@ const sendConfirmationEmail = async (userId: string, type: ConfirmationEvent) =>
     }
 };
 
-export { ConfirmationEvent, sendConfirmationEmail };
+const addToMailingList = async (userId: string, attendeeId: string) => {
+    try {
+        const { data, error } = await supabase
+            .from("Attendee")
+            .select(
+                `
+                User!inner ( email ),
+                Event!inner ( mailing_list )
+                `
+            )
+            .eq("attendee_id", attendeeId)
+            .single();
+
+        if (error || !data) {
+            throw new Error("Attendee or associated User/Event not found: " + error?.message);
+        }
+
+        if (!data.Event.mailing_list) {
+            throw new Error("Event does not have a mailing list configured.");
+        }
+
+        const resp = await loops.updateContact(data.User.email, {}, { [data.Event.mailing_list]: true });
+
+        console.log("Added to mailing list successfully:", resp);
+    } catch (error) {
+        console.error("Error adding to mailing list:", error);
+        throw new Error("Failed to add to mailing list");
+    }
+};
+
+export { ConfirmationEvent, sendConfirmationEmail, addToMailingList };
