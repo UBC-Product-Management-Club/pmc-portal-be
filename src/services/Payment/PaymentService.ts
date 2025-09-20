@@ -4,7 +4,7 @@ import { Database } from "../../schema/v2/database.types";
 import { fetchMembershipPriceId } from "../Product/ProductService";
 import { getEventPriceId } from "../Event/EventService";
 import Stripe from "stripe";
-import { ConfirmationEvent, sendConfirmationEmail } from "../emails/confirmation";
+import { ConfirmationEvent, sendConfirmationEmail, addToMailingList } from "../emails/confirmation";
 
 type PaymentInsert = Database["public"]["Tables"]["Payment"]["Insert"];
 
@@ -72,8 +72,8 @@ export const createCheckoutSession = async (userId: string) => {
         },
     });
 
-    return session
-}
+    return session;
+};
 
 export const createEventCheckoutSession = async (userId: string, eventId: string, attendeeId: string) => {
     const { data, error } = await supabase.from("User").select("is_payment_verified").eq("user_id", userId).single();
@@ -88,35 +88,34 @@ export const createEventCheckoutSession = async (userId: string, eventId: string
         const priceId = await getEventPriceId(eventId, isMember);
         const session = await stripe.checkout.sessions.create({
             line_items: [
-            {
-                price: priceId,
-                quantity: 1,
-            },
+                {
+                    price: priceId,
+                    quantity: 1,
+                },
             ],
-            mode: 'payment',
+            mode: "payment",
             payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
             success_url: `${process.env.ORIGIN}/events/${eventId}/register/?attendeeId=${attendeeId}&success=true`,
             cancel_url: `${process.env.ORIGIN}/events/${eventId}/register/?attendeeId=${attendeeId}&canceled=true`,
             metadata: {
                 user_id: userId,
                 payment_type: "event",
-                attendee_id: attendeeId
+                attendee_id: attendeeId,
             },
             payment_intent_data: {
                 metadata: {
                     user_id: userId,
                     payment_type: "event",
-                    attendee_id: attendeeId
+                    attendee_id: attendeeId,
                 },
             },
         });
-        return session
-
+        return session;
     } catch (error: any) {
         console.log(error.message);
         throw new Error(error.message);
     }
-}
+};
 
 export const handleStripeEvent = async (event: Stripe.Event) => {
     const stripeEventType = event.type;
@@ -124,7 +123,7 @@ export const handleStripeEvent = async (event: Stripe.Event) => {
     // console.log(stripeEventType);
     switch (stripeEventType) {
         case "checkout.session.completed":
-            await handleCheckoutSession(event)
+            await handleCheckoutSession(event);
             break;
         case "payment_intent.succeeded":
         case "payment_intent.payment_failed":
@@ -142,7 +141,7 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
     const paymentIntent = stripeEvent.data.object as Stripe.PaymentIntent;
 
     await upsertPaymentTransaction(paymentIntent);
- 
+
     switch (stripeEvent.type) {
         case "payment_intent.succeeded": {
             const userId = paymentIntent.metadata?.user_id;
@@ -159,7 +158,7 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
                 console.log(`Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`);
                 await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
             } else if (paymentType === "event" && attendeeId) {
-                const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId}).eq("attendee_id", attendeeId);
+                const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId }).eq("attendee_id", attendeeId);
                 if (error) {
                     console.error("Attendee verify update err:", error);
                     return;
@@ -184,15 +183,22 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
         console.error("Missing required info! " + paymentId);
         return;
     }
-    
+
     // work around for free events
     if (checkoutSession.amount_total === 0) {
-        await upsertPaymentTransaction(checkoutSession)
-        const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId}).eq("attendee_id", attendeeId);
+        await upsertPaymentTransaction(checkoutSession);
+        const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId }).eq("attendee_id", attendeeId);
         if (error) console.error(`Failed to update attendee ${attendeeId}! ${error.message}`);
-        console.log(`Payment ${paymentId} succeeded for attendee ${attendeeId}`)
+        console.log(`Payment ${paymentId} succeeded for attendee ${attendeeId}`);
     }
-}
+
+    try {
+        addToMailingList(userId, attendeeId);
+        console.log(`Added user ${userId} to mailing list for event attendee ${attendeeId}`);
+    } catch (error) {
+        console.error("Failed to add to mailing list: ", error);
+    }
+};
 
 // helper functions
 const mapTransactionStatus = (transaction: Stripe.PaymentIntent | Stripe.Checkout.Session): Status => {
