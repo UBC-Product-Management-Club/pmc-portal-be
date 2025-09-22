@@ -129,6 +129,9 @@ export type Database = {
           non_member_price_id: string
           start_time: string | null
           thumbnail: string | null
+          registration_opens: string | null
+          registration_closes: string | null
+          external_page: string | null
         }
         Insert: {
           date?: string | null

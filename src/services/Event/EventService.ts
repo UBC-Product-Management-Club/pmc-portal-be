@@ -42,7 +42,8 @@ export const getRegisteredEvents = async (userId: string) => {
             member_price,
             non_member_price,
             thumbnail,
-            is_disabled
+            is_disabled,
+            external_page
             )
         `)
         .eq("user_id", userId)
