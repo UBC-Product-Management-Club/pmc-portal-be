@@ -132,6 +132,7 @@ export type Database = {
           registration_opens: string | null
           registration_closes: string | null
           external_page: string | null
+          waitlist_form: string | null
         }
         Insert: {
           date?: string | null
