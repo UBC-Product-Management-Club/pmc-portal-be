@@ -1,6 +1,5 @@
 import { Request, Response, Router } from "express";
 import { uuidv4 } from "zod/v4";
-import { adminRouter } from ".";
 import { supabase } from "../../../config/supabase";
 import { EventSchema } from "../../../schema/v2/Event";
 import { addEvent } from "../../../services/Event/EventService";
@@ -11,7 +10,7 @@ const memStorage = multer.memoryStorage()
 const upload = multer({ storage: memStorage })
 export const eventRouter = Router()
 
-adminRouter.get("/basic", async (req: Request, res: Response) => {
+eventRouter.get("/basic", async (req: Request, res: Response) => {
     const {data, error} = await supabase.from('Event').select('event_id, name')
     if (error || !data) {
         console.error("Error fetching events: ", error);
@@ -21,7 +20,7 @@ adminRouter.get("/basic", async (req: Request, res: Response) => {
 })
 
 //[WIP Needs to be retested]
-adminRouter.post('/events/add', upload.fields([{ name: 'mediaFiles', maxCount: 5 },{ name: 'thumbnail', maxCount: 1 }]), async (req, res) => {
+eventRouter.post('/add', upload.fields([{ name: 'mediaFiles', maxCount: 5 },{ name: 'thumbnail', maxCount: 1 }]), async (req, res) => {
     const event_Id = uuidv4();
 
     // Unpacking request body
