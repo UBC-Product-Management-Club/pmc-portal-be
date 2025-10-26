@@ -156,7 +156,7 @@ describe("AttendeeService", () => {
                     payment_id: 'payment-789',
                     event_form_answers: { shirtSize: 'M', meal: 'vegetarian' },
                     registration_time: '2025-01-15T10:00:00.000Z',
-                    status: 'registered',
+                    status: 'REGISTERED',
                     is_payment_verified: true,
                 };
 
@@ -189,7 +189,7 @@ describe("AttendeeService", () => {
                     payment_id: null,
                     event_form_answers: null,
                     registration_time: '2025-01-15T10:00:00.000Z',
-                    status: 'registered',
+                    status: 'REGISTERED',
                     is_payment_verified: true,
                 };
 
@@ -264,7 +264,7 @@ describe("AttendeeService", () => {
             is_payment_verified: true,
             payment_id: "payment_id",
             registration_time: "reg-time",
-            status: "registered",
+            status: "REGISTERED",
             user_id: "user_id",
         }
 

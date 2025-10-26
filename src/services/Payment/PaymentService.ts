@@ -51,7 +51,6 @@ export const createCheckoutSession = async (userId: string) => {
     const isUBC = data.university === "University of British Columbia";
 
     const priceId = await fetchMembershipPriceId(isUBC);
-
     const session = await stripe.checkout.sessions.create({
         line_items: [
             {
@@ -81,7 +80,7 @@ export const createEventCheckoutSession = async (userId: string, eventId: string
     if (error) {
         throw new Error(error.message);
     }
-
+    console.log("HI")
     const isMember = data.is_payment_verified ?? false;
 
     try {
@@ -120,7 +119,7 @@ export const createEventCheckoutSession = async (userId: string, eventId: string
 export const handleStripeEvent = async (event: Stripe.Event) => {
     const stripeEventType = event.type;
 
-    // console.log(stripeEventType);
+    console.log(stripeEventType);
     switch (stripeEventType) {
         case "checkout.session.completed":
             await handleCheckoutSession(event);
@@ -158,7 +157,8 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
                 console.log(`Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`);
                 await sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
             } else if (paymentType === "event" && attendeeId) {
-                const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId }).eq("attendee_id", attendeeId);
+                const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId, status: 'APPLIED' }).eq("attendee_id", attendeeId);
+                console.log('updated db')
                 if (error) {
                     console.error("Attendee verify update err:", error);
                     return;
@@ -187,7 +187,7 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
     // work around for free events
     if (checkoutSession.amount_total === 0) {
         await upsertPaymentTransaction(checkoutSession);
-        const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId }).eq("attendee_id", attendeeId);
+        const { error } = await supabase.from("Attendee").update({ is_payment_verified: true, payment_id: paymentId, status: 'APPLIED'}).eq("attendee_id", attendeeId);
         if (error) console.error(`Failed to update attendee ${attendeeId}! ${error.message}`);
         console.log(`Payment ${paymentId} succeeded for attendee ${attendeeId}`);
     }
