@@ -15,7 +15,7 @@ export const getEvents = async (): Promise<Partial<Tables<'Event'>>[]> => {
 };
 
 export const getEvent = async (id: string): Promise<Tables<'Event'> & { registered: number } | null> => {
-    const { data, error: fetchEventError } = await supabase.from('Event').select('*, Attendee(count)').eq('event_id', id).eq('Attendee.is_payment_verified', true).maybeSingle();
+    const { data, error: fetchEventError } = await supabase.from('Event').select('*, Attendee(count)').eq('event_id', id).eq('Attendee.status', "REGISTERED").maybeSingle();
 
     if (fetchEventError) {
         console.error("Error fetching event: ", fetchEventError);
@@ -47,6 +47,7 @@ export const getRegisteredEvents = async (userId: string) => {
             )
         `)
         .eq("user_id", userId)
+        .eq("status", "REGISTERED")
         .gte("Event.end_time", new Date().toISOString())
         .order("date", { referencedTable: "Event", ascending: false }); 
 

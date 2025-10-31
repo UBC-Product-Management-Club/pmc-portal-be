@@ -86,6 +86,7 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
             payment_id: null,
             is_payment_verified: false,
             event_form_answers: eventFormAnswers,
+            status: 'PROCESSING'
         };
 
         const result = await addAttendee(insertData);

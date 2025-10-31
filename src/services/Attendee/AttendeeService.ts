@@ -12,7 +12,6 @@ export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tab
     const attendee: AttendeeInsert = {
         ...registrationData,
         registration_time: new Date().toISOString(),
-        status: 'registered'
     }
 
     const { data, error } = await supabase
@@ -39,7 +38,7 @@ export const getAttendee = async (eventId: string, userId: string): Promise<Tabl
 
 // Returns only registered and payment verified anttendees
 export const getRegisteredAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
-    const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).eq('is_payment_verified', true).maybeSingle()
+    const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).or(`is_payment_verified.eq.true,status.eq.REGISTERED`).maybeSingle()
     if (error) {
         throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
     }
