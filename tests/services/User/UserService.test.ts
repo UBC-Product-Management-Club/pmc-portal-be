@@ -1,153 +1,139 @@
-import { supabase } from "../../../src/config/supabase";
+import { addUser, getUser, getUsers, findUserByEmail, addUserFromGuestRegistration } from "../../../src/services/User/UserService";
+import { UserRepository } from "../../../src/storage/UserRepository";
+import { mapToSupabaseUser } from "../../../src/services/User/utils";
 import { User } from "../../../src/schema/v1/User";
-import { addUser, getUser } from "../../../src/services/User/UserService";
-import { checkSupabaseUserExists, mapToSupabaseUser } from "../../../src/services/User/utils";
 
+jest.mock("../../../src/storage/UserRepository");
 jest.mock("../../../src/services/User/utils", () => ({
-    checkSupabaseUserExists: jest.fn(),
-    mapToSupabaseUser: jest.fn(),
-    TABLES: { USER: "User" },
+  mapToSupabaseUser: jest.fn()
 }));
 
 describe("UserService", () => {
-    let mockFrom: jest.Mock;
-    let mockInsert: jest.Mock;
-    let mockUpsert: jest.Mock;
-    let mockSelect: jest.Mock;
-    let mockEq: jest.Mock;
-    let mockMaybeSingle: jest.Mock;
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-    beforeEach(() => {
-        mockSelect = jest.fn()
-        mockEq = jest.fn()
-        mockMaybeSingle = jest.fn()
-        mockInsert = jest.fn()
-        mockUpsert = jest.fn()
-        mockFrom = (supabase.from as jest.Mock).mockReturnValue({
-            select: mockSelect,
-            eq: mockEq,
-            maybeSingle: mockMaybeSingle
-        });
-
-        jest.clearAllMocks();
+  describe("getUser", () => {
+    it("throws if no userId provided", async () => {
+      await expect(getUser("")).rejects.toThrow("User Id is required!");
     });
 
-    describe("getUser", () => {
-        it("throws error if no userId is provided", async () => {
-            await expect(getUser("")).rejects.toThrow("User Id is required!");
-        });
+    it("returns user when found", async () => {
+      const mockUser = { name: "Toby", email: "toby@example.com" };
+      (UserRepository.getUser as jest.Mock).mockResolvedValueOnce({ data: mockUser });
 
-        it("returns user data if userId is valid", async () => {
-            mockFrom.mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                            data: { name: "Toby", email: "toby@example.com" },
-                            error: null,
-                        })
-                    })
-                })
-            })
-
-            const userData = await getUser("some-id");
-            expect(userData).toEqual({ name: "Toby", email: "toby@example.com" });
-            expect(mockFrom).toHaveBeenCalledWith("User");
-            expect(mockSelect).toHaveBeenCalledWith();
-            expect(mockEq).toHaveBeenCalledWith("user_id", "some-id");
-            expect(mockMaybeSingle).toHaveBeenCalled();
-        });
-
-        it("throws error if Supabase returns an error object", async () => {
-            mockFrom.mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                            data: null,
-                            error: { message: "Supabase down" },
-                        })
-                    })
-                })
-            })
-
-            await expect(getUser("some-id")).rejects.toThrow("Failed to fetch user: Supabase down");
-        });
-
-        it("throws error if maybeSingle() itself throws", async () => {
-            mockFrom.mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        maybeSingle: mockMaybeSingle.mockRejectedValueOnce(new Error("Network failure"))
-                    })
-                })
-            })
-
-
-            await expect(getUser("some-id")).rejects.toThrow("Network failure");
-        });
+      const result = await getUser("some-id");
+      expect(result).toEqual(mockUser);
+      expect(UserRepository.getUser).toHaveBeenCalledWith("some-id");
     });
 
-    describe("addUser", () => {
-        let mockUser: User = {
-            userId: "",
-            pfp: "",
-            firstName: "",
-            lastName: "",
-            pronouns: "",
-            email: "",
-            displayName: "",
-            university: "",
-            studentId: "",
-            year: "",
-            faculty: "",
-            major: "",
-            whyPm: "",
-        };
+    it("throws when repo returns error", async () => {
+      (UserRepository.getUser as jest.Mock).mockResolvedValueOnce({ error: { message: "DB Down" } });
 
-        it("adds a new user to database", async () => {
-            (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(false);
-            (mapToSupabaseUser as jest.Mock).mockReturnValue({ user_id: mockUser.userId });
-            mockFrom.mockReturnValueOnce({
-                upsert: mockUpsert.mockResolvedValueOnce({
-                     error: null
-                })
-            })
-
-            await expect(addUser(mockUser)).resolves.toEqual({ message: "success" });
-            expect(mockUpsert).toHaveBeenCalledWith({ user_id: mockUser.userId });
-        });
-
-        it("can update existing user", async () => {
-            (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(false);
-            (mapToSupabaseUser as jest.Mock).mockReturnValueOnce({ user_id: mockUser.userId })
-                .mockReturnValueOnce({ user_id: mockUser.userId + "2"});
-            mockFrom.mockReturnValueOnce({
-                upsert: mockUpsert.mockResolvedValueOnce({
-                     error: null
-                })
-            }).mockReturnValueOnce({
-                upsert: mockUpsert.mockReturnValueOnce({
-                   error: null        
-                })
-            })
-
-            await expect(addUser(mockUser)).resolves.toEqual({ message: "success" });
-            expect(mockUpsert).toHaveBeenCalledWith({ user_id: mockUser.userId });
-
-            await expect(addUser({...mockUser, userId: mockUser.userId + "2"})).resolves.toEqual({ message: "success" });
-            expect(mockUpsert).toHaveBeenCalledWith({ user_id: mockUser.userId + "2" });
-        });
-
-        it("throws when adding a user fails", async () => {
-            (checkSupabaseUserExists as jest.Mock).mockResolvedValueOnce(false);
-            (mapToSupabaseUser as jest.Mock).mockReturnValue({ user_id: mockUser.userId });
-            mockFrom.mockReturnValueOnce({
-                upsert: mockUpsert.mockResolvedValueOnce({ error: { message: "insert error" }})
-            })
-
-            await expect(addUser(mockUser)).rejects.toThrow("Error creating user: insert error");
-        });
+      await expect(getUser("some-id")).rejects.toThrow("Failed to fetch user: DB Down");
     });
 
-})
+    it("returns null when no user found", async () => {
+      (UserRepository.getUser as jest.Mock).mockResolvedValueOnce({ data: null });
 
+      const result = await getUser("missing-id");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("addUser", () => {
+    const mockUser: User = {
+      userId: "123",
+      pfp: "",
+      firstName: "Toby",
+      lastName: "Fox",
+      pronouns: "",
+      email: "toby@example.com",
+      displayName: "",
+      university: "",
+      studentId: "",
+      year: "",
+      faculty: "",
+      major: "",
+      whyPm: "",
+    };
+
+    it("adds user successfully", async () => {
+      (mapToSupabaseUser as jest.Mock).mockReturnValueOnce({ user_id: "123" });
+      (UserRepository.addUser as jest.Mock).mockResolvedValueOnce({ error: null });
+
+      await expect(addUser(mockUser)).resolves.toEqual({ message: "success" });
+      expect(UserRepository.addUser).toHaveBeenCalledWith({ user_id: "123" });
+    });
+
+    it("throws when insert fails", async () => {
+      (mapToSupabaseUser as jest.Mock).mockReturnValueOnce({ user_id: "123" });
+      (UserRepository.addUser as jest.Mock).mockResolvedValueOnce({ error: { message: "Insert failed" } });
+
+      await expect(addUser(mockUser)).rejects.toThrow("Error creating user: Insert failed");
+    });
+  });
+
+  describe("addUserFromGuestRegistration", () => {
+    const guest = {
+      firstName: "Guest",
+      lastName: "User",
+      studentId: "s123",
+      email: "guest@test.com",
+      university: "Uni",
+      faculty: "Science",
+      major: "CS",
+      pronouns: "they/them"
+    } as any;
+
+    it("inserts guest user successfully", async () => {
+      const returned = { id: "guest-user" };
+      (UserRepository.addUserFromGuestRegistration as jest.Mock).mockResolvedValueOnce({ data: returned });
+
+      const result = await addUserFromGuestRegistration(guest, "uid123");
+      expect(result).toEqual(returned);
+    });
+
+    it("throws if insert error", async () => {
+      (UserRepository.addUserFromGuestRegistration as jest.Mock).mockResolvedValueOnce({
+        data: null,
+        error: { message: "DB Error" }
+      });
+
+      await expect(addUserFromGuestRegistration(guest, "uid123")).rejects.toThrow("Error inserting guestUser: DB Error");
+    });
+  });
+
+  describe("findUserByEmail", () => {
+    it("returns user on success", async () => {
+      const mockUser = { email: "a@test.com" };
+      (UserRepository.findUserByEmail as jest.Mock).mockResolvedValueOnce({ data: mockUser });
+
+      const result = await findUserByEmail("a@test.com");
+      expect(result).toEqual(mockUser);
+    });
+
+    it("throws on DB error", async () => {
+      (UserRepository.findUserByEmail as jest.Mock).mockResolvedValueOnce({ error: { message: "Not found" } });
+
+      await expect(findUserByEmail("a@test.com")).rejects.toThrow("Failed to find user: Not found");
+    });
+  });
+
+  describe("getUsers", () => {
+    it("returns user list", async () => {
+      const users = [{ email: "a@test.com" }];
+      (UserRepository.getUsers as jest.Mock).mockResolvedValueOnce({ data: users });
+
+      const result = await getUsers();
+      expect(result).toEqual(users);
+    });
+
+    it("throws on error", async () => {
+      (UserRepository.getUsers as jest.Mock).mockResolvedValueOnce({ error: { message: "DB Error" } });
+
+      await expect(getUsers()).rejects.toThrow("Failed to fetch users: DB Error");
+    });
+  });
+});

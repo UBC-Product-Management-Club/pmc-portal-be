@@ -1,24 +1,20 @@
-import { supabase } from "../../config/supabase";
-import { Database, Tables } from "../../schema/v2/database.types";
+import { Database, Tables, TablesInsert } from "../../schema/v2/database.types";
+import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { getEvent } from "../Event/EventService";
 
-type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
+type Attendee = TablesInsert<"Attendee">
 
 // Adds correctly 
-export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tables<"Attendee">> => {
+export const addAttendee = async (registrationData: Attendee): Promise<Tables<"Attendee">> => {
 
     await checkValidAttendee(registrationData);
 
-    const attendee: AttendeeInsert = {
+    const attendee: Attendee = {
         ...registrationData,
         registration_time: new Date().toISOString(),
     }
 
-    const { data, error } = await supabase
-        .from('Attendee')
-        .insert(attendee)
-        .select()
-        .single();
+    const { data, error } = await AttendeeRepository.addAttendee(attendee) 
     
     if (error) {
         throw new Error(`Failed to create attendee: ${error.message}`);
@@ -29,16 +25,7 @@ export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tab
 
 // Returns attendee (not gurarenteed to be payment verified) [Ngl don't know why we need this still]
 export const getAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
-    const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).maybeSingle()
-    if (error) {
-        throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
-    }
-    return attendee
-}
-
-// Returns only registered and payment verified anttendees
-export const getRegisteredAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
-    const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).or(`is_payment_verified.eq.true,status.eq.REGISTERED`).maybeSingle()
+    const { data: attendee, error } = await AttendeeRepository.getAttendee(eventId, userId)
     if (error) {
         throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
     }
@@ -46,7 +33,7 @@ export const getRegisteredAttendee = async (eventId: string, userId: string): Pr
 }
 
 export const deleteAttendee = async (attendeeId: string): Promise<{message: string}> => {
-    const { error } = await supabase.from("Attendee").delete().eq('attendee_id', attendeeId)
+    const { error } = await AttendeeRepository.deleteAttendee(attendeeId)
     if (error) {
         throw new Error(`Failed to delete attendee ${attendeeId}: ${error.message}`) 
     }
@@ -54,7 +41,7 @@ export const deleteAttendee = async (attendeeId: string): Promise<{message: stri
     return {message: `deleting attendee ${attendeeId}`};
 }
 
-export const checkValidAttendee = async (registrationData: AttendeeInsert) => {
+export const checkValidAttendee = async (registrationData: Attendee) => {
     const { user_id, event_id } = registrationData;
     const event = await getEvent(event_id)
     
@@ -74,5 +61,3 @@ export const checkValidAttendee = async (registrationData: AttendeeInsert) => {
         throw new Error(`User already registered for event`)
     }
 }
-
-
