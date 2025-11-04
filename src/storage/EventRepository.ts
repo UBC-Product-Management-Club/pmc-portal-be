@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { supabase } from "../config/supabase";
-import { Tables, TablesInsert } from "../schema/v2/database.types";
+import { Tables } from "../schema/v2/database.types";
 import { EventInsert } from "../schema/v2/Event";
 
 type EventRow = Tables<"Event">;
@@ -45,14 +45,12 @@ export const EventRepository = {
       .eq("user_id", userId)
       .gte("Event.end_time", new Date().toISOString())
       .order("date", { referencedTable: "Event", ascending: false }),
-  getEventPriceId: (eventId: string, selectField: "member_price_id" | "non_member_price_id") =>
-    supabase
-      .from("Event")
-      .select(selectField)
-      .eq("event_id", eventId)
-      .single(),
-  addEvent: (event: EventCreate) =>
-    supabase.from("Event").insert(event),
+  getEventPriceId: (
+    eventId: string,
+    selectField: "member_price_id" | "non_member_price_id"
+  ) =>
+    supabase.from("Event").select(selectField).eq("event_id", eventId).single(),
+  addEvent: (event: EventCreate) => supabase.from("Event").insert(event),
   getCapacityStatus: (eventId: string) =>
     supabase
       .from("Event")
@@ -62,6 +60,12 @@ export const EventRepository = {
         attendees:Attendees!inner(event_id)
       `
       )
+      .eq("event_id", eventId)
+      .single(),
+  getMailingList: (eventId: string) =>
+    supabase
+      .from("Event")
+      .select("mailing_list")
       .eq("event_id", eventId)
       .single(),
 };
