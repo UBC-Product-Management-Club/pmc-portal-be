@@ -1,5 +1,5 @@
-import { supabase } from "../../src/config/supabase";
-import { Tables, TablesInsert } from "../../src/schema/v2/database.types";
+import { supabase } from "../config/supabase";
+import { TablesInsert } from "../../src/schema/v2/database.types";
 
 type UserInsert = TablesInsert<"User">;
 
