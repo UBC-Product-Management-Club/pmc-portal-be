@@ -23,7 +23,8 @@ export const sessionFilter = async (req: Request, res: Response, next: NextFunct
             req.user = user;
         }
     } catch (err) {
-        throw err;
+        console.error(err)
+        return res.status(500).json({ message: "failed to fetch user for current session!" })
     }
     next();
 };

@@ -3,7 +3,6 @@ import * as AttendeeService from "../../../src/services/Attendee/AttendeeService
 import { addAttendee } from "../../../src/services/Attendee/AttendeeService";
 import { getEvent } from "../../../src/services/Event/EventService";
 import { AttendeeRepository } from "../../../src/storage/AttendeeRepository";
-import { EventRepository } from "../../../src/storage/EventRepository";
 
 jest.mock("../../../src/services/Event/EventService", () => ({
     getEvent: jest.fn()

@@ -21,7 +21,7 @@ attendeeRouter.get("/:eventId", ...authenticated, async (req, res) => {
     }
 });
 
-attendeeRouter.delete("/:attendeeId/delete", ...authenticated, async (req, res) => {
+attendeeRouter.delete("/:attendeeId", ...authenticated, async (req, res) => {
     const userId = req.user?.user_id
     const attendeeId = req.params.attendeeId;
 
