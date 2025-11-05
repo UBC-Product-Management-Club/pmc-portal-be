@@ -8,12 +8,9 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-    if (process.env.NODE_ENV !== 'test') {
-        throw new Error("Missing required Supabase environment variables");
-    }
+    throw new Error("Missing required Supabase environment variables");
 }
 
-// Initialize only if env vars exist
-export const supabase = (supabaseUrl && supabaseKey)
-  ? createClient<Database>(supabaseUrl, supabaseKey)
-  : undefined;
+const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+
+export { supabase };
