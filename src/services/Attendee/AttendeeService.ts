@@ -1,4 +1,4 @@
-import { Database, Tables, TablesInsert } from "../../schema/v2/database.types";
+import { Tables, TablesInsert } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { getEvent } from "../Event/EventService";
 
@@ -9,13 +9,7 @@ export const addAttendee = async (registrationData: Attendee): Promise<Tables<"A
 
     await checkValidAttendee(registrationData);
 
-    const attendee: Attendee = {
-        ...registrationData,
-        registration_time: new Date().toISOString(),
-        status: 'registered'
-    }
-
-    const { data, error } = await AttendeeRepository.addAttendee(attendee) 
+    const { data, error } = await AttendeeRepository.addAttendee(registrationData) 
     
     if (error) {
         throw new Error(`Failed to create attendee: ${error.message}`);
@@ -62,12 +56,12 @@ export const checkValidAttendee = async (registrationData: Attendee) => {
     if (!event || event && Object.keys(event).length == 0) {
         throw new Error(`Event missing: ${event_id}`)
     }
-
+    
     if (event.max_attendees === event.registered) {
         throw new Error(`Event ${event_id} is full!`)
     }
 
-    if (await getRegisteredAttendee(event_id, user_id)) {
+    if ((await AttendeeRepository.getRegisteredAttendee(event_id, user_id)).data) {
         throw new Error(`User already registered for event`)
     }
 }

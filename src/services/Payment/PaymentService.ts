@@ -183,6 +183,7 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
           await AttendeeRepository.updateAttendee(attendeeId, {
             is_payment_verified: true,
             payment_id: paymentId,
+            status: "REGISTERED"
           });
         if (error) {
           console.error("Attendee verify update err:", error);
@@ -236,6 +237,8 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
       );
     console.log(`Payment ${paymentId} succeeded for attendee ${attendeeId}`);
   }
+
+  // TODO: Handle checkout session for application based events!
 
   try {
     addToMailingList(attendeeId);

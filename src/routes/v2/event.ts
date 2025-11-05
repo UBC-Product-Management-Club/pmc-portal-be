@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
 import { Database } from "../../schema/v2/database.types";
-import { addAttendee, getRegisteredAttendee } from "../../services/Attendee/AttendeeService";
+import { addAttendee, getAttendee } from "../../services/Attendee/AttendeeService";
 import { authenticated } from "../../middleware/Session";
 import multer from "multer"
 import { uploadSupabaseFiles } from "../../storage/Storage";
@@ -33,19 +33,17 @@ eventRouter.get('/:id', async (req, res) => {
 });
 
 eventRouter.get('/events/registered', ...authenticated, async (req, res) => {
-    const user = req.user
+    const userId = req.user?.user_id
+    if (!userId) return res.status(400).json({ error: "User ID is required!"})
+
     try {
-        if (user) {
-            const userCurrentEvents = await getRegisteredEvents(user.user_id);
-            return res.status(200).json(userCurrentEvents);
-        }
-        return res.status(200).json([]);
+        const userCurrentEvents = await getRegisteredEvents(userId);
+        return res.status(200).json(userCurrentEvents);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }
 });
 
-// Checks if user is registered for event
 eventRouter.get('/:eventId/attendee', ...authenticated, async (req: Request, res: Response) => {
     const userId = req.user?.user_id
     const eventId = req.params.eventId;
@@ -55,7 +53,7 @@ eventRouter.get('/:eventId/attendee', ...authenticated, async (req: Request, res
     }
 
     try {
-        const attendee = await getRegisteredAttendee(eventId, userId);
+        const attendee = await getAttendee(eventId, userId);
         return res.status(200).json(attendee);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
@@ -96,6 +94,7 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
         });
 
     } catch (error: any) {
+        console.error(error)
         res.status(500).json({ error: error.message })
     }
 });
