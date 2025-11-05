@@ -1,6 +1,6 @@
 import { Database, Tables, TablesInsert } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
-import { getEvent, getRegisteredEvents } from "../Event/EventService";
+import { getEvent } from "../Event/EventService";
 
 type Attendee = TablesInsert<"Attendee">
 
@@ -56,7 +56,7 @@ export const checkValidAttendee = async (registrationData: Attendee) => {
     if (!event || event && Object.keys(event).length == 0) {
         throw new Error(`Event missing: ${event_id}`)
     }
-
+    console.log(event)
     if (event.max_attendees === event.registered) {
         throw new Error(`Event ${event_id} is full!`)
     }
