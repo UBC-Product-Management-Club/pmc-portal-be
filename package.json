@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon --exec ts-node --project tsconfig.prod.json --files src/index.ts",
-    "test": "jest",
+    "test": "NODE_ENV=test jest",
     "build": "tsc --project tsconfig.prod.json"
   },
   "keywords": [],
