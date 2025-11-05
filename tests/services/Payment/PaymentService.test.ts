@@ -204,7 +204,7 @@ describe("PaymentService", () => {
                     payment_date: expect.any(String),
                 })
             );
-            expect(mockUpdateAttendee).toHaveBeenCalledWith("att-456", { is_payment_verified: true, payment_id: "pi_event_test" })
+            expect(mockUpdateAttendee).toHaveBeenCalledWith("att-456", { is_payment_verified: true, payment_id: "pi_event_test", status: "REGISTERED" })
         });
 
         it("check free event payment succeeded", async () => {
