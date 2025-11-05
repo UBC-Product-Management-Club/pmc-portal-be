@@ -1,11 +1,12 @@
+jest.mock("../../../src/services/Event/EventService", () => ({
+    getEvent: jest.fn()
+}));
+
 import { Tables, TablesInsert } from "../../../src/schema/v2/database.types";
 import { checkValidAttendee, addAttendee, getAttendee } from "../../../src/services/Attendee/AttendeeService";
 import { getEvent } from "../../../src/services/Event/EventService";
 import { AttendeeRepository } from "../../../src/storage/AttendeeRepository";
 
-jest.mock("../../../src/services/Event/EventService", () => ({
-    getEvent: jest.fn()
-}));
 
 type AttendeeInsert = TablesInsert<"Attendee">;
 type AttendeeRow = Tables<"Attendee">;
