@@ -2,7 +2,6 @@ import { addEvent, getEvent, getEvents, getRegisteredEvents } from '../../../src
 import { EventRepository } from '../../../src/storage/EventRepository';
 
 describe("EventService", () => {
-
     beforeEach(() => {
         jest.clearAllMocks()
     });

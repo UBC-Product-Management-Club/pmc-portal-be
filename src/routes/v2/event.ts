@@ -47,11 +47,7 @@ eventRouter.get('/events/registered', ...authenticated, async (req, res) => {
 eventRouter.get('/:eventId/attendee', ...authenticated, async (req: Request, res: Response) => {
     const userId = req.user?.user_id
     const eventId = req.params.eventId;
-
-    if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
-    }
-
+    if (!userId) return res.status(400).json({ error: "User ID required!"})
     try {
         const attendee = await getAttendee(eventId, userId);
         return res.status(200).json(attendee);
@@ -59,7 +55,6 @@ eventRouter.get('/:eventId/attendee', ...authenticated, async (req: Request, res
         return res.status(500).json({ error: error.message });
     }
 });
-
 
 // Adds event attendee (payment not verified, payment id set to null)
 eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (req: Request, res: Response) => {

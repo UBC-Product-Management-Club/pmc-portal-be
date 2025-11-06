@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAttendee, deleteAttendee } from "../../services/Attendee/AttendeeService";
+import { deleteAttendee, getAttendee } from "../../services/Attendee/AttendeeService";
 import { authenticated } from "../../middleware/Session";
 
 export const attendeeRouter = Router();
@@ -21,16 +21,15 @@ attendeeRouter.get("/:eventId", ...authenticated, async (req, res) => {
     }
 });
 
-attendeeRouter.delete("/:attendeeId", ...authenticated, async (req, res) => {
+attendeeRouter.delete("/:eventId", ...authenticated, async (req, res) => {
     const userId = req.user?.user_id
-    const attendeeId = req.params.attendeeId;
-
-    if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
-    }
+    const eventId = req.params.eventId;
+    if (!userId) return res.status(400).json({ error: 'Missing required user id!' });
+    const attendee = await getAttendee(eventId, userId);
+    if (!attendee) return res.status(400).json({ error: `Attendee not found ${eventId}: ${userId}`})
 
     try {
-        const response = await deleteAttendee(attendeeId);
+        const response = await deleteAttendee(attendee.attendee_id);
         return res.status(200).json(response);
     } catch (error: any) {
         res.status(500).json({ error: error.message });

@@ -1,7 +1,10 @@
 import { Router, Request, Response } from "express";
-import { createMembershipPaymentIntent, MEMBERSHIP_FEE_NONUBC, MEMBERSHIP_FEE_UBC } from "../../services/Payment/PaymentService";
+import { createMembershipPaymentIntent, deleteEventCheckoutSession, fetchEventCheckoutSession, MEMBERSHIP_FEE_NONUBC, MEMBERSHIP_FEE_UBC, saveEventCheckoutSession } from "../../services/Payment/PaymentService";
 import { createCheckoutSession, createEventCheckoutSession } from "../../services/Payment/PaymentService";
 import { authenticated } from "../../middleware/Session";
+import { getAttendee } from "../../services/Attendee/AttendeeService";
+import { getEventPriceId } from "../../services/Event/EventService";
+import { getUser } from "../../services/User/UserService";
 
 export const paymentRouter = Router()
 
@@ -47,23 +50,59 @@ paymentRouter.get("/checkout-session/membership", authenticated, async(req: Requ
     }
 })
 
-// Creates event checkout session 
-paymentRouter.post("/checkout-session/event/:eventId", authenticated, async(req: Request, res: Response) => {
+paymentRouter.get("/checkout-session/event/:eventId", authenticated, async (req: Request, res: Response) => {
     const userId = req.user?.user_id
+    const eventId = req.params.eventId
     if (!userId) throw Error("userId is required!")
-        
+
     try {
-        const attendeeId = req.body.attendeeId
-        const { eventId } = req.params;
-        const session = await createEventCheckoutSession(userId, eventId, attendeeId);
-        return res.json({url: session.url})
-    }
-    catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            message: "Error creating checkout session."
-        })
+        const attendee = await getAttendee(eventId, userId)
+        if (!attendee) {
+            throw new Error(`No attendee found for ${eventId}:${userId}`)
+        }
+        const session = await fetchEventCheckoutSession(attendee.attendee_id)
+        return res.status(200).json(session)
+    } catch (error) {
+        return res.status(500).json(error)
     }
 })
 
+// Creates event checkout session 
+paymentRouter.post("/checkout-session/event/:eventId", authenticated, async(req: Request, res: Response) => {
+    const userId = req.user?.user_id
+    const eventId = req.params.eventId
+    if (!userId) return res.status(400).json({ message: "user Id is required!"})
+    const attendee = await getAttendee(eventId, userId)
+    if (!attendee) return res.status(400).json({ message: `No attendee found ${eventId}:${userId}`})
+        
+    try {
+        const user = await getUser(userId)
+        const isMember = user?.is_payment_verified
+        const priceId = await getEventPriceId(eventId, !!isMember)
+        const session = await createEventCheckoutSession(attendee.attendee_id, eventId, userId, priceId);
+        if (!session.url) {
+            throw new Error("Session URL is null!")
+        }
+        saveEventCheckoutSession(attendee.attendee_id, session.id)
+        return res.status(200).json(session)
+    }
+    catch (error) {
+        console.log(error)
+        return res.status(500).json(error)
+    }
+})
 
+paymentRouter.delete("/checkout-session/event/:eventId", authenticated, async (req: Request, res: Response) => {
+    const userId = req.user?.user_id
+    const eventId = req.params.eventId
+    if (!userId) return res.status(400).json({ message: "user Id is required!"})
+    const attendee = await getAttendee(eventId, userId)
+    if (!attendee) return res.status(400).json({ message: `No attendee found ${eventId}:${userId}`})
+
+    try {
+        await deleteEventCheckoutSession(attendee.attendee_id)
+        return res.status(200).json({ message: `Deleted checkout session for user ${userId} and event ${eventId}`})
+    } catch (error) {
+        return res.status(500).json(error)
+    }
+})
