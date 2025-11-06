@@ -6,7 +6,8 @@ const config: Config.InitialOptions = {
     clearMocks: true, 
     restoreMocks: true,           
     testMatch: ['**/tests/**/*.test.ts'],  
-    setupFilesAfterEnv: ['./tests/testSetup.ts'], 
+    setupFiles: ['./tests/setup.ts'],
+    setupFilesAfterEnv: ['./tests/setup_after.ts'], 
     modulePathIgnorePatterns: ['<rootDir>/build/'],
     transform: {
         '^.+\\.ts$': ['ts-jest', { tsconfig: './tsconfig.test.json' }]

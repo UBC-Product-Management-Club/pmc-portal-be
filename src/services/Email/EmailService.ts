@@ -1,5 +1,6 @@
 import { loops } from "../../config/loops";
-import { supabase } from "../../config/supabase";
+import { AttendeeRepository } from "../../storage/AttendeeRepository";
+import { UserRepository } from "../../storage/UserRepository";
 
 enum ConfirmationEvent {
     MembershipPayment = "membership_payment",
@@ -8,7 +9,7 @@ enum ConfirmationEvent {
 
 const sendConfirmationEmail = async (userId: string, type: ConfirmationEvent) => {
     try {
-        const { data, error } = await supabase.from("User").select("email").eq("user_id", userId).single();
+        const { data, error } = await UserRepository.getEmailByUserId(userId);
 
         if (error || !data) {
             throw new Error("User email not found: " + error?.message);
@@ -26,18 +27,9 @@ const sendConfirmationEmail = async (userId: string, type: ConfirmationEvent) =>
     }
 };
 
-const addToMailingList = async (userId: string, attendeeId: string) => {
+const addToMailingList = async (attendeeId: string) => {
     try {
-        const { data, error } = await supabase
-            .from("Attendee")
-            .select(
-                `
-                User!inner ( email ),
-                Event!inner ( mailing_list )
-                `
-            )
-            .eq("attendee_id", attendeeId)
-            .single();
+        const { data, error } = await AttendeeRepository.getEmailAndMailingListByAttendee(attendeeId)
 
         if (error || !data) {
             throw new Error("Attendee or associated User/Event not found: " + error?.message);

@@ -1,315 +1,238 @@
+jest.mock("../../../src/services/Event/EventService", () => ({
+  getEvent: jest.fn(),
+}));
 
-import { supabase } from '../../../src/config/supabase';
-import { Database } from '../../../src/schema/v2/database.types';
-import * as AttendeeService from '../../../src/services/Attendee/AttendeeService';
-import { addAttendee, checkValidAttendee, getAttendee } from '../../../src/services/Attendee/AttendeeService';
-import { getEvent } from '../../../src/services/Event/EventService';
+import { Tables, TablesInsert } from "../../../src/schema/v2/database.types";
+import {
+  createAttendee,
+  addAttendee,
+  getAttendee,
+} from "../../../src/services/Attendee/AttendeeService";
+import { getEvent } from "../../../src/services/Event/EventService";
+import { AttendeeRepository } from "../../../src/storage/AttendeeRepository";
 
-type AttendeeRow = Database['public']['Tables']['Attendee']['Row'];
-type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
-
-jest.mock("../../../src/services/Event/EventService")
+type AttendeeInsert = TablesInsert<"Attendee">;
+type AttendeeRow = Tables<"Attendee">;
 
 describe("AttendeeService", () => {
-    let mockFrom: jest.Mock = (supabase.from as jest.Mock);
-    let mockSelect: jest.Mock = jest.fn();
-    let mockEq: jest.Mock = jest.fn();
-    let mockInsert: jest.Mock = jest.fn();
-    let mockSingle: jest.Mock = jest.fn();
-    let mockMaybeSingle: jest.Mock = jest.fn();
-    let mockGetEvent: jest.Mock = (getEvent as jest.Mock);
-    let registrationData: AttendeeInsert;
+  let mockGetEvent: jest.Mock;
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetEvent = getEvent as jest.Mock;
+  });
 
-    beforeEach(() => {
-        registrationData = {
-            user_id: 'user-123',
-            event_id: 'event-456',
-        };
+  describe("addAttendee", () => {
+    it("should create attendee with full data", async () => {
+      const registrationData: AttendeeInsert = {
+        user_id: "user-123",
+        event_id: "event-456",
+        payment_id: "payment-789",
+        event_form_answers: { shirtSize: "M", meal: "vegetarian" },
+      };
+
+      const mockAttendee: AttendeeRow = {
+        attendee_id: "attendee-123",
+        user_id: "user-123",
+        event_id: "event-456",
+        payment_id: "payment-789",
+        event_form_answers: { shirtSize: "M", meal: "vegetarian" },
+        created_at: "2025-01-15T10:00:00.000Z",
+        last_updated: "2025-01-15T10:00:00.000Z",
+        status: "REGISTERED",
+        is_payment_verified: true,
+      };
+      (getEvent as jest.Mock).mockResolvedValueOnce({
+        event_id: "event-456",
+        max_attendees: 100,
+        registered: 0,
+      });
+      (AttendeeRepository.addAttendee as jest.Mock).mockResolvedValueOnce({
+        data: mockAttendee,
+      });
+      (
+        AttendeeRepository.getRegisteredAttendee as jest.Mock
+      ).mockResolvedValueOnce({ data: null });
+      const result = await addAttendee(registrationData);
+
+      expect(result).toEqual(mockAttendee);
     });
 
-    describe('checkValidAttendee', () => {
+    it("should handle free events and minimal data", async () => {
+      const registrationData: AttendeeInsert = {
+        user_id: "user-123",
+        event_id: "event-456",
+      };
 
-        it('should throw error for missing required fields', async () => {
-            const testCases = [
-                { user_id: '', event_id: 'event-456' },
-                { user_id: 'user-123', event_id: '' },
-            ];
+      const mockAttendee: AttendeeRow = {
+        attendee_id: "attendee-123",
+        user_id: "user-123",
+        event_id: "event-456",
+        payment_id: null,
+        event_form_answers: null,
+        created_at: "2025-01-15T10:00:00.000Z",
+        last_updated: "2025-01-15T10:00:00.000Z",
+        status: "REGISTERED",
+        is_payment_verified: true,
+      };
+      (getEvent as jest.Mock).mockResolvedValueOnce({
+        event_id: "event-456",
+        max_attendees: 100,
+        registered: 0,
+      });
+      (AttendeeRepository.addAttendee as jest.Mock).mockResolvedValueOnce({
+        data: mockAttendee,
+      });
+      (
+        AttendeeRepository.getRegisteredAttendee as jest.Mock
+      ).mockResolvedValueOnce({ data: null });
+      const result = await addAttendee(registrationData);
 
-            for (const registrationData of testCases) {
-                await expect(checkValidAttendee(registrationData)).rejects.toThrow('Missing required fields');
-            }
-            expect(mockFrom).not.toHaveBeenCalled();
-        });
-
-        it('should throw error when event not found', async () => {
-            registrationData = {
-                user_id: 'user-123',
-                event_id: 'nonexistent-event',
-            };
-
-            mockGetEvent.mockResolvedValueOnce(null)
-
-            await expect(checkValidAttendee(registrationData)).rejects.toThrow('Event missing');
-            expect(mockGetEvent).toHaveBeenCalledWith(registrationData.event_id)
-        });
-
-        it('should throw error when user already registered', async () => {
-            const mockEvent = { event_id: 'event-456', max_attendees: 100, attendees: 10 };
-            const existingAttendee = { attendee_id: 'existing-123', user_id: 'user-123', event_id: 'event-456' };
-
-            mockGetEvent.mockResolvedValueOnce(mockEvent)
-
-            mockFrom.mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: jest.fn().mockReturnValueOnce({
-                        eq: jest.fn().mockReturnValueOnce({ 
-                            eq: mockEq.mockReturnValueOnce({
-                                maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                                    data: existingAttendee,
-                                    error: null
-                                })
-                            })
-                        })
-                    })
-                })
-            })
-
-            await expect(checkValidAttendee(registrationData)).rejects.toThrow('User already registered for event');
-            expect(mockFrom).toHaveBeenCalledWith("Attendee")
-        });
-
-        it('should throw error when event is full', async () => {
-            const mockEvent = { event_id: 'event-456', max_attendees: 2, registered: 2 };
-
-            mockGetEvent.mockResolvedValueOnce(mockEvent)
-
-            await expect(checkValidAttendee(registrationData)).rejects.toThrow('Event event-456 is full');
-        });
-
-        it('should throw error when counting attendees fails', async () => {
-            const mockEvent = { event_id: 'event-456', max_attendees: 100 };
-
-            mockGetEvent.mockResolvedValueOnce(mockEvent)
-
-
-            mockFrom.mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: jest.fn().mockReturnValueOnce({
-                        eq: jest.fn().mockReturnValueOnce({
-                            eq: mockEq.mockReturnValueOnce({ 
-                                maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                                    data: null,
-                                    error: {}
-                                })
-                            })
-                      })
-                    })
-                })
-            })
-
-            await expect(checkValidAttendee(registrationData)).rejects.toThrow('Failed to check if user user-123 is registered for event event-456');
-        });
-
-        it('should not throw when all validations pass', async () => {
-            const mockEvent = { event_id: 'event-456', max_attendees: 100, attendees: 10 };
-
-            mockGetEvent.mockResolvedValueOnce(mockEvent)
-
-            mockFrom.mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: jest.fn().mockReturnValueOnce({
-                        eq: jest.fn().mockReturnValueOnce({
-                            eq: mockEq.mockReturnValueOnce({
-                                maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                                    data: null,
-                                    error: null
-                                })
-                            })
-                        })
-                    })
-                })
-            })
-
-            await expect(checkValidAttendee(registrationData)).resolves.not.toThrow();
-        });
+      expect(result.payment_id).toBeNull();
+      expect(result.event_form_answers).toBeNull();
+      expect(result.status).toBe("REGISTERED");
     });
 
-    describe('addAttendee', () => {
-        describe('successfully', () => {
+    it("throws on insert error", async () => {
+      const registrationData: AttendeeInsert = {
+        user_id: "user-123",
+        event_id: "event-456",
+        payment_id: "payment-789",
+        event_form_answers: { shirtSize: "M", meal: "vegetarian" },
+      };
 
-            beforeEach(() => {
-                jest.spyOn(AttendeeService, "checkValidAttendee").mockResolvedValue(undefined);
-            })
+      (getEvent as jest.Mock).mockResolvedValueOnce({
+        event_id: "event-456",
+        max_attendees: 100,
+        registered: 0,
+      });
+      (
+        AttendeeRepository.getRegisteredAttendee as jest.Mock
+      ).mockResolvedValueOnce({ data: null });
+      (AttendeeRepository.addAttendee as jest.Mock).mockResolvedValueOnce({
+        data: null,
+        error: { message: "DB fail" },
+      });
 
-            it('should create attendee with full data', async () => {
-                const registrationData: AttendeeInsert = {
-                    user_id: 'user-123',
-                    event_id: 'event-456',
-                    payment_id: 'payment-789',
-                    event_form_answers: { shirtSize: 'M', meal: 'vegetarian' }
-                };
+      await expect(addAttendee(registrationData)).rejects.toThrow(
+        "Failed to create attendee: DB fail"
+      );
+    });
+  });
 
-                const mockAttendee: AttendeeRow = {
-                    attendee_id: 'attendee-123',
-                    user_id: 'user-123',
-                    event_id: 'event-456',
-                    payment_id: 'payment-789',
-                    event_form_answers: { shirtSize: 'M', meal: 'vegetarian' },
-                    registration_time: '2025-01-15T10:00:00.000Z',
-                    status: 'REGISTERED',
-                    is_payment_verified: true,
-                };
+  describe("getAttendee", () => {
+    it("returns attendee", async () => {
+      (AttendeeRepository.getAttendee as jest.Mock).mockResolvedValueOnce({
+        data: { a: 1 },
+        error: null,
+      });
 
-                mockFrom.mockReturnValueOnce({
-                    insert: mockInsert.mockReturnValueOnce({
-                        select: mockSelect.mockReturnValueOnce({
-                            single: mockSingle.mockResolvedValueOnce({
-                                data: mockAttendee,
-                                error: null
-                            })
-                        })
-                    })
-                })
-
-                const result = await addAttendee(registrationData);
-
-                expect(result).toEqual(mockAttendee);
-            });
-
-            it('should handle free events and minimal data', async () => {
-                const registrationData: AttendeeInsert = {
-                    user_id: 'user-123',
-                    event_id: 'event-456',
-                };
-
-                const mockAttendee: AttendeeRow = {
-                    attendee_id: 'attendee-123',
-                    user_id: 'user-123',
-                    event_id: 'event-456',
-                    payment_id: null,
-                    event_form_answers: null,
-                    registration_time: '2025-01-15T10:00:00.000Z',
-                    status: 'REGISTERED',
-                    is_payment_verified: true,
-                };
-
-                mockFrom.mockReturnValueOnce({
-                    insert: mockInsert.mockReturnValueOnce({
-                        select: mockSelect.mockReturnValueOnce({
-                            single: mockSingle.mockResolvedValueOnce({
-                                data: mockAttendee,
-                                error: null
-                            })
-                        })
-                    })
-                })
-
-                const result = await addAttendee(registrationData);
-
-                expect(result.payment_id).toBeNull();
-                expect(result.event_form_answers).toBeNull();
-                expect(result.status).toBe('registered');
-            });
-        });
-
-        describe('with errors', () => {
-
-            it('throws error when user is not a valid attendee', async () => {
-                jest.spyOn(AttendeeService, "checkValidAttendee").mockRejectedValueOnce(new Error("Invalid attendee"));
-                const registrationData: AttendeeInsert = {
-                    user_id: 'user-123',
-                    event_id: 'event-456',
-                };
-
-                await expect(addAttendee(registrationData)).rejects.toThrow("Invalid attendee")
-            })
-
-            it('should throw error when insert fails', async () => {
-                jest.spyOn(AttendeeService, "checkValidAttendee").mockResolvedValueOnce(undefined);
-                const registrationData: AttendeeInsert = {
-                    user_id: 'user-123',
-                    event_id: 'event-456',
-                };
-
-                mockFrom.mockReturnValueOnce({
-                    insert: mockInsert.mockReturnValueOnce({
-                        select: mockSelect.mockReturnValueOnce({
-                            single: mockSingle.mockResolvedValueOnce({
-                                data: null,
-                                error: { message: "Foreign key constraint violation" }
-                            })
-                        })
-                    })
-                })
-
-
-
-                await expect(addAttendee(registrationData)).rejects.toThrow('Failed to create attendee: Foreign key constraint violation');
-            });
-        });
-
+      const result = await getAttendee("e", "u");
+      expect(result).toEqual({ a: 1 });
     });
 
-    describe('getAttendee', () => {
-        let mockEq2: jest.Mock;
+    it("throws on error", async () => {
+      (AttendeeRepository.getAttendee as jest.Mock).mockResolvedValueOnce({
+        data: null,
+        error: { message: "fail" },
+      });
 
-        beforeEach(() => {
-            mockEq2 = jest.fn()
-        })
+      await expect(getAttendee("e", "u")).rejects.toThrow(
+        "Failed to check if user u is registered for event e"
+      );
+    });
+  });
 
-        const mockAttendee = {
-            attendee_id: "attendee_id",
-            event_form_answers: {},
-            event_id: "event_id",
-            is_payment_verified: true,
-            payment_id: "payment_id",
-            registration_time: "reg-time",
-            status: "REGISTERED",
-            user_id: "user_id",
-        }
+  // update attendee
 
-        it('fetches event attendee by user id', async () => {
-            const eventId = "event_id";
-            const userId = "user_id";
-            mockFrom.mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        eq: mockEq2.mockReturnValueOnce({
-                            maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                                data: mockAttendee, error: null
-                            })
-                        })
-                    })
-                })
-            })
+  // delete attendee
 
-            const attendee = await getAttendee(eventId, userId)
+  describe("createAttendee", () => {
+    it("should throw error for missing required fields", async () => {
+      const testCases = [
+        { user_id: "", event_id: "event-456" },
+        { user_id: "user-123", event_id: "" },
+      ];
 
-            expect(attendee).toEqual(mockAttendee)
-            expect(mockFrom).toHaveBeenCalledWith("Attendee")
-            expect(mockEq).toHaveBeenCalledWith("user_id", userId)
-            expect(mockEq2).toHaveBeenCalledWith("event_id", eventId)
-            expect(mockMaybeSingle).toHaveBeenCalled()
-        })
+      for (const registrationData of testCases) {
+        await expect(createAttendee(registrationData)).rejects.toThrow(
+          "Missing required fields"
+        );
+      }
+    });
 
-        it('fails to fetch attendee', async () => {
-            const eventId = "event_id";
-            const userId = "user_id";
-            mockFrom.mockReturnValueOnce({
-                select: mockSelect.mockReturnValueOnce({
-                    eq: mockEq.mockReturnValueOnce({
-                        eq: mockEq2.mockReturnValueOnce({
-                            maybeSingle: mockMaybeSingle.mockResolvedValueOnce({
-                                data: null, error: { message: "error" }
-                            })
-                        })
-                    })
-                })
-            })
+    it("should throw error when event not found", async () => {
+      const registrationData = {
+        user_id: "user-123",
+        event_id: "nonexistent-event",
+      };
 
-            await expect(getAttendee(eventId, userId)).rejects.toThrow("Failed to check if user user_id is registered for event event_id")
-        })
+      mockGetEvent.mockResolvedValueOnce(null);
 
-    })
-})
+      await expect(createAttendee(registrationData)).rejects.toThrow(
+        "Event missing"
+      );
+      expect(mockGetEvent).toHaveBeenCalledWith(registrationData.event_id);
+    });
 
+    it("should throw error when event is full", async () => {
+      const registrationData = {
+        user_id: "user-123",
+        event_id: "event-456",
+      };
+      const mockEvent = {
+        event_id: "event-456",
+        max_attendees: 2,
+        registered: 2,
+      };
+
+      mockGetEvent.mockResolvedValueOnce(mockEvent);
+
+      await expect(createAttendee(registrationData)).rejects.toThrow(
+        "Event event-456 is full"
+      );
+    });
+
+    it("should throw if already registered", async () => {
+      const registrationData = {
+        user_id: "user-123",
+        event_id: "event-456",
+      };
+      const mockEvent = {
+        event_id: "event-456",
+        max_attendees: 100,
+        registered: 10,
+      };
+
+      mockGetEvent.mockResolvedValueOnce(mockEvent);
+      (
+        AttendeeRepository.getRegisteredAttendee as jest.Mock
+      ).mockResolvedValueOnce({ data: registrationData });
+
+      await expect(createAttendee(registrationData)).rejects.toThrow(
+        "User already registered for event"
+      );
+    });
+
+    it("should not throw when all validations pass", async () => {
+      const registrationData = {
+        user_id: "user-123",
+        event_id: "event-456",
+      };
+      const mockEvent = {
+        event_id: "event-456",
+        max_attendees: 100,
+        registered: 10,
+      };
+
+      mockGetEvent.mockResolvedValueOnce(mockEvent);
+      (
+        AttendeeRepository.getRegisteredAttendee as jest.Mock
+      ).mockResolvedValueOnce({ data: null });
+
+      expect(await createAttendee(registrationData)).toEqual({
+        ...registrationData,
+        status: "PROCESSING",
+      });
+    });
+  });
+});

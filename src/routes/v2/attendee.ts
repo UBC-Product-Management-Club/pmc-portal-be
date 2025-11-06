@@ -1,43 +1,49 @@
 import { Router } from "express";
-import { getAttendee, deleteAttendee, getTeam } from "../../services/Attendee/AttendeeService";
+import {
+  getAttendee,
+  deleteAttendee,
+  getTeam,
+} from "../../services/Attendee/AttendeeService";
 import { authenticated } from "../../middleware/Session";
 
 export const attendeeRouter = Router();
 
 attendeeRouter.get("/:eventId", ...authenticated, async (req, res) => {
-    const userId = req.user?.user_id
-    const eventId = req.params.eventId
+  const userId = req.user?.user_id;
+  const eventId = req.params.eventId;
 
-    if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
-    }
+  if (!userId) {
+    return res.status(401).json({ error: "User not authenticated" });
+  }
 
-    try {
-        const attendee = await getAttendee(eventId, userId)
-        return res.status(200).json(attendee)
-        
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
+  try {
+    const attendee = await getAttendee(eventId, userId);
+    return res.status(200).json(attendee);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-attendeeRouter.delete("/:attendeeId/delete", ...authenticated, async (req, res) => {
-    const userId = req.user?.user_id
-    const attendeeId = req.params.attendeeId;
+attendeeRouter.delete("/:eventId", ...authenticated, async (req, res) => {
+  const userId = req.user?.user_id;
+  const eventId = req.params.eventId;
+  if (!userId)
+    return res.status(400).json({ error: "Missing required user id!" });
+  const attendee = await getAttendee(eventId, userId);
+  if (!attendee)
+    return res
+      .status(400)
+      .json({ error: `Attendee not found ${eventId}: ${userId}` });
 
-    if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
-    }
-
-    try {
-        const response = await deleteAttendee(attendeeId);
-        return res.status(200).json(response);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
+  try {
+    const response = await deleteAttendee(attendee.attendee_id);
+    return res.status(200).json(response);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-attendeeRouter.get('/:eventId/:email/qr', async (req, res) => {
+attendeeRouter.get("/:eventId/:email/qr", async (req, res) => {
   try {
     // const event = await getSupabaseEventById(req.params.eventId);
     // const attendeeId = await checkEmail(req.params.email, req.params.eventId);
@@ -66,10 +72,10 @@ attendeeRouter.get('/:eventId/:email/qr', async (req, res) => {
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
-})
+});
 
 // updating the points for the attendee
-attendeeRouter.put('/:eventId/:email/qr/:qrCodeId', async (req, res) => {
+attendeeRouter.put("/:eventId/:email/qr/:qrCodeId", async (req, res) => {
   try {
     // const event = await getSupabaseEventById(req.params.eventId);
     // const attendeeId = await checkEmail(req.params.email, req.params.eventId);
@@ -99,7 +105,7 @@ attendeeRouter.put('/:eventId/:email/qr/:qrCodeId', async (req, res) => {
     //     message: "You have already scanned this QR code."
     //   });
     // }
-    
+
     // const qrPoints = event.points[qrCodeId];
     // const attendeeRef = db.collection('attendees').doc(attendeeId);
 
@@ -122,24 +128,22 @@ attendeeRouter.put('/:eventId/:email/qr/:qrCodeId', async (req, res) => {
   }
 });
 
+attendeeRouter.get("/:eventId/team", ...authenticated, async (req, res) => {
+  const userId = req.user?.user_id;
+  const eventId = req.params.eventId;
 
-attendeeRouter.get('/:eventId/team', ...authenticated, async (req, res) => {
-    const userId = req.user?.user_id
-    const eventId = req.params.eventId
+  if (!userId) {
+    return res.status(401).json({ error: "User not authenticated" });
+  }
 
-    if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
+  try {
+    const attendee = await getAttendee(eventId, userId);
+    if (!attendee) {
+      throw new Error("Attendee not found for event.");
     }
-
-    try {
-        const attendee = await getAttendee(eventId, userId)
-        if(!attendee) {
-          throw new Error('Attendee not found for event.')
-        }
-        const teamData = await getTeam(attendee?.attendee_id)
-        return res.status(200).json(teamData)
-        
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
-}) 
+    const teamData = await getTeam(attendee?.attendee_id);
+    return res.status(200).json(teamData);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});

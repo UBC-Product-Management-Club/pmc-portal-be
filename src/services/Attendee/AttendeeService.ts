@@ -1,14 +1,15 @@
-import { supabase } from "../../config/supabase";
-import { Database, Tables } from "../../schema/v2/database.types";
+import { Tables, TablesInsert } from "../../schema/v2/database.types";
+import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { getEvent } from "../Event/EventService";
 
-type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
+type Attendee = TablesInsert<"Attendee">
 
 // Adds correctly 
-export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tables<"Attendee">> => {
+export const addAttendee = async (registrationData: Attendee): Promise<Tables<"Attendee">> => {
 
-    await checkValidAttendee(registrationData);
+    const attendee = await createAttendee(registrationData);
 
+<<<<<<< HEAD
     const attendee: AttendeeInsert = {
         ...registrationData,
         created_at: new Date().toISOString(),
@@ -19,6 +20,9 @@ export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tab
         .insert(attendee)
         .select()
         .single();
+=======
+    const { data, error } = await AttendeeRepository.addAttendee(attendee)
+>>>>>>> 510f14a10a8dff5a645936a5a287cb2964e796f3
     
     if (error) {
         throw new Error(`Failed to create attendee: ${error.message}`);
@@ -27,8 +31,8 @@ export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tab
     return data
 }
 
-// Returns attendee (not gurarenteed to be payment verified) [Ngl don't know why we need this still]
 export const getAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
+<<<<<<< HEAD
     const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).maybeSingle()
     if (error) {
         throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
@@ -39,6 +43,9 @@ export const getAttendee = async (eventId: string, userId: string): Promise<Tabl
 // Returns only registered and payment verified anttendees
 export const getRegisteredAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
     const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).or(`is_payment_verified.eq.true,status.eq.REGISTERED`).maybeSingle()
+=======
+    const { data: attendee, error } = await AttendeeRepository.getAttendee(eventId, userId)
+>>>>>>> 510f14a10a8dff5a645936a5a287cb2964e796f3
     if (error) {
         throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
     }
@@ -46,15 +53,15 @@ export const getRegisteredAttendee = async (eventId: string, userId: string): Pr
 }
 
 export const deleteAttendee = async (attendeeId: string): Promise<{message: string}> => {
-    const { error } = await supabase.from("Attendee").delete().eq('attendee_id', attendeeId)
+    const { error } = await AttendeeRepository.deleteAttendee(attendeeId)
     if (error) {
         throw new Error(`Failed to delete attendee ${attendeeId}: ${error.message}`) 
     }
 
-    return {message: `deleting attendee ${attendeeId}`};
+    return {message: `deleted attendee ${attendeeId}`};
 }
 
-export const checkValidAttendee = async (registrationData: AttendeeInsert) => {
+export const createAttendee = async (registrationData: Attendee) : Promise<Attendee> => {
     const { user_id, event_id } = registrationData;
     const event = await getEvent(event_id)
     
@@ -65,15 +72,21 @@ export const checkValidAttendee = async (registrationData: AttendeeInsert) => {
     if (!event || event && Object.keys(event).length == 0) {
         throw new Error(`Event missing: ${event_id}`)
     }
-
+    
     if (event.max_attendees === event.registered) {
         throw new Error(`Event ${event_id} is full!`)
     }
 
-    if (await getRegisteredAttendee(event_id, user_id)) {
+    if ((await AttendeeRepository.getRegisteredAttendee(event_id, user_id)).data) {
         throw new Error(`User already registered for event`)
     }
+
+    return {
+        ...registrationData, 
+        status: event.needs_review ? 'APPLIED' : 'PROCESSING',
+    }
 }
+<<<<<<< HEAD
 
 
 export const getTeam = async (attendee_id: string) => {
@@ -132,3 +145,5 @@ export const getTeam = async (attendee_id: string) => {
     };
 };
 
+=======
+>>>>>>> 510f14a10a8dff5a645936a5a287cb2964e796f3
