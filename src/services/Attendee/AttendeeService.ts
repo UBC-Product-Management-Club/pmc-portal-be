@@ -1,149 +1,119 @@
+import { attempt } from "lodash";
 import { Tables, TablesInsert } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { getEvent } from "../Event/EventService";
 
-type Attendee = TablesInsert<"Attendee">
+type Attendee = TablesInsert<"Attendee">;
 
-// Adds correctly 
-export const addAttendee = async (registrationData: Attendee): Promise<Tables<"Attendee">> => {
+// Adds correctly
+export const addAttendee = async (
+  registrationData: Attendee
+): Promise<Tables<"Attendee">> => {
+  const attendee = await createAttendee(registrationData);
 
-    const attendee = await createAttendee(registrationData);
+  const { data, error } = await AttendeeRepository.addAttendee(attendee);
 
-<<<<<<< HEAD
-    const attendee: AttendeeInsert = {
-        ...registrationData,
-        created_at: new Date().toISOString(),
-    }
+  if (error) {
+    throw new Error(`Failed to create attendee: ${error.message}`);
+  }
 
-    const { data, error } = await supabase
-        .from('Attendee')
-        .insert(attendee)
-        .select()
-        .single();
-=======
-    const { data, error } = await AttendeeRepository.addAttendee(attendee)
->>>>>>> 510f14a10a8dff5a645936a5a287cb2964e796f3
-    
-    if (error) {
-        throw new Error(`Failed to create attendee: ${error.message}`);
-    }
-    
-    return data
-}
-
-export const getAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
-<<<<<<< HEAD
-    const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).maybeSingle()
-    if (error) {
-        throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
-    }
-    return attendee
-}
-
-// Returns only registered and payment verified anttendees
-export const getRegisteredAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
-    const { data: attendee, error } = await supabase.from("Attendee").select().eq('user_id', userId).eq('event_id', eventId).or(`is_payment_verified.eq.true,status.eq.REGISTERED`).maybeSingle()
-=======
-    const { data: attendee, error } = await AttendeeRepository.getAttendee(eventId, userId)
->>>>>>> 510f14a10a8dff5a645936a5a287cb2964e796f3
-    if (error) {
-        throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
-    }
-    return attendee
-}
-
-export const deleteAttendee = async (attendeeId: string): Promise<{message: string}> => {
-    const { error } = await AttendeeRepository.deleteAttendee(attendeeId)
-    if (error) {
-        throw new Error(`Failed to delete attendee ${attendeeId}: ${error.message}`) 
-    }
-
-    return {message: `deleted attendee ${attendeeId}`};
-}
-
-export const createAttendee = async (registrationData: Attendee) : Promise<Attendee> => {
-    const { user_id, event_id } = registrationData;
-    const event = await getEvent(event_id)
-    
-    if (!user_id || !event_id) {
-        throw new Error("Missing required fields")
-    }
-
-    if (!event || event && Object.keys(event).length == 0) {
-        throw new Error(`Event missing: ${event_id}`)
-    }
-    
-    if (event.max_attendees === event.registered) {
-        throw new Error(`Event ${event_id} is full!`)
-    }
-
-    if ((await AttendeeRepository.getRegisteredAttendee(event_id, user_id)).data) {
-        throw new Error(`User already registered for event`)
-    }
-
-    return {
-        ...registrationData, 
-        status: event.needs_review ? 'APPLIED' : 'PROCESSING',
-    }
-}
-<<<<<<< HEAD
-
-
-export const getTeam = async (attendee_id: string) => {
-    const { data: teamData, error: teamIdError } = await supabase
-        .from("Team_Member")
-        .select('team_id')
-        .eq('attendee_id', attendee_id)
-        .single()
-    if (!teamData) {
-        throw new Error("No team found")
-    }
-    if (teamIdError) {
-        throw new Error("Supabase error: " + teamIdError)
-    }
-    const team_id = teamData.team_id;
-    const { data: teamNameData, error: teamError } = await supabase
-        .from("Team")
-        .select('team_name')
-        .eq('team_id', team_id)
-        .single()
-        
-    if (teamError) {
-        throw new Error("Supabase error: " + teamError.message);
-    }
-    if (!teamNameData){ 
-        throw new Error("Team not found"); 
-    }
-      const { data: members, error: membersError } = await supabase
-        .from("Team_Member")
-        .select(`
-            attendee_id,
-            Attendee (
-                user_id,
-                User (
-                    first_name,
-                    last_name,
-                    email
-                )
-            )
-        `)
-        .eq("team_id", team_id);
-
-    if (membersError) throw new Error("Supabase error: " + membersError.message);
-
-    const teammates = members?.map((m) => ({
-        attendee_id: m.attendee_id,
-        user_id: m.Attendee?.user_id,
-        name: m.Attendee?.User?.first_name +" " + m.Attendee?.User?.last_name,
-        email: m.Attendee?.User?.email,
-    })) ?? [];
-
-    return {
-        team_id,
-        team_name: teamNameData.team_name,
-        members: teammates,
-    };
+  return data;
 };
 
-=======
->>>>>>> 510f14a10a8dff5a645936a5a287cb2964e796f3
+export const getAttendee = async (
+  eventId: string,
+  userId: string
+): Promise<Tables<"Attendee"> | null> => {
+  const { data: attendee, error } = await AttendeeRepository.getAttendee(
+    eventId,
+    userId
+  );
+  if (error) {
+    throw new Error(
+      `Failed to check if user ${userId} is registered for event ${eventId}`
+    );
+  }
+  return attendee;
+};
+
+export const deleteAttendee = async (
+  attendeeId: string
+): Promise<{ message: string }> => {
+  const { error } = await AttendeeRepository.deleteAttendee(attendeeId);
+  if (error) {
+    throw new Error(
+      `Failed to delete attendee ${attendeeId}: ${error.message}`
+    );
+  }
+
+  return { message: `deleted attendee ${attendeeId}` };
+};
+
+export const createAttendee = async (
+  registrationData: Attendee
+): Promise<Attendee> => {
+  const { user_id, event_id } = registrationData;
+  const event = await getEvent(event_id);
+
+  if (!user_id || !event_id) {
+    throw new Error("Missing required fields");
+  }
+
+  if (!event || (event && Object.keys(event).length == 0)) {
+    throw new Error(`Event missing: ${event_id}`);
+  }
+
+  if (event.max_attendees === event.registered) {
+    throw new Error(`Event ${event_id} is full!`);
+  }
+
+  if (
+    (await AttendeeRepository.getRegisteredAttendee(event_id, user_id)).data
+  ) {
+    throw new Error(`User already registered for event`);
+  }
+
+  return {
+    ...registrationData,
+    status: event.needs_review ? "APPLIED" : "PROCESSING",
+  };
+};
+
+export const getTeam = async (attendee_id: string) => {
+  const { data: teamData, error: teamIdError } =
+    await AttendeeRepository.getTeamId(attendee_id);
+  if (!teamData) {
+    throw new Error("No team found");
+  }
+  if (teamIdError) {
+    throw new Error("Supabase error: " + teamIdError);
+  }
+  const team_id = teamData.team_id;
+  const { data: teamNameData, error: teamError } =
+    await AttendeeRepository.getTeamName(team_id);
+
+  if (teamError) {
+    throw new Error("Supabase error: " + teamError.message);
+  }
+  if (!teamNameData) {
+    throw new Error("Team not found");
+  }
+  const { data: members, error: membersError } =
+    await AttendeeRepository.getTeamMembers(team_id);
+
+  if (membersError) throw new Error("Supabase error: " + membersError.message);
+
+  const teammates =
+    members?.map((m) => ({
+      attendee_id: m.attendee_id,
+      user_id: m.Attendee?.user_id,
+      name: m.Attendee?.User?.first_name + " " + m.Attendee?.User?.last_name,
+      email: m.Attendee?.User?.email,
+    })) ?? [];
+
+  return {
+    team_id,
+    team_name: teamNameData.team_name,
+    members: teammates,
+  };
+};
