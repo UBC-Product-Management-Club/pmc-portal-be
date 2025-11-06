@@ -7,9 +7,9 @@ type Attendee = TablesInsert<"Attendee">
 // Adds correctly 
 export const addAttendee = async (registrationData: Attendee): Promise<Tables<"Attendee">> => {
 
-    await checkValidAttendee(registrationData);
+    const attendee = await createAttendee(registrationData);
 
-    const { data, error } = await AttendeeRepository.addAttendee(registrationData) 
+    const { data, error } = await AttendeeRepository.addAttendee(attendee)
     
     if (error) {
         throw new Error(`Failed to create attendee: ${error.message}`);
@@ -18,18 +18,8 @@ export const addAttendee = async (registrationData: Attendee): Promise<Tables<"A
     return data
 }
 
-// Returns attendee (not gurarenteed to be payment verified) [Ngl don't know why we need this still]
 export const getAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
     const { data: attendee, error } = await AttendeeRepository.getAttendee(eventId, userId)
-    if (error) {
-        throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
-    }
-    return attendee
-}
-
-// Returns only registered and payment verified anttendees
-export const getRegisteredAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
-    const { data: attendee, error } = await AttendeeRepository.getRegisteredAttendee(eventId, userId)
     if (error) {
         throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
     }
@@ -42,10 +32,10 @@ export const deleteAttendee = async (attendeeId: string): Promise<{message: stri
         throw new Error(`Failed to delete attendee ${attendeeId}: ${error.message}`) 
     }
 
-    return {message: `deleting attendee ${attendeeId}`};
+    return {message: `deleted attendee ${attendeeId}`};
 }
 
-export const checkValidAttendee = async (registrationData: Attendee) => {
+export const createAttendee = async (registrationData: Attendee) : Promise<Attendee> => {
     const { user_id, event_id } = registrationData;
     const event = await getEvent(event_id)
     
@@ -63,5 +53,10 @@ export const checkValidAttendee = async (registrationData: Attendee) => {
 
     if ((await AttendeeRepository.getRegisteredAttendee(event_id, user_id)).data) {
         throw new Error(`User already registered for event`)
+    }
+
+    return {
+        ...registrationData, 
+        status: event.needs_review ? 'APPLIED' : 'PROCESSING',
     }
 }

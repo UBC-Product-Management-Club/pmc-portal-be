@@ -3,9 +3,6 @@ import { Database, Tables } from "../../schema/v2/database.types";
 import { mapToSupabaseUser } from "./utils";
 import { UserRepository } from "../../storage/UserRepository";
 
-/**
- * Add or update a user (onboarding)
- */
 export const addUser = async (userInfo: User): Promise<{ message: string }> => {
   try {
     const newUser = mapToSupabaseUser(userInfo);
@@ -22,9 +19,6 @@ export const addUser = async (userInfo: User): Promise<{ message: string }> => {
   }
 };
 
-/**
- * Insert a user created from guest registration
- */
 export const addUserFromGuestRegistration = async (guestUser: User, userId: string) => {
   const userData: Database["public"]["Tables"]["User"]["Insert"] = {
     first_name: guestUser.firstName,
@@ -47,9 +41,6 @@ export const addUserFromGuestRegistration = async (guestUser: User, userId: stri
   return data;
 };
 
-/**
- * Find a user by email
- */
 export const findUserByEmail = async (email: string): Promise<Tables<"User">> => {
   const { data, error } = await UserRepository.findUserByEmail(email);
 
@@ -60,9 +51,6 @@ export const findUserByEmail = async (email: string): Promise<Tables<"User">> =>
   return data!;
 };
 
-/**
- * Fetch all users
- */
 export const getUsers = async (): Promise<Tables<"User">[]> => {
   try {
     const { data, error } = await UserRepository.getUsers();
@@ -98,9 +86,6 @@ export const getUser = async (userId: string): Promise<Tables<"User"> | null> =>
   }
 };
 
-/**
- * Export users (placeholder)
- */
 export const exportUsers = async (password: string, isCSV: boolean = false): Promise<{ message: string }> => {
   return { message: `exporting Supabase Users` };
 };
