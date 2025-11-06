@@ -1,7 +1,10 @@
 import _ from "lodash";
 import { supabase } from "../../config/supabase";
-import { Tables } from "../../schema/v2/database.types";
+import { Database, Tables } from "../../schema/v2/database.types";
 import { EventInsert } from "../../schema/v2/Event";
+
+type TeamInsert = Database['public']['Tables']['Team']['Insert'];
+type TeamMemberInsert = Database['public']['Tables']['Team_Member']['Insert'];
 
 export const getEvents = async (): Promise<Partial<Tables<'Event'>>[]> => {
     const {data, error} = await supabase.from('Event')
@@ -122,4 +125,31 @@ export const isFull = async (eventId: string): Promise<boolean> => {
     const registeredCount = data.attendees?.length ?? 0;
   
     return registeredCount >= data.max_attendees;
-  };
+};
+
+export const createEventTeam = async (
+  eventId: string,
+  team_name: string,
+  team_attendee_ids: string[]
+) => {
+  try {
+    if (team_attendee_ids.length > 4) {
+        throw new Error("Too many team members")
+    }
+    const { data, error } = await supabase.rpc('create_team_with_members', {
+        p_event_id: eventId,
+        p_team_name: team_name,
+        p_member_attendee_ids: team_attendee_ids,
+    });
+
+    if (error) {
+        console.error("Failed to create team and members:", error.message);
+        throw new Error(error.message)
+    }
+
+    return data[0];
+  } catch (err: any) {
+    console.error("CreateEventTeam failed:", err.message);
+    throw new Error(err.message);
+  }
+};

@@ -2,7 +2,7 @@ import { Request, Response, Router } from "express";
 import { uuidv4 } from "zod/v4";
 import { supabase } from "../../../config/supabase";
 import { EventSchema } from "../../../schema/v2/Event";
-import { addEvent } from "../../../services/Event/EventService";
+import { addEvent, createEventTeam } from "../../../services/Event/EventService";
 import { uploadSupabaseFiles } from "../../../storage/Storage";
 import multer from "multer"
 
@@ -111,3 +111,19 @@ eventRouter.post('/add', upload.fields([{ name: 'mediaFiles', maxCount: 5 },{ na
         res.status(500).json({ error: error.message });
     }
 });
+
+eventRouter.post('/:eventId/team', async (req: Request, res: Response) => {
+    const eventId = req.params.eventId;
+    const {team_name, team_attendee_ids} = req.body;
+    if (!team_name || !Array.isArray(team_attendee_ids) || team_attendee_ids.length === 0) {
+        return res.status(400).json({ error: "Invalid request body" });
+    }
+
+    try {
+        const team = await createEventTeam(eventId, team_name, team_attendee_ids);
+        return res.status(201).json({ success: true, team });
+    } catch (error: any) {
+        console.error(error);
+        return res.status(500).json({ success: false, error: error.message });
+    } 
+})

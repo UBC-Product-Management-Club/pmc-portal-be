@@ -11,7 +11,7 @@ export const addAttendee = async (registrationData: AttendeeInsert): Promise<Tab
 
     const attendee: AttendeeInsert = {
         ...registrationData,
-        registration_time: new Date().toISOString(),
+        created_at: new Date().toISOString(),
     }
 
     const { data, error } = await supabase
@@ -75,4 +75,60 @@ export const checkValidAttendee = async (registrationData: AttendeeInsert) => {
     }
 }
 
+
+export const getTeam = async (attendee_id: string) => {
+    const { data: teamData, error: teamIdError } = await supabase
+        .from("Team_Member")
+        .select('team_id')
+        .eq('attendee_id', attendee_id)
+        .single()
+    if (!teamData) {
+        throw new Error("No team found")
+    }
+    if (teamIdError) {
+        throw new Error("Supabase error: " + teamIdError)
+    }
+    const team_id = teamData.team_id;
+    const { data: teamNameData, error: teamError } = await supabase
+        .from("Team")
+        .select('team_name')
+        .eq('team_id', team_id)
+        .single()
+        
+    if (teamError) {
+        throw new Error("Supabase error: " + teamError.message);
+    }
+    if (!teamNameData){ 
+        throw new Error("Team not found"); 
+    }
+      const { data: members, error: membersError } = await supabase
+        .from("Team_Member")
+        .select(`
+            attendee_id,
+            Attendee (
+                user_id,
+                User (
+                    first_name,
+                    last_name,
+                    email
+                )
+            )
+        `)
+        .eq("team_id", team_id);
+
+    if (membersError) throw new Error("Supabase error: " + membersError.message);
+
+    const teammates = members?.map((m) => ({
+        attendee_id: m.attendee_id,
+        user_id: m.Attendee?.user_id,
+        name: m.Attendee?.User?.first_name +" " + m.Attendee?.User?.last_name,
+        email: m.Attendee?.User?.email,
+    })) ?? [];
+
+    return {
+        team_id,
+        team_name: teamNameData.team_name,
+        members: teammates,
+    };
+};
 
