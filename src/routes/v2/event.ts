@@ -96,13 +96,8 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
         });
 
     } catch (error: any) {
-<<<<<<< HEAD
-        console.error("Error during registration:", error);
-        res.status(500).json({ error: error.message })
-=======
         console.error(error)
         res.status(500).json(error)
->>>>>>> origin/main
     }
 });
 
