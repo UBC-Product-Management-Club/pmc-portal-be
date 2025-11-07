@@ -1,7 +1,7 @@
 jest.mock("../../../src/services/Email/EmailService", () => ({
-    sendConfirmationEmail: jest.fn(),
+    sendEmail: jest.fn(),
     addToMailingList: jest.fn(),
-    ConfirmationEvent: { MembershipPayment: "membership_payment" }, // match your code’s value
+    LoopsEvent: { MembershipPayment: "membership_payment" }, // match your code’s value
 }));
 
 jest.mock("../../../src/config/stripe", () => ({
@@ -26,7 +26,7 @@ import { UserRepository } from "../../../src/storage/UserRepository";
 import { PaymentRepository } from "../../../src/storage/PaymentRepository";
 import { AttendeeRepository } from "../../../src/storage/AttendeeRepository";
 import { ProductRepository } from "../../../src/storage/ProductRepository";
-import { addToMailingList, ConfirmationEvent, sendConfirmationEmail } from "../../../src/services/Email/EmailService";
+import { addToMailingList, sendEmail } from "../../../src/services/Email/EmailService";
 import { CheckoutSessionRepository } from "../../../src/storage/CheckoutSessionRepository";
 
 jest.mock("../../../src/services/User/UserService")
@@ -36,7 +36,6 @@ jest.mock("../../../src/services/Email/EmailService")
 describe("PaymentService", () => {
     // Declare mocks
     let mockGetUser: jest.Mock;
-    let mockFrom: jest.Mock;
     let mockGetProduct: jest.Mock;
     let mockUpdateUser: jest.Mock;
     let mockUpdateAttendee: jest.Mock;
@@ -44,7 +43,7 @@ describe("PaymentService", () => {
     let mockCreatePaymentIntent: jest.Mock;
     let mockCreateStripeCheckout: jest.Mock;
     let mockAddToMailingList: jest.Mock;
-    let mockSendConfirmationEmail: jest.Mock;
+    let mocksendEmail: jest.Mock;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -56,51 +55,51 @@ describe("PaymentService", () => {
         mockCreatePaymentIntent = stripe.paymentIntents.create as jest.Mock;
         mockCreateStripeCheckout = stripe.checkout.sessions.create as jest.Mock;
         mockAddToMailingList = (addToMailingList as jest.Mock)
-        mockSendConfirmationEmail = (sendConfirmationEmail as jest.Mock)
+        mocksendEmail = (sendEmail as jest.Mock)
     });
 
-    // describe("createPaymentIntent", () => {
-    //     it("creates payment intent for UBC student", async () => {
-    //         mockGetUser.mockResolvedValueOnce({ data: { university: "University of British Columbia"}});
-    //         const mockPaymentIntent = { id: "pi_ubc_test", amount: 5000 };
-    //         mockCreatePaymentIntent.mockResolvedValueOnce(mockPaymentIntent);
+    describe("createPaymentIntent", () => {
+        it("creates payment intent for UBC student", async () => {
+            mockGetUser.mockResolvedValueOnce({ data: { university: "University of British Columbia"}});
+            const mockPaymentIntent = { id: "pi_ubc_test", amount: 5000 };
+            mockCreatePaymentIntent.mockResolvedValueOnce(mockPaymentIntent);
 
-    //         const result = await createMembershipPaymentIntent("user-123");
+            const result = await createMembershipPaymentIntent("user-123");
 
-    //         expect(result).toEqual(mockPaymentIntent);
-    //         expect(mockCreatePaymentIntent).toHaveBeenCalledWith({
-    //             amount: expect.any(Number),
-    //             currency: "cad",
-    //             metadata: {
-    //                 user_id: "user-123",
-    //                 payment_type: "membership",
-    //             },
-    //         });
-    //     });
+            expect(result).toEqual(mockPaymentIntent);
+            expect(mockCreatePaymentIntent).toHaveBeenCalledWith({
+                amount: expect.any(Number),
+                currency: "cad",
+                metadata: {
+                    user_id: "user-123",
+                    payment_type: "membership",
+                },
+            });
+        });
 
-    //     it("creates payment intent for non-UBC student", async () => {
-    //         const mockPaymentIntent = { id: "pi_non_ubc_test", amount: 7500 };
-    //         mockGetUser.mockResolvedValueOnce({ data: { university: "Simon Fraser University"}});
-    //         mockCreatePaymentIntent.mockResolvedValueOnce(mockPaymentIntent);
-    //         const result = await createMembershipPaymentIntent("user-456");
+        it("creates payment intent for non-UBC student", async () => {
+            const mockPaymentIntent = { id: "pi_non_ubc_test", amount: 7500 };
+            mockGetUser.mockResolvedValueOnce({ data: { university: "Simon Fraser University"}});
+            mockCreatePaymentIntent.mockResolvedValueOnce(mockPaymentIntent);
+            const result = await createMembershipPaymentIntent("user-456");
 
-    //         expect(result).toEqual(mockPaymentIntent);
-    //         expect(mockCreatePaymentIntent).toHaveBeenCalledWith({
-    //             amount: expect.any(Number),
-    //             currency: "cad",
-    //             metadata: {
-    //                 user_id: "user-456",
-    //                 payment_type: "membership",
-    //             },
-    //         });
-    //     });
+            expect(result).toEqual(mockPaymentIntent);
+            expect(mockCreatePaymentIntent).toHaveBeenCalledWith({
+                amount: expect.any(Number),
+                currency: "cad",
+                metadata: {
+                    user_id: "user-456",
+                    payment_type: "membership",
+                },
+            });
+        });
 
-    //     it("throws error when user lookup fails", async () => {
-    //         mockGetUser.mockResolvedValueOnce({ error: { message: "User not found" }});
-    //         await expect(createMembershipPaymentIntent("invalid-user")).rejects.toThrow("User not found");
-    //         expect(mockCreatePaymentIntent).not.toHaveBeenCalled();
-    //     });
-    // });
+        it("throws error when user lookup fails", async () => {
+            mockGetUser.mockResolvedValueOnce({ error: { message: "User not found" }});
+            await expect(createMembershipPaymentIntent("invalid-user")).rejects.toThrow("User not found");
+            expect(mockCreatePaymentIntent).not.toHaveBeenCalled();
+        });
+    });
 
     describe("handleStripeEvent", () => {
         const paymentIntentMembership = {
@@ -200,7 +199,7 @@ describe("PaymentService", () => {
             );
 
             expect(mockUpdateUser).toHaveBeenCalledWith("user-123", { is_payment_verified: true })
-            expect(mockSendConfirmationEmail).toHaveBeenCalledWith("user-123", "membership_payment");
+            expect(mocksendEmail).toHaveBeenCalledWith("user-123", "membership_payment");
         });
 
         it("check event payment succeeded", async () => {

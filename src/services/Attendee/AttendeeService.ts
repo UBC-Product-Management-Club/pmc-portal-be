@@ -1,15 +1,10 @@
 import { Tables, TablesInsert } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
-import { getEvent } from "../Event/EventService";
+import { EventInformation } from "../Event/EventService";
 
 type Attendee = TablesInsert<"Attendee">
 
-// Adds correctly 
-export const addAttendee = async (registrationData: Attendee): Promise<Tables<"Attendee">> => {
-    const event = await getEvent(registrationData.event_id)
-    if (!event) {
-        throw new Error(`Event missing: ${registrationData.event_id}`)
-    }
+export const addAttendee = async (event: EventInformation, registrationData: Attendee): Promise<Tables<"Attendee">> => {
     const attendee = await createAttendee(event, registrationData);
     const { data, error } = await AttendeeRepository.addAttendee(attendee)
     if (error) {
@@ -35,7 +30,7 @@ export const deleteAttendee = async (attendeeId: string): Promise<{message: stri
     return {message: `deleted attendee ${attendeeId}`};
 }
 
-export const createAttendee = async (event: Tables<"Event"> & { registered: number}, registrationData: Attendee) : Promise<Attendee> => {
+export const createAttendee = async (event: EventInformation, registrationData: Attendee) : Promise<Attendee> => {
     const { user_id, event_id } = registrationData;
     
     if (!user_id || !event_id) {

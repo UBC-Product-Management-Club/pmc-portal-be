@@ -21,6 +21,34 @@ describe("AttendeeService", () => {
     mockGetEvent = getEvent as jest.Mock;
   });
 
+  const mockEvent = {
+        event_id: 'event-456',
+        name: 'Product Conference',
+        date: '2025-01-01',
+        blurb: 'sdsd',
+        description: 'sdsd',
+        registration_opens: '2025-07-20T21:30:00+00:00',
+        registration_closes: '2025-07-22T22:30:00+00:00',
+        start_time: '2025-07-24T21:30:00+00:00',
+        end_time: '2025-07-24T22:30:00+00:00',
+        location: 'UBC Sauder Building',
+        thumbnail:
+            'https://dthvbanipvldaiabgvuc.supabase.co/storage/v1/object/public/event-media/events/75f6ef8e-12d7-48f3-a0a8-96443ae5d1f7/media/umm-nocturnaltrashposts-and-then-uhh.jpeg',
+        member_price: 1,
+        non_member_price: 2,
+        member_price_id: "",
+        non_member_price_id: "",
+        max_attendees: 100,
+        event_form_questions: {},
+        media: [],
+        is_disabled: false,
+        registered: 1,
+        needs_review: false,
+        external_page: 'https://google.com',
+        waitlist_form: 'https://waitlist.form',
+        mailing_list: ""
+  }
+
   describe("addAttendee", () => {
     it("should create attendee with full data", async () => {
       const registrationData: AttendeeInsert = {
@@ -41,18 +69,13 @@ describe("AttendeeService", () => {
         status: "REGISTERED",
         is_payment_verified: true,
       };
-      (getEvent as jest.Mock).mockResolvedValueOnce({
-        event_id: "event-456",
-        max_attendees: 100,
-        registered: 0,
-      });
       (AttendeeRepository.addAttendee as jest.Mock).mockResolvedValueOnce({
         data: mockAttendee,
       });
       (
         AttendeeRepository.getRegisteredAttendee as jest.Mock
       ).mockResolvedValueOnce({ data: null });
-      const result = await addAttendee(registrationData);
+      const result = await addAttendee(mockEvent, registrationData);
 
       expect(result).toEqual(mockAttendee);
     });
@@ -74,18 +97,13 @@ describe("AttendeeService", () => {
         status: "REGISTERED",
         is_payment_verified: true,
       };
-      (getEvent as jest.Mock).mockResolvedValueOnce({
-        event_id: "event-456",
-        max_attendees: 100,
-        registered: 0,
-      });
       (AttendeeRepository.addAttendee as jest.Mock).mockResolvedValueOnce({
         data: mockAttendee,
       });
       (
         AttendeeRepository.getRegisteredAttendee as jest.Mock
       ).mockResolvedValueOnce({ data: null });
-      const result = await addAttendee(registrationData);
+      const result = await addAttendee(mockEvent, registrationData);
 
       expect(result.payment_id).toBeNull();
       expect(result.event_form_answers).toBeNull();
@@ -100,11 +118,6 @@ describe("AttendeeService", () => {
         event_form_answers: { shirtSize: "M", meal: "vegetarian" },
       };
 
-      (getEvent as jest.Mock).mockResolvedValueOnce({
-        event_id: "event-456",
-        max_attendees: 100,
-        registered: 0,
-      });
       (
         AttendeeRepository.getRegisteredAttendee as jest.Mock
       ).mockResolvedValueOnce({ data: null });
@@ -113,7 +126,7 @@ describe("AttendeeService", () => {
         error: { message: "DB fail" },
       });
 
-      await expect(addAttendee(registrationData)).rejects.toThrow(
+      await expect(addAttendee(mockEvent, registrationData)).rejects.toThrow(
         "Failed to create attendee: DB fail"
       );
     });
@@ -142,10 +155,6 @@ describe("AttendeeService", () => {
     });
   });
 
-  // update attendee
-
-  // delete attendee
-
   describe("createAttendee", () => {
     it("should throw error for missing required fields", async () => {
       const testCases = [
@@ -154,24 +163,10 @@ describe("AttendeeService", () => {
       ];
 
       for (const registrationData of testCases) {
-        await expect(createAttendee(registrationData)).rejects.toThrow(
+        await expect(createAttendee(mockEvent, registrationData)).rejects.toThrow(
           "Missing required fields"
         );
       }
-    });
-
-    it("should throw error when event not found", async () => {
-      const registrationData = {
-        user_id: "user-123",
-        event_id: "nonexistent-event",
-      };
-
-      mockGetEvent.mockResolvedValueOnce(null);
-
-      await expect(createAttendee(registrationData)).rejects.toThrow(
-        "Event missing"
-      );
-      expect(mockGetEvent).toHaveBeenCalledWith(registrationData.event_id);
     });
 
     it("should throw error when event is full", async () => {
@@ -179,15 +174,8 @@ describe("AttendeeService", () => {
         user_id: "user-123",
         event_id: "event-456",
       };
-      const mockEvent = {
-        event_id: "event-456",
-        max_attendees: 2,
-        registered: 2,
-      };
 
-      mockGetEvent.mockResolvedValueOnce(mockEvent);
-
-      await expect(createAttendee(registrationData)).rejects.toThrow(
+      await expect(createAttendee({...mockEvent, max_attendees: 1, registered: 1 }, registrationData)).rejects.toThrow(
         "Event event-456 is full"
       );
     });
@@ -197,16 +185,10 @@ describe("AttendeeService", () => {
         user_id: "user-123",
         event_id: "event-456",
       };
-      const mockEvent = {
-        event_id: "event-456",
-        max_attendees: 100,
-        registered: 10,
-      };
 
-      mockGetEvent.mockResolvedValueOnce(mockEvent);
       (AttendeeRepository.getRegisteredAttendee as jest.Mock).mockResolvedValueOnce({ data: registrationData });
 
-      await expect(createAttendee(registrationData)).rejects.toThrow("User already registered for event");
+      await expect(createAttendee(mockEvent, registrationData)).rejects.toThrow("User already registered for event");
     });
 
 
@@ -215,16 +197,10 @@ describe("AttendeeService", () => {
         user_id: "user-123",
         event_id: "event-456",
       };
-      const mockEvent = {
-        event_id: "event-456",
-        max_attendees: 100,
-        registered: 10,
-      };
 
-      mockGetEvent.mockResolvedValueOnce(mockEvent);
       (AttendeeRepository.getRegisteredAttendee as jest.Mock).mockResolvedValueOnce({ data: null });
 
-      expect(await createAttendee(registrationData)).toEqual({
+      expect(await createAttendee(mockEvent, registrationData)).toEqual({
         ...registrationData,
         status: "PROCESSING",
       });
