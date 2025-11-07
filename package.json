@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon --exec ts-node --project tsconfig.prod.json --files src/index.ts",
+    "start": "nodemon --exec ts-node --watch src --ext ts,js,json --project tsconfig.prod.json --files src/index.ts",
     "test": "jest",
     "build": "tsc --project tsconfig.prod.json"
   },
