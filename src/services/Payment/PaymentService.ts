@@ -7,8 +7,8 @@ import { CheckoutSessionRepository } from "../../storage/CheckoutSessionReposito
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import {
   addToMailingList,
-  ConfirmationEvent,
-  sendConfirmationEmail,
+  LoopsEvent,
+  sendEmail,
 } from "../Email/EmailService";
 import { Enums, Tables } from "../../schema/v2/database.types";
 
@@ -196,7 +196,7 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
         console.log(
           `Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`
         );
-        sendConfirmationEmail(userId, ConfirmationEvent.MembershipPayment);
+        sendEmail(userId, LoopsEvent.MembershipPayment);
       } else if (paymentType === "event" && attendeeId) {
         updateAttendee(attendeeId, paymentId, "REGISTERED");
       }

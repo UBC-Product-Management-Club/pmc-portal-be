@@ -1,5 +1,5 @@
 import { loops } from "../../../src/config/loops";
-import { addToMailingList, ConfirmationEvent, sendConfirmationEmail } from "../../../src/services/Email/EmailService";
+import { addToMailingList, LoopsEvent, sendEmail } from "../../../src/services/Email/EmailService";
 import { AttendeeRepository } from "../../../src/storage/AttendeeRepository";
 import { UserRepository } from "../../../src/storage/UserRepository";
 
@@ -10,7 +10,7 @@ jest.mock("../../../src/config/loops", () => ({
     }
 }));
 
-describe("sendConfirmationEmail", () => {
+describe("sendEmail", () => {
     const mockEmail = "test@example.com";
     const mockUserId = "user-123";
 
@@ -26,13 +26,13 @@ describe("sendConfirmationEmail", () => {
 
         (loops.sendEvent as jest.Mock).mockResolvedValue({ status: "ok" });
 
-        await expect(sendConfirmationEmail(mockUserId, ConfirmationEvent.MembershipPayment))
+        await expect(sendEmail(mockUserId, LoopsEvent.MembershipPayment))
             .resolves.not.toThrow();
 
         expect(UserRepository.getEmailByUserId).toHaveBeenCalledWith(mockUserId);
         expect(loops.sendEvent).toHaveBeenCalledWith({
             email: mockEmail,
-            eventName: ConfirmationEvent.MembershipPayment,
+            eventName: LoopsEvent.MembershipPayment,
         });
     });
 
@@ -42,7 +42,7 @@ describe("sendConfirmationEmail", () => {
             error: new Error("Not found"),
         });
 
-        await expect(sendConfirmationEmail(mockUserId, ConfirmationEvent.MembershipPayment))
+        await expect(sendEmail(mockUserId, LoopsEvent.MembershipPayment))
             .rejects.toThrow("Failed to send confirmation email");
     });
 });

@@ -85,7 +85,3 @@ export const getUser = async (userId: string): Promise<Tables<"User"> | null> =>
     throw error;
   }
 };
-
-export const exportUsers = async (password: string, isCSV: boolean = false): Promise<{ message: string }> => {
-  return { message: `exporting Supabase Users` };
-};
