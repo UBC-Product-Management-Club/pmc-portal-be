@@ -1,11 +1,12 @@
 import { Router, Request, Response } from "express";
 import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
 import { Database } from "../../schema/v2/database.types";
-import { addAttendee, getRegisteredAttendee } from "../../services/Attendee/AttendeeService";
+import { addAttendee, getAttendee } from "../../services/Attendee/AttendeeService";
 import { authenticated } from "../../middleware/Session";
 import { DraftService } from "../../services/Drafts/DraftService";
 import multer from "multer"
 import { uploadSupabaseFiles } from "../../storage/Storage";
+import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
 
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
@@ -34,47 +35,43 @@ eventRouter.get('/:id', async (req, res) => {
 });
 
 eventRouter.get('/events/registered', ...authenticated, async (req, res) => {
-    const user = req.user
+    const userId = req.user?.user_id
+    if (!userId) return res.status(400).json({ error: "User ID is required!"})
+
     try {
-        if (user) {
-            const userCurrentEvents = await getRegisteredEvents(user.user_id);
-            return res.status(200).json(userCurrentEvents);
-        }
-        return res.status(200).json([]);
+        const userCurrentEvents = await getRegisteredEvents(userId);
+        return res.status(200).json(userCurrentEvents);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }
 });
 
-// Checks if user is registered for event
 eventRouter.get('/:eventId/attendee', ...authenticated, async (req: Request, res: Response) => {
     const userId = req.user?.user_id
     const eventId = req.params.eventId;
-
-    if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
-    }
-
+    if (!userId) return res.status(400).json({ error: "User ID required!"})
     try {
-        const attendee = await getRegisteredAttendee(eventId, userId);
+        const attendee = await getAttendee(eventId, userId);
         return res.status(200).json(attendee);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }
 });
 
-
 // Adds event attendee (payment not verified, payment id set to null)
 eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (req: Request, res: Response) => {
     const userId = req.user?.user_id
     const eventId = req.params.eventId;
-
-    if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
-    }
+    if (!userId) return res.status(401).json({ error: 'User not authenticated' });
 
 
     try {
+        const event = await getEvent(eventId)
+
+        if (!event) {
+            throw new Error(`Failed to fetch event ${eventId}`)
+        }
+
         const files = req.files as Express.Multer.File[];
         const bucketName = process.env.SUPABASE_ATTENDEE_BUCKET_NAME!;
         const parentPath = `attendee/${eventId}/`;
@@ -91,16 +88,21 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
             event_form_answers: eventFormAnswers,
         };
 
-        const result = await addAttendee(insertData);
-        
+        const result = await addAttendee(event, insertData);
+        sendEmail(userId, LoopsEvent.ApplicationReceived, { event_name: event.name! })
         res.status(201).json({
             message: 'Registration successful',
             attendee: result
         });
 
     } catch (error: any) {
+<<<<<<< HEAD
         console.error("Error during registration:", error);
         res.status(500).json({ error: error.message })
+=======
+        console.error(error)
+        res.status(500).json(error)
+>>>>>>> origin/main
     }
 });
 

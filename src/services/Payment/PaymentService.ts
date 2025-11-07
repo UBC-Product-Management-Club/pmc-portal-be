@@ -1,18 +1,16 @@
-import { UserRepository } from "../../storage/UserRepository";
-import { AttendeeRepository } from "../../storage/AttendeeRepository";
-import { PaymentRepository } from "../../storage/PaymentRepository";
-import { fetchMembershipPriceId } from "../Product/ProductService";
-import { getEventPriceId } from "../Event/EventService";
-import Stripe from "stripe";
-import {
-  ConfirmationEvent,
-  sendConfirmationEmail,
-  addToMailingList,
-} from "../Email/EmailService";
-import { TablesInsert } from "../../schema/v2/database.types";
 import { stripe } from "../../config/stripe";
-
-type PaymentInsert = TablesInsert<"Payment">;
+import { fetchMembershipPriceId } from "../Product/ProductService";
+import Stripe from "stripe";
+import { PaymentRepository } from "../../storage/PaymentRepository";
+import { UserRepository } from "../../storage/UserRepository";
+import { CheckoutSessionRepository } from "../../storage/CheckoutSessionRepository";
+import { AttendeeRepository } from "../../storage/AttendeeRepository";
+import {
+  addToMailingList,
+  LoopsEvent,
+  sendEmail,
+} from "../Email/EmailService";
+import { Enums, Tables } from "../../schema/v2/database.types";
 
 export enum Status {
   PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
@@ -55,8 +53,8 @@ export const createCheckoutSession = async (userId: string) => {
   }
 
   const isUBC = data?.university === "University of British Columbia";
-  const priceId = await fetchMembershipPriceId(isUBC);
 
+  const priceId = await fetchMembershipPriceId(isUBC);
   const session = await stripe.checkout.sessions.create({
     line_items: [
       {
@@ -66,7 +64,6 @@ export const createCheckoutSession = async (userId: string) => {
     ],
     mode: "payment",
     payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
-
     success_url: `${process.env.ORIGIN}/dashboard/success`,
     cancel_url: `${process.env.ORIGIN}/dashboard/canceled`,
     payment_intent_data: {
@@ -75,26 +72,50 @@ export const createCheckoutSession = async (userId: string) => {
         payment_type: "membership",
       },
     },
-  } as Stripe.Checkout.SessionCreateParams);
-
+  });
   return session;
 };
 
-export const createEventCheckoutSession = async (
-  userId: string,
-  eventId: string,
-  attendeeId: string
+export const saveEventCheckoutSession = async (
+  attendeeId: string,
+  checkoutId: string
 ) => {
-  const { data, error } = await UserRepository.getUser(userId);
+  const { error } = await CheckoutSessionRepository.addCheckoutSession(
+    attendeeId,
+    checkoutId
+  );
+  if (error) {
+    throw error;
+  }
+};
 
+export const fetchEventCheckoutSession = async (attendeeId: string) => {
+  const { data, error } = await CheckoutSessionRepository.getCheckoutSession(
+    attendeeId
+  );
+  if (error) {
+    throw error;
+  }
+  return stripe.checkout.sessions.retrieve(data.checkout_id);
+};
+
+export const deleteEventCheckoutSession = async (attendeeId: string) => {
+  const { error } = await CheckoutSessionRepository.deleteCheckoutSession(
+    attendeeId
+  );
   if (error) {
     throw new Error(error.message);
   }
+};
 
-  const isMember = data?.is_payment_verified ?? false;
-
+// save this link in another table temporarily (30 mins)
+export const createEventCheckoutSession = async (
+  attendeeId: string,
+  eventId: string,
+  userId: string,
+  priceId: string
+) => {
   try {
-    const priceId = await getEventPriceId(eventId, isMember);
     const session = await stripe.checkout.sessions.create({
       line_items: [
         {
@@ -104,8 +125,8 @@ export const createEventCheckoutSession = async (
       ],
       mode: "payment",
       payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
-      success_url: `${process.env.ORIGIN}/events/${eventId}/register/?attendeeId=${attendeeId}&success=true`,
-      cancel_url: `${process.env.ORIGIN}/events/${eventId}/register/?attendeeId=${attendeeId}&canceled=true`,
+      success_url: `${process.env.ORIGIN}/events/${eventId}/register?success=true`,
+      cancel_url: `${process.env.ORIGIN}/events/${eventId}/register`, // you cant actually cancel a checkout session.
       metadata: {
         user_id: userId,
         payment_type: "event",
@@ -118,11 +139,11 @@ export const createEventCheckoutSession = async (
           attendee_id: attendeeId,
         },
       },
-    } as Stripe.Checkout.SessionCreateParams);
+    });
     return session;
   } catch (error: any) {
     console.log(error.message);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -131,6 +152,7 @@ export const handleStripeEvent = async (event: Stripe.Event) => {
 
   switch (stripeEventType) {
     case "checkout.session.completed":
+    case "checkout.session.expired":
       await handleCheckoutSession(event);
       break;
     case "payment_intent.succeeded":
@@ -174,23 +196,9 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
         console.log(
           `Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`
         );
-        await sendConfirmationEmail(
-          userId,
-          ConfirmationEvent.MembershipPayment
-        );
+        sendEmail(userId, LoopsEvent.MembershipPayment);
       } else if (paymentType === "event" && attendeeId) {
-        const { error } =
-          await AttendeeRepository.updateAttendee(attendeeId, {
-            is_payment_verified: true,
-            payment_id: paymentId,
-          });
-        if (error) {
-          console.error("Attendee verify update err:", error);
-          return;
-        }
-        console.log(
-          `Event PaymentIntent for ${attendeeId} succeeded: ${paymentIntent.id}`
-        );
+        updateAttendee(attendeeId, paymentId, "REGISTERED");
       }
       break;
     }
@@ -205,45 +213,34 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
   const userId = checkoutSession.metadata?.user_id;
   const attendeeId = checkoutSession.metadata?.attendee_id;
   const paymentType = checkoutSession.metadata?.payment_type;
+  if (paymentType === "membership") return;
 
   if (!userId || !attendeeId || !paymentType) {
     console.error("Missing required info! " + paymentId);
     return;
   }
-
-  // work around for free events
-  if (checkoutSession.amount_total === 0) {
-    await logTransaction({
-      payment_id: checkoutSession.id,
-      user_id: userId,
-      type: paymentType,
-      amount: checkoutSession.amount_total || 0,
-      status: mapTransactionStatus(checkoutSession),
-      payment_date: new Date().toISOString(),
-    });
-
-    const { error } = await AttendeeRepository.updateAttendee(
-      attendeeId,
-      {
-        is_payment_verified: true,
-        payment_id: paymentId,
+  switch (stripeEvent.type) {
+    case "checkout.session.completed":
+      // work around for free events
+      if (checkoutSession.amount_total === 0) {
+        upsertPaymentTransaction(checkoutSession);
+        updateAttendee(attendeeId, paymentId, "REGISTERED")
       }
-    );
 
-    if (error)
-      console.error(
-        `Failed to update attendee ${attendeeId}! ${error.message}`
-      );
-    console.log(`Payment ${paymentId} succeeded for attendee ${attendeeId}`);
-  }
-
-  try {
-    addToMailingList(attendeeId);
-    console.log(
-      `Added user ${userId} to mailing list for event attendee ${attendeeId}`
-    );
-  } catch (error) {
-    console.error("Failed to add to mailing list: ", error);
+      try {
+        deleteEventCheckoutSession(attendeeId);
+        addToMailingList(attendeeId);
+        console.log(
+          `Added user ${userId} to mailing list for event attendee ${attendeeId}`
+        );
+      } catch (error) {
+        console.error("Failed to add to mailing list: ", error);
+      }
+      break;
+    case "checkout.session.expired":
+      AttendeeRepository.deleteAttendee(attendeeId);
+      deleteEventCheckoutSession(attendeeId);
+      break;
   }
 };
 
@@ -251,7 +248,7 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
 const mapTransactionStatus = (
   transaction: Stripe.PaymentIntent | Stripe.Checkout.Session
 ): Status => {
-  switch ((transaction as any).status) {
+  switch (transaction.status) {
     case "complete":
     case "succeeded":
       return Status.PAYMENT_SUCCESS;
@@ -266,6 +263,57 @@ const mapTransactionStatus = (
   }
 };
 
-export const logTransaction = async (transaction: PaymentInsert) => {
-  return PaymentRepository.logTransaction(transaction);
+const updateAttendee = async (
+  attendeeId: string,
+  paymentId: string,
+  status: Enums<"ATTENDEE_STATUS">
+) => {
+  const { error } = await AttendeeRepository.updateAttendee(attendeeId, {
+    is_payment_verified: true,
+    payment_id: paymentId,
+    status: status,
+  });
+  if (error)
+    console.error(`Failed to update attendee ${attendeeId}! ${error.message}`);
+  console.log(`Payment ${paymentId} succeeded for attendee ${attendeeId}`);
+};
+
+const upsertPaymentTransaction = async (
+  transaction: Stripe.PaymentIntent | Stripe.Checkout.Session
+) => {
+  const userId = transaction.metadata?.user_id;
+  const paymentType = transaction.metadata?.payment_type;
+
+  if (!userId) {
+    console.error("Missing user_id in PaymentIntent metadata", transaction.id);
+    return;
+  } else if (!paymentType) {
+    console.error(
+      "Missing paymentType in PaymentIntent metadata",
+      transaction.id
+    );
+    return;
+  }
+
+  const row: Tables<"Payment"> = {
+    payment_id: transaction.id,
+    user_id: userId,
+    type: paymentType,
+    amount:
+      transaction.object === "checkout.session"
+        ? transaction.amount_total || 0
+        : transaction.amount,
+    status: mapTransactionStatus(transaction),
+    payment_date: new Date().toISOString(),
+  };
+
+  await logTransaction(row);
+};
+
+export const logTransaction = async (transaction: Tables<"Payment">) => {
+  const { data: payment, error } = await PaymentRepository.logTransaction(
+    transaction
+  );
+  if (error) throw error;
+  return payment;
 };

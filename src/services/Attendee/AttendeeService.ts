@@ -1,20 +1,12 @@
 import { Tables, TablesInsert } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
-import { getEvent } from "../Event/EventService";
+import { EventInformation } from "../Event/EventService";
 
 type Attendee = TablesInsert<"Attendee">
 
-export const addAttendee = async (registrationData: Attendee): Promise<Tables<"Attendee">> => {
-
-    await checkValidAttendee(registrationData);
-
-    const attendee: Attendee = {
-        ...registrationData,
-        status: 'REGISTERED'
-    }
-
-    const { data, error } = await AttendeeRepository.addAttendee(attendee) 
-    
+export const addAttendee = async (event: EventInformation, registrationData: Attendee): Promise<Tables<"Attendee">> => {
+    const attendee = await createAttendee(event, registrationData);
+    const { data, error } = await AttendeeRepository.addAttendee(attendee)
     if (error) {
         console.log('Error adding attendee:', error);
         throw new Error(`Failed to create attendee: ${error.message}`);
@@ -23,18 +15,8 @@ export const addAttendee = async (registrationData: Attendee): Promise<Tables<"A
     return data
 }
 
-// Returns attendee (not gurarenteed to be payment verified) 
 export const getAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
     const { data: attendee, error } = await AttendeeRepository.getAttendee(eventId, userId)
-    if (error) {
-        throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
-    }
-    return attendee
-}
-
-// Returns only registered and payment verified anttendees
-export const getRegisteredAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
-    const { data: attendee, error } = await AttendeeRepository.getRegisteredAttendee(eventId, userId)
     if (error) {
         throw new Error(`Failed to check if user ${userId} is registered for event ${eventId}`)
     }
@@ -47,26 +29,26 @@ export const deleteAttendee = async (attendeeId: string): Promise<{message: stri
         throw new Error(`Failed to delete attendee ${attendeeId}: ${error.message}`) 
     }
 
-    return {message: `deleting attendee ${attendeeId}`};
+    return {message: `deleted attendee ${attendeeId}`};
 }
 
-export const checkValidAttendee = async (registrationData: Attendee) => {
+export const createAttendee = async (event: EventInformation, registrationData: Attendee) : Promise<Attendee> => {
     const { user_id, event_id } = registrationData;
-    const event = await getEvent(event_id)
     
     if (!user_id || !event_id) {
         throw new Error("Missing required fields")
     }
-
-    if (!event || event && Object.keys(event).length == 0) {
-        throw new Error(`Event missing: ${event_id}`)
-    }
-
+    
     if (event.max_attendees === event.registered) {
         throw new Error(`Event ${event_id} is full!`)
     }
 
-    if (await getRegisteredAttendee(event_id, user_id)) {
+    if ((await AttendeeRepository.getRegisteredAttendee(event_id, user_id)).data) {
         throw new Error(`User already registered for event`)
+    }
+
+    return {
+        ...registrationData, 
+        status: event.needs_review ? 'APPLIED' : 'PROCESSING',
     }
 }

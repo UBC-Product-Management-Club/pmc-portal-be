@@ -13,9 +13,7 @@ webhookRouter.post("/", express.raw({ type: "application/json" }), async (req, r
         // responds 200 to stripe immediately
         res.status(200).send();
 
-        handleStripeEvent(event).catch((error) => {
-            console.error("Error handling Stripe event:", error);
-        });
+        handleStripeEvent(event)
     } catch (error) {
         console.error("Webhook Error:", error);
         return res.status(400).send(`Webhook Error: ${error}`);

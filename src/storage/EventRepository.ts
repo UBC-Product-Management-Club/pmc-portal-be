@@ -43,6 +43,7 @@ export const EventRepository = {
       `
       )
       .eq("user_id", userId)
+      .or("status.eq.ACCEPTED,status.eq.REGISTERED")
       .gte("Event.end_time", new Date().toISOString())
       .order("date", { referencedTable: "Event", ascending: false }),
   getEventPriceId: (
