@@ -56,32 +56,35 @@ export type Database = {
       Attendee: {
         Row: {
           attendee_id: string
+          created_at: string
           event_form_answers: Json | null
           event_id: string
-          is_payment_verified: boolean | null
+          is_payment_verified: boolean
+          last_updated: string
           payment_id: string | null
-          registration_time: string 
-          status: string | null
+          status: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
           user_id: string
         }
         Insert: {
           attendee_id?: string
+          created_at?: string
           event_form_answers?: Json | null
           event_id: string
-          is_payment_verified?: boolean | null
+          is_payment_verified?: boolean
+          last_updated?: string
           payment_id?: string | null
-          registration_time?: string 
-          status?: string | null
+          status?: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
           user_id: string
         }
         Update: {
           attendee_id?: string
+          created_at?: string
           event_form_answers?: Json | null
           event_id?: string
-          is_payment_verified?: boolean | null
+          is_payment_verified?: boolean
+          last_updated?: string
           payment_id?: string | null
-          registration_time?: string 
-          status?: string | null
+          status?: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
           user_id?: string
         }
         Relationships: [
@@ -108,71 +111,224 @@ export type Database = {
           },
         ]
       }
+      Checkout_Session: {
+        Row: {
+          attendee_id: string
+          checkout_id: string
+          expires_at: string
+        }
+        Insert: {
+          attendee_id?: string
+          checkout_id: string
+          expires_at?: string
+        }
+        Update: {
+          attendee_id?: string
+          checkout_id?: string
+          expires_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Checkout_Session_attendee_id_fkey"
+            columns: ["attendee_id"]
+            isOneToOne: true
+            referencedRelation: "Attendee"
+            referencedColumns: ["attendee_id"]
+          },
+        ]
+      }
+      Deliverable: {
+        Row: {
+          created_at: string | null
+          deliverable_id: string
+          event_id: string
+          team_id: string
+          title: string | null
+          version_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deliverable_id?: string
+          event_id: string
+          team_id: string
+          title?: string | null
+          version_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deliverable_id?: string
+          event_id?: string
+          team_id?: string
+          title?: string | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliverables_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Event"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "deliverables_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "Team"
+            referencedColumns: ["team_id"]
+          },
+        ]
+      }
+      Deliverable_Version: {
+        Row: {
+          deliverable_id: string
+          file_path: Json | null
+          form_data: Json | null
+          submitted_at: string | null
+          submitted_by: string | null
+          version_id: string
+        }
+        Insert: {
+          deliverable_id: string
+          file_path?: Json | null
+          form_data?: Json | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          version_id?: string
+        }
+        Update: {
+          deliverable_id?: string
+          file_path?: Json | null
+          form_data?: Json | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Deliverable_Version_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "Deliverable"
+            referencedColumns: ["deliverable_id"]
+          },
+          {
+            foreignKeyName: "Deliverable_Version_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      Drafts: {
+        Row: {
+          draft_data: Json | null
+          event_id: string
+          user_id: string
+        }
+        Insert: {
+          draft_data?: Json | null
+          event_id?: string
+          user_id?: string
+        }
+        Update: {
+          draft_data?: Json | null
+          event_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Drafts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Event"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "Drafts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       Event: {
         Row: {
-          date: string | null
           blurb: string | null
-          mailing_list: string | null
+          date: string | null
           description: string | null
           end_time: string | null
           event_form_questions: Json
           event_id: string
+          external_page: string | null
           is_disabled: boolean | null
           location: string | null
+          mailing_list: string | null
           max_attendees: number | null
           media: string[] | null
           member_price: number | null
-          member_price_id: string
+          member_price_id: string | null
           name: string | null
           needs_review: boolean
           non_member_price: number | null
-          non_member_price_id: string
+          non_member_price_id: string | null
+          registration_closes: string | null
+          registration_opens: string | null
           start_time: string | null
           thumbnail: string | null
-          registration_opens: string | null
-          registration_closes: string | null
-          external_page: string | null
           waitlist_form: string | null
         }
         Insert: {
+          blurb?: string | null
           date?: string | null
           description?: string | null
           end_time?: string | null
           event_form_questions: Json
           event_id: string
+          external_page?: string | null
           is_disabled?: boolean | null
           location?: string | null
+          mailing_list?: string | null
           max_attendees?: number | null
           media?: string[] | null
           member_price?: number | null
-          member_price_id?: string
+          member_price_id?: string | null
           name?: string | null
           needs_review?: boolean
           non_member_price?: number | null
-          non_member_price_id?: string
+          non_member_price_id?: string | null
+          registration_closes?: string | null
+          registration_opens?: string | null
           start_time?: string | null
           thumbnail?: string | null
-          mailing_list?: string | null
+          waitlist_form?: string | null
         }
         Update: {
+          blurb?: string | null
           date?: string | null
           description?: string | null
           end_time?: string | null
           event_form_questions?: Json
           event_id?: string
+          external_page?: string | null
           is_disabled?: boolean | null
           location?: string | null
+          mailing_list?: string | null
           max_attendees?: number | null
           media?: string[] | null
           member_price?: number | null
-          member_price_id?: string
+          member_price_id?: string | null
           name?: string | null
           needs_review?: boolean
           non_member_price?: number | null
-          non_member_price_id?: string
+          non_member_price_id?: string | null
+          registration_closes?: string | null
+          registration_opens?: string | null
           start_time?: string | null
           thumbnail?: string | null
-          mailing_list?: string | null
+          waitlist_form?: string | null
         }
         Relationships: []
       }
@@ -203,7 +359,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "payment_user_id_fkey"
+            foreignKeyName: "Payment_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "User"
@@ -226,29 +382,59 @@ export type Database = {
         }
         Relationships: []
       }
-      Session: {
+      Team: {
         Row: {
-          created_at: string
-          id: string
-          user_id: string
+          event_id: string
+          team_id: string
+          team_name: string
         }
         Insert: {
-          created_at?: string
-          id?: string
-          user_id: string
+          event_id?: string
+          team_id?: string
+          team_name: string
         }
         Update: {
-          created_at?: string
-          id?: string
-          user_id?: string
+          event_id?: string
+          team_id?: string
+          team_name?: string
         }
         Relationships: [
           {
-            foreignKeyName: "Session_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "User"
-            referencedColumns: ["user_id"]
+            foreignKeyName: "Teams_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Event"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      Team_Member: {
+        Row: {
+          attendee_id: string
+          team_id: string
+        }
+        Insert: {
+          attendee_id?: string
+          team_id?: string
+        }
+        Update: {
+          attendee_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Team_Member_attendee_id_fkey"
+            columns: ["attendee_id"]
+            isOneToOne: false
+            referencedRelation: "Attendee"
+            referencedColumns: ["attendee_id"]
+          },
+          {
+            foreignKeyName: "Team_Member_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "Team"
+            referencedColumns: ["team_id"]
           },
         ]
       }
@@ -308,10 +494,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_team_with_members: {
+        Args: {
+          p_event_id: string
+          p_member_attendee_ids: string[]
+          p_team_name: string
+        }
+        Returns: {
+          team_id: string
+          team_name: string
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      ATTENDEE_STATUS:
+        | "FAILED"
+        | "PROCESSING"
+        | "APPLIED"
+        | "REGISTERED"
+        | "ACCEPTED"
+      PAYMENT_STATUS: "PROCESSING" | "VERIFIED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -438,6 +640,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      ATTENDEE_STATUS: [
+        "FAILED",
+        "PROCESSING",
+        "APPLIED",
+        "REGISTERED",
+        "ACCEPTED",
+      ],
+      PAYMENT_STATUS: ["PROCESSING", "VERIFIED"],
+    },
   },
 } as const

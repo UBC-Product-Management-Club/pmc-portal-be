@@ -1,3 +1,4 @@
+set -x
 source .secret/.env
 FILE="src/schema/v2/database.types.ts"
 if [ -f "$FILE" ]; then

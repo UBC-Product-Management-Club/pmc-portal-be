@@ -3,6 +3,7 @@ import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/E
 import { Database } from "../../schema/v2/database.types";
 import { addAttendee, getRegisteredAttendee } from "../../services/Attendee/AttendeeService";
 import { authenticated } from "../../middleware/Session";
+import { DraftService } from "../../services/Drafts/DraftService";
 import multer from "multer"
 import { uploadSupabaseFiles } from "../../storage/Storage";
 
@@ -72,12 +73,14 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
         return res.status(401).json({ error: 'User not authenticated' });
     }
 
+
     try {
         const files = req.files as Express.Multer.File[];
         const bucketName = process.env.SUPABASE_ATTENDEE_BUCKET_NAME!;
         const parentPath = `attendee/${eventId}/`;
 
         const fileRefs = await uploadSupabaseFiles(files, {parentPath, bucketName, isPublic: false}) 
+
         const eventFormAnswers = Object.assign(req.body, fileRefs);
 
         const insertData: AttendeeInsert = {
@@ -96,6 +99,64 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
         });
 
     } catch (error: any) {
+        console.error("Error during registration:", error);
         res.status(500).json({ error: error.message })
+    }
+});
+
+eventRouter.get('/drafts/:eventId', ...authenticated, async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const { userId } = req.query;
+
+        if (!userId || typeof userId !== 'string') {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        const draftService = new DraftService();
+        const draft = await draftService.loadDraft(eventId, userId);
+        
+        res.status(200).json(draft);
+    } catch (error: any) {
+        console.error('Error loading draft:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.post('/drafts/:eventId', ...authenticated, async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const { userId, draft } = req.body;
+
+        if (!userId || !draft) {
+            return res.status(400).json({ error: 'userId and draft are required' });
+        }
+
+        const draftService = new DraftService();
+        const savedDraft = await draftService.saveDraft(eventId, userId, draft);
+        
+        res.status(200).json(savedDraft);
+    } catch (error: any) {
+        console.error('Error saving draft:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.delete('/drafts/:eventId', ...authenticated, async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const { userId } = req.query;
+
+        if (!userId || typeof userId !== 'string') {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        const draftService = new DraftService();
+        await draftService.deleteDraft(eventId, userId);
+        
+        res.status(204).send();
+    } catch (error: any) {
+        console.error('Error deleting draft:', error);
+        res.status(500).json({ error: error.message });
     }
 });

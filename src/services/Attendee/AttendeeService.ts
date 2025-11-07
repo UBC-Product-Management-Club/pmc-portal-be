@@ -1,30 +1,29 @@
-import { Database, Tables, TablesInsert } from "../../schema/v2/database.types";
+import { Tables, TablesInsert } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { getEvent } from "../Event/EventService";
 
 type Attendee = TablesInsert<"Attendee">
 
-// Adds correctly 
 export const addAttendee = async (registrationData: Attendee): Promise<Tables<"Attendee">> => {
 
     await checkValidAttendee(registrationData);
 
     const attendee: Attendee = {
         ...registrationData,
-        registration_time: new Date().toISOString(),
-        status: 'registered'
+        status: 'REGISTERED'
     }
 
     const { data, error } = await AttendeeRepository.addAttendee(attendee) 
     
     if (error) {
+        console.log('Error adding attendee:', error);
         throw new Error(`Failed to create attendee: ${error.message}`);
     }
     
     return data
 }
 
-// Returns attendee (not gurarenteed to be payment verified) [Ngl don't know why we need this still]
+// Returns attendee (not gurarenteed to be payment verified) 
 export const getAttendee = async (eventId: string, userId: string): Promise<Tables<"Attendee"> | null> => {
     const { data: attendee, error } = await AttendeeRepository.getAttendee(eventId, userId)
     if (error) {
