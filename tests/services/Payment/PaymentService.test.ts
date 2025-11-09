@@ -11,14 +11,15 @@ jest.mock("../../../src/config/stripe", () => ({
         },
         checkout: {
             sessions: {
-                create: jest.fn()
+                create: jest.fn(),
+                retrieve: jest.fn()
             }
         }
     }
 }));
 
 
-import { createCheckoutSession, createMembershipPaymentIntent, createEventCheckoutSession} from "../../../src/services/Payment/PaymentService";
+import { createCheckoutSession, createMembershipPaymentIntent, getOrCreateEventCheckoutSession, getOrCreateRSVPCheckoutSession} from "../../../src/services/Payment/PaymentService";
 import * as PaymentService from "../../../src/services/Payment/PaymentService";
 import { stripe } from "../../../src/config/stripe";
 import Stripe from "stripe";
@@ -37,11 +38,16 @@ describe("PaymentService", () => {
     // Declare mocks
     let mockGetUser: jest.Mock;
     let mockGetProduct: jest.Mock;
+    let mockGetCheckoutSession: jest.Mock;
     let mockUpdateUser: jest.Mock;
     let mockUpdateAttendee: jest.Mock;
     let mockTransactionLogger: jest.Mock;
     let mockCreatePaymentIntent: jest.Mock;
     let mockCreateStripeCheckout: jest.Mock;
+    let mockRetrieveStripeCheckout: jest.Mock;
+    let mockSaveCheckoutSession: jest.Mock;
+    let mockDeleteCheckoutSession: jest.Mock;
+    let mockDeleteAttendee: jest.Mock;
     let mockAddToMailingList: jest.Mock;
     let mocksendEmail: jest.Mock;
 
@@ -49,11 +55,16 @@ describe("PaymentService", () => {
         jest.clearAllMocks();
         mockGetUser = UserRepository.getUser as jest.Mock;
         mockGetProduct = ProductRepository.getPriceId as jest.Mock;
+        mockGetCheckoutSession = CheckoutSessionRepository.getCheckoutSession as jest.Mock;
         mockUpdateUser = UserRepository.updateUser as jest.Mock;
         mockUpdateAttendee = AttendeeRepository.updateAttendee as jest.Mock;
         mockTransactionLogger = PaymentRepository.logTransaction as jest.Mock;
         mockCreatePaymentIntent = stripe.paymentIntents.create as jest.Mock;
         mockCreateStripeCheckout = stripe.checkout.sessions.create as jest.Mock;
+        mockRetrieveStripeCheckout = stripe.checkout.sessions.retrieve as jest.Mock;
+        mockSaveCheckoutSession = CheckoutSessionRepository.addCheckoutSession as jest.Mock
+        mockDeleteCheckoutSession = CheckoutSessionRepository.deleteCheckoutSession as jest.Mock
+        mockDeleteAttendee = AttendeeRepository.deleteAttendee as jest.Mock;
         mockAddToMailingList = (addToMailingList as jest.Mock)
         mocksendEmail = (sendEmail as jest.Mock)
     });
@@ -114,14 +125,14 @@ describe("PaymentService", () => {
             metadata: { user_id: "user-123", payment_type: "event", attendee_id: "att-456"},
         } 
 
-        const checkoutSessionCompletedFreeEventRegistration = {
+        const checkoutSessionFreeEventRegistration = {
             id: "cs_event_test",
             amount_total: 0,
             object: "checkout.session",
             metadata: { user_id: "user-123", payment_type: "event", attendee_id: "att-456"},
         }
 
-        const checkoutSessionCompletedEventRegistration = {
+        const checkoutSessionEventRegistration = {
             id: "cs_event_test",
             amount_total: 1000,
             object: "checkout.session",
@@ -220,9 +231,9 @@ describe("PaymentService", () => {
         });
 
         it("check free event payment succeeded", async () => {
-            (CheckoutSessionRepository.deleteCheckoutSession as jest.Mock).mockResolvedValueOnce({});
-            (AttendeeRepository.updateAttendee as jest.Mock).mockResolvedValueOnce({});
-            await PaymentService.handleStripeEvent(makeEvent("checkout.session.completed", "complete", checkoutSessionCompletedFreeEventRegistration));
+            mockDeleteCheckoutSession.mockResolvedValueOnce({});
+            mockUpdateAttendee.mockResolvedValueOnce({});
+            await PaymentService.handleStripeEvent(makeEvent("checkout.session.completed", "complete", checkoutSessionFreeEventRegistration));
 
             expect(mockTransactionLogger).toHaveBeenLastCalledWith(
                 expect.objectContaining({
@@ -239,11 +250,21 @@ describe("PaymentService", () => {
         })
 
         it("checkout session completed", async () => {
-            (CheckoutSessionRepository.deleteCheckoutSession as jest.Mock).mockResolvedValueOnce({});
-            (AttendeeRepository.updateAttendee as jest.Mock).mockResolvedValueOnce({});
-            await PaymentService.handleStripeEvent(makeEvent("checkout.session.completed", "complete", checkoutSessionCompletedEventRegistration));
+            mockDeleteCheckoutSession.mockResolvedValueOnce({});
+            mockUpdateAttendee.mockResolvedValueOnce({});
+            await PaymentService.handleStripeEvent(makeEvent("checkout.session.completed", "complete", checkoutSessionEventRegistration));
 
-            expect(mockAddToMailingList).toHaveBeenCalledWith(checkoutSessionCompletedEventRegistration.metadata.attendee_id)
+            expect(mockAddToMailingList).toHaveBeenCalledWith(checkoutSessionEventRegistration.metadata.attendee_id)
+            expect(mockDeleteCheckoutSession).toHaveBeenCalledWith(checkoutSessionEventRegistration.metadata.attendee_id)
+        })
+
+        it('checkout session expired', async () => {
+            mockDeleteCheckoutSession.mockResolvedValueOnce({});
+            mockDeleteAttendee.mockResolvedValueOnce({});
+            await PaymentService.handleStripeEvent(makeEvent("checkout.session.expired", "expired", checkoutSessionEventRegistration));
+
+            expect(mockDeleteCheckoutSession).toHaveBeenCalledWith(checkoutSessionEventRegistration.metadata.attendee_id)
+            expect(mockDeleteAttendee).toHaveBeenCalledWith(checkoutSessionEventRegistration.metadata.attendee_id)
         })
     });
 
@@ -286,13 +307,16 @@ describe("PaymentService", () => {
         const priceId = "price_123";
         const fakeSession = { id: "sess_pmc" };
 
-        it("creates event registration checkout session for members", async () => {
+        it("creates and saves event registration checkout session", async () => {
             process.env.ORIGIN = 'http://localhost:5173';
             process.env.CARD_PAYMENT_METHOD_ID = 'pm_mocked_123';
+            mockGetCheckoutSession.mockResolvedValueOnce({ data: null, error: null })
+            mockCreateStripeCheckout.mockResolvedValueOnce(fakeSession);
+            mockSaveCheckoutSession.mockResolvedValueOnce({ error: null })
+            const result = await getOrCreateEventCheckoutSession(attendeeId, eventId, userId, priceId);
 
-            mockCreateStripeCheckout.mockResolvedValue(fakeSession);
-            const result = await createEventCheckoutSession(attendeeId, eventId, userId, priceId);
-            expect(stripe.checkout.sessions.create).toHaveBeenCalledWith(
+            expect(mockGetCheckoutSession).toHaveBeenCalledWith(attendeeId)
+            expect(mockCreateStripeCheckout).toHaveBeenCalledWith(
             expect.objectContaining({
                     line_items: [{ price: priceId, quantity: 1 }],
                     mode: "payment",
@@ -305,11 +329,80 @@ describe("PaymentService", () => {
                 })
             );
             expect(result).toEqual(fakeSession);
+            expect(mockSaveCheckoutSession).toHaveBeenCalledWith(attendeeId, fakeSession.id)
         });
 
+        it('returns previously saved checkout session', async () => {
+            mockGetCheckoutSession.mockResolvedValueOnce({ data: { checkout_id: "prev-session" }, error: null });
+            mockRetrieveStripeCheckout.mockResolvedValueOnce({ id: "prev-session" });
+
+            const result = await getOrCreateEventCheckoutSession(attendeeId, eventId, userId, priceId);
+
+            expect(result).toEqual({id : "prev-session"});
+            expect(mockGetCheckoutSession).toHaveBeenCalledWith(attendeeId);
+            expect(mockRetrieveStripeCheckout).toHaveBeenCalledWith("prev-session")
+            expect(mockCreateStripeCheckout).not.toHaveBeenCalled();
+            expect(mockSaveCheckoutSession).not.toHaveBeenCalled();
+        })
+
         it("stripe session creation fails", async() => {
+            mockGetCheckoutSession.mockResolvedValueOnce({ data: null, error: null });
             mockCreateStripeCheckout.mockRejectedValue(new Error("Stripe failed"));
-            await expect(createEventCheckoutSession(userId, eventId, attendeeId, priceId))
+            await expect(getOrCreateEventCheckoutSession(userId, eventId, attendeeId, priceId))
+                .rejects
+                .toThrow("Stripe failed");
+        });
+    })
+
+    describe("create rsvp checkout session", () => {
+        const userId = "user_123";
+        const eventId = "event_456";
+        const attendeeId = "att_789";
+        const priceId = "price_123";
+        const fakeSession = { id: "sess_pmc" };
+
+        it("creates and saves rsvp checkout session", async () => {
+            process.env.ORIGIN = 'http://localhost:5173';
+            process.env.CARD_PAYMENT_METHOD_ID = 'pm_mocked_123';
+            mockGetCheckoutSession.mockResolvedValueOnce({ data: null, error: null })
+            mockCreateStripeCheckout.mockResolvedValueOnce(fakeSession);
+            mockSaveCheckoutSession.mockResolvedValueOnce({ error: null })
+            const result = await getOrCreateRSVPCheckoutSession(attendeeId, eventId, userId, priceId);
+
+            expect(mockGetCheckoutSession).toHaveBeenCalledWith(attendeeId)
+            expect(mockCreateStripeCheckout).toHaveBeenCalledWith(
+            expect.objectContaining({
+                    line_items: [{ price: priceId, quantity: 1 }],
+                    mode: "payment",
+                    payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
+                    payment_intent_data: {
+                    metadata: { user_id: userId, payment_type: "event", attendee_id: attendeeId },
+                    },
+                    success_url: `${process.env.ORIGIN}/events/${eventId}`,
+                    cancel_url: `${process.env.ORIGIN}/events/${eventId}`,
+                })
+            );
+            expect(result).toEqual(fakeSession);
+            expect(mockSaveCheckoutSession).toHaveBeenCalledWith(attendeeId, fakeSession.id)
+        });
+
+        it('returns previously saved checkout session', async () => {
+            mockGetCheckoutSession.mockResolvedValueOnce({ data: { checkout_id: "prev-session" }, error: null });
+            mockRetrieveStripeCheckout.mockResolvedValueOnce({ id: "prev-session" });
+
+            const result = await getOrCreateRSVPCheckoutSession(attendeeId, eventId, userId, priceId);
+
+            expect(result).toEqual({id : "prev-session"});
+            expect(mockGetCheckoutSession).toHaveBeenCalledWith(attendeeId);
+            expect(mockRetrieveStripeCheckout).toHaveBeenCalledWith("prev-session")
+            expect(mockCreateStripeCheckout).not.toHaveBeenCalled();
+            expect(mockSaveCheckoutSession).not.toHaveBeenCalled();
+        })
+
+        it("stripe session creation fails", async() => {
+            mockGetCheckoutSession.mockResolvedValueOnce({ data: null, error: null });
+            mockCreateStripeCheckout.mockRejectedValue(new Error("Stripe failed"));
+            await expect(getOrCreateEventCheckoutSession(userId, eventId, attendeeId, priceId))
                 .rejects
                 .toThrow("Stripe failed");
         });

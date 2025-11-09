@@ -10,7 +10,6 @@ export const addAttendee = async (event: EventInformation, registrationData: Att
     if (error) {
         throw new Error(`Failed to create attendee: ${error.message}`);
     }
-    
     return data
 }
 
