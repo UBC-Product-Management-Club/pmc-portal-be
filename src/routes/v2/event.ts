@@ -5,6 +5,7 @@ import { addAttendee, getAttendee } from "../../services/Attendee/AttendeeServic
 import { authenticated } from "../../middleware/Session";
 import multer from "multer"
 import { uploadSupabaseFiles } from "../../storage/Storage";
+import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
 
 
 type AttendeeInsert = Database['public']['Tables']['Attendee']['Insert'];
@@ -60,12 +61,15 @@ eventRouter.get('/:eventId/attendee', ...authenticated, async (req: Request, res
 eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (req: Request, res: Response) => {
     const userId = req.user?.user_id
     const eventId = req.params.eventId;
-
-    if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
-    }
+    if (!userId) return res.status(401).json({ error: 'User not authenticated' });
 
     try {
+        const event = await getEvent(eventId)
+
+        if (!event) {
+            throw new Error(`Failed to fetch event ${eventId}`)
+        }
+
         const files = req.files as Express.Multer.File[];
         const bucketName = process.env.SUPABASE_ATTENDEE_BUCKET_NAME!;
         const parentPath = `attendee/${eventId}/`;
@@ -82,8 +86,8 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
             status: 'PROCESSING'
         };
 
-        const result = await addAttendee(insertData);
-        
+        const result = await addAttendee(event, insertData);
+        sendEmail(userId, LoopsEvent.ApplicationReceived, { event_name: event.name! })
         res.status(201).json({
             message: 'Registration successful',
             attendee: result
@@ -91,6 +95,6 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
 
     } catch (error: any) {
         console.error(error)
-        res.status(500).json({ error: error.message })
+        res.status(500).json(error)
     }
 });
