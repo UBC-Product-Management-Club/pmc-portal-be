@@ -53,4 +53,31 @@ export const isFull = async (eventId: string) => {
   return registeredCount >= data.max_attendees;
 };
 
+export const createEventTeam = async (
+  eventId: string,
+  team_name: string,
+  team_attendee_ids: string[]
+) => {
+  try {
+    if (team_attendee_ids.length > 4) {
+      throw new Error("Too many team members");
+    }
+    const { data, error } = await supabase.rpc("create_team_with_members", {
+      p_event_id: eventId,
+      p_team_name: team_name,
+      p_member_attendee_ids: team_attendee_ids,
+    });
+
+    if (error) {
+      console.error("Failed to create team and members:", error.message);
+      throw new Error(error.message);
+    }
+
+    return data[0];
+  } catch (err: any) {
+    console.error("CreateEventTeam failed:", err.message);
+    throw new Error(err.message);
+  }
+};
+
 export type { EventInformation };
