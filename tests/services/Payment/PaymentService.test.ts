@@ -18,7 +18,7 @@ jest.mock("../../../src/config/stripe", () => ({
 }));
 
 
-import { createCheckoutSession, createMembershipPaymentIntent, createEventCheckoutSession} from "../../../src/services/Payment/PaymentService";
+import { createCheckoutSession, createMembershipPaymentIntent, getOrCreateEventCheckoutSession} from "../../../src/services/Payment/PaymentService";
 import * as PaymentService from "../../../src/services/Payment/PaymentService";
 import { stripe } from "../../../src/config/stripe";
 import Stripe from "stripe";
@@ -292,7 +292,7 @@ describe("PaymentService", () => {
             process.env.CARD_PAYMENT_METHOD_ID = 'pm_mocked_123';
 
             mockCreateStripeCheckout.mockResolvedValue(fakeSession);
-            const result = await createEventCheckoutSession(attendeeId, eventId, userId, priceId);
+            const result = await getOrCreateEventCheckoutSession(attendeeId, eventId, userId, priceId);
             expect(stripe.checkout.sessions.create).toHaveBeenCalledWith(
             expect.objectContaining({
                     line_items: [{ price: priceId, quantity: 1 }],
@@ -310,7 +310,7 @@ describe("PaymentService", () => {
 
         it("stripe session creation fails", async() => {
             mockCreateStripeCheckout.mockRejectedValue(new Error("Stripe failed"));
-            await expect(createEventCheckoutSession(userId, eventId, attendeeId, priceId))
+            await expect(getOrCreateEventCheckoutSession(userId, eventId, attendeeId, priceId))
                 .rejects
                 .toThrow("Stripe failed");
         });

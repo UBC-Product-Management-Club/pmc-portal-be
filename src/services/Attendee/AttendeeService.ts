@@ -6,15 +6,15 @@ type Attendee = TablesInsert<"Attendee">
 
 // Adds correctly 
 export const addAttendee = async (registrationData: Attendee): Promise<Tables<"Attendee">> => {
-
-    const attendee = await createAttendee(registrationData);
-
+    const event = await getEvent(registrationData.event_id)
+    if (!event) {
+        throw new Error(`Event missing: ${registrationData.event_id}`)
+    }
+    const attendee = await createAttendee(event, registrationData);
     const { data, error } = await AttendeeRepository.addAttendee(attendee)
-    
     if (error) {
         throw new Error(`Failed to create attendee: ${error.message}`);
     }
-    
     return data
 }
 
@@ -35,18 +35,13 @@ export const deleteAttendee = async (attendeeId: string): Promise<{message: stri
     return {message: `deleted attendee ${attendeeId}`};
 }
 
-export const createAttendee = async (registrationData: Attendee) : Promise<Attendee> => {
+export const createAttendee = async (event: Tables<"Event"> & { registered: number}, registrationData: Attendee) : Promise<Attendee> => {
     const { user_id, event_id } = registrationData;
-    const event = await getEvent(event_id)
     
     if (!user_id || !event_id) {
         throw new Error("Missing required fields")
     }
 
-    if (!event || event && Object.keys(event).length == 0) {
-        throw new Error(`Event missing: ${event_id}`)
-    }
-    
     if (event.max_attendees === event.registered) {
         throw new Error(`Event ${event_id} is full!`)
     }
