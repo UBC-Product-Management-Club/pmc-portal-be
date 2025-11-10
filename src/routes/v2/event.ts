@@ -3,6 +3,7 @@ import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/E
 import { Database } from "../../schema/v2/database.types";
 import { addAttendee, getAttendee } from "../../services/Attendee/AttendeeService";
 import { authenticated } from "../../middleware/Session";
+import { DraftService } from "../../services/Drafts/DraftService";
 import multer from "multer"
 import { uploadSupabaseFiles } from "../../storage/Storage";
 import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
@@ -63,6 +64,7 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
     const eventId = req.params.eventId;
     if (!userId) return res.status(401).json({ error: 'User not authenticated' });
 
+
     try {
         const event = await getEvent(eventId)
 
@@ -75,6 +77,7 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
         const parentPath = `attendee/${eventId}/`;
 
         const fileRefs = await uploadSupabaseFiles(files, {parentPath, bucketName, isPublic: false}) 
+
         const eventFormAnswers = Object.assign(req.body, fileRefs);
 
         const insertData: AttendeeInsert = {
@@ -95,5 +98,64 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
     } catch (error: any) {
         console.error(error)
         res.status(500).json(error)
+    }
+});
+
+eventRouter.get('/drafts/:eventId', ...authenticated, async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const userId = req.user?.user_id
+
+        if (!userId || typeof userId !== 'string') {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        const draftService = new DraftService();
+        const draft = await draftService.loadDraft(eventId, userId);
+        
+        res.status(200).json(draft);
+    } catch (error: any) {
+        console.error('Error loading draft:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.post('/drafts/:eventId', ...authenticated, async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const { draft } = req.body;
+
+        const userId = req.user?.user_id;
+
+        if (!userId || !draft) {
+            return res.status(400).json({ error: 'userId and draft are required' });
+        }
+
+        const draftService = new DraftService();
+        const savedDraft = await draftService.saveDraft(eventId, userId, draft);
+        
+        res.status(200).json(savedDraft);
+    } catch (error: any) {
+        console.error('Error saving draft:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.delete('/drafts/:eventId', ...authenticated, async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const userId = req.user?.user_id
+
+        if (!userId || typeof userId !== 'string') {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        const draftService = new DraftService();
+        await draftService.deleteDraft(eventId, userId);
+        
+        res.status(204).send();
+    } catch (error: any) {
+        console.error('Error deleting draft:', error);
+        res.status(500).json({ error: error.message });
     }
 });

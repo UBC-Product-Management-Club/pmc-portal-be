@@ -221,6 +221,39 @@ export type Database = {
           },
         ]
       }
+      Drafts: {
+        Row: {
+          draft_data: Json | null
+          event_id: string
+          user_id: string
+        }
+        Insert: {
+          draft_data?: Json | null
+          event_id?: string
+          user_id?: string
+        }
+        Update: {
+          draft_data?: Json | null
+          event_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Drafts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Event"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "Drafts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       Event: {
         Row: {
           blurb: string | null

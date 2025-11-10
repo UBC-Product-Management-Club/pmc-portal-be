@@ -8,6 +8,7 @@ export const addAttendee = async (event: EventInformation, registrationData: Att
     const attendee = await createAttendee(event, registrationData);
     const { data, error } = await AttendeeRepository.addAttendee(attendee)
     if (error) {
+        console.log('Error adding attendee:', error);
         throw new Error(`Failed to create attendee: ${error.message}`);
     }
     
