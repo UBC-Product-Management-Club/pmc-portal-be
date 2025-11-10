@@ -104,7 +104,7 @@ eventRouter.post('/:eventId/register', ...authenticated, upload.any(), async (re
 eventRouter.get('/drafts/:eventId', ...authenticated, async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { userId } = req.query;
+        const userId = req.user?.user_id
 
         if (!userId || typeof userId !== 'string') {
             return res.status(400).json({ error: 'userId is required' });
@@ -123,7 +123,9 @@ eventRouter.get('/drafts/:eventId', ...authenticated, async (req, res) => {
 eventRouter.post('/drafts/:eventId', ...authenticated, async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { userId, draft } = req.body;
+        const { draft } = req.body;
+
+        const userId = req.user?.user_id;
 
         if (!userId || !draft) {
             return res.status(400).json({ error: 'userId and draft are required' });
@@ -142,7 +144,7 @@ eventRouter.post('/drafts/:eventId', ...authenticated, async (req, res) => {
 eventRouter.delete('/drafts/:eventId', ...authenticated, async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { userId } = req.query;
+        const userId = req.user?.user_id
 
         if (!userId || typeof userId !== 'string') {
             return res.status(400).json({ error: 'userId is required' });
