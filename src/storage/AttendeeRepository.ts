@@ -41,29 +41,28 @@ export const AttendeeRepository = {
       )
       .eq("attendee_id", attendeeId)
       .single(),
-  getTeamId: (attendeeId: string) =>
-    supabase
-      .from("Team_Member")
-      .select("team_id")
-      .eq("attendee_id", attendeeId)
-      .single(),
-  getTeamName: (teamId: string) =>
-    supabase.from("Team").select("team_name").eq("team_id", teamId).single(),
-  getTeamMembers: (teamId: string) =>
+  getTeamDetailsByAttendee: (attendeeId: string) =>
     supabase
       .from("Team_Member")
       .select(
         `
-          attendee_id,
-          Attendee (
+        team_id,
+        Team (
+          team_name,
+          Team_Member (
+            attendee_id,
+            Attendee (
               user_id,
               User (
-                  first_name,
-                  last_name,
-                  email
+                first_name,
+                last_name,
+                email
               )
+            )
           )
+        )
       `
       )
-      .eq("team_id", teamId),
+      .eq("attendee_id", attendeeId)
+      .single(),
 };

@@ -79,39 +79,13 @@ export const createAttendee = async (
 
 export const getTeam = async (attendee_id: string) => {
   const { data: teamData, error: teamIdError } =
-    await AttendeeRepository.getTeamId(attendee_id);
+    await AttendeeRepository.getTeamDetailsByAttendee(attendee_id);
   if (!teamData) {
     throw new Error("No team found");
   }
   if (teamIdError) {
     throw new Error("Supabase error: " + teamIdError);
   }
-  const team_id = teamData.team_id;
-  const { data: teamNameData, error: teamError } =
-    await AttendeeRepository.getTeamName(team_id);
 
-  if (teamError) {
-    throw new Error("Supabase error: " + teamError.message);
-  }
-  if (!teamNameData) {
-    throw new Error("Team not found");
-  }
-  const { data: members, error: membersError } =
-    await AttendeeRepository.getTeamMembers(team_id);
-
-  if (membersError) throw new Error("Supabase error: " + membersError.message);
-
-  const teammates =
-    members?.map((m) => ({
-      attendee_id: m.attendee_id,
-      user_id: m.Attendee?.user_id,
-      name: m.Attendee?.User?.first_name + " " + m.Attendee?.User?.last_name,
-      email: m.Attendee?.User?.email,
-    })) ?? [];
-
-  return {
-    team_id,
-    team_name: teamNameData.team_name,
-    members: teammates,
-  };
+  return teamData;
 };
