@@ -22,32 +22,32 @@ describe("AttendeeService", () => {
   });
 
   const mockEvent = {
-        event_id: 'event-456',
-        name: 'Product Conference',
-        date: '2025-01-01',
-        blurb: 'sdsd',
-        description: 'sdsd',
-        registration_opens: '2025-07-20T21:30:00+00:00',
-        registration_closes: '2025-07-22T22:30:00+00:00',
-        start_time: '2025-07-24T21:30:00+00:00',
-        end_time: '2025-07-24T22:30:00+00:00',
-        location: 'UBC Sauder Building',
-        thumbnail:
-            'https://dthvbanipvldaiabgvuc.supabase.co/storage/v1/object/public/event-media/events/75f6ef8e-12d7-48f3-a0a8-96443ae5d1f7/media/umm-nocturnaltrashposts-and-then-uhh.jpeg',
-        member_price: 1,
-        non_member_price: 2,
-        member_price_id: "",
-        non_member_price_id: "",
-        max_attendees: 100,
-        event_form_questions: {},
-        media: [],
-        is_disabled: false,
-        registered: 1,
-        needs_review: false,
-        external_page: 'https://google.com',
-        waitlist_form: 'https://waitlist.form',
-        mailing_list: ""
-  }
+    event_id: "event-456",
+    name: "Product Conference",
+    date: "2025-01-01",
+    blurb: "sdsd",
+    description: "sdsd",
+    registration_opens: "2025-07-20T21:30:00+00:00",
+    registration_closes: "2025-07-22T22:30:00+00:00",
+    start_time: "2025-07-24T21:30:00+00:00",
+    end_time: "2025-07-24T22:30:00+00:00",
+    location: "UBC Sauder Building",
+    thumbnail:
+      "https://dthvbanipvldaiabgvuc.supabase.co/storage/v1/object/public/event-media/events/75f6ef8e-12d7-48f3-a0a8-96443ae5d1f7/media/umm-nocturnaltrashposts-and-then-uhh.jpeg",
+    member_price: 1,
+    non_member_price: 2,
+    member_price_id: "",
+    non_member_price_id: "",
+    max_attendees: 100,
+    event_form_questions: {},
+    media: [],
+    is_disabled: false,
+    registered: 1,
+    needs_review: false,
+    external_page: "https://google.com",
+    waitlist_form: "https://waitlist.form",
+    mailing_list: "",
+  };
 
   describe("addAttendee", () => {
     it("should create attendee with full data", async () => {
@@ -163,9 +163,9 @@ describe("AttendeeService", () => {
       ];
 
       for (const registrationData of testCases) {
-        await expect(createAttendee(mockEvent, registrationData)).rejects.toThrow(
-          "Missing required fields"
-        );
+        await expect(
+          createAttendee(mockEvent, registrationData)
+        ).rejects.toThrow("Missing required fields");
       }
     });
 
@@ -175,22 +175,28 @@ describe("AttendeeService", () => {
         event_id: "event-456",
       };
 
-      await expect(createAttendee({...mockEvent, max_attendees: 1, registered: 1 }, registrationData)).rejects.toThrow(
-        "Event event-456 is full"
-      );
+      await expect(
+        createAttendee(
+          { ...mockEvent, max_attendees: 1, registered: 1 },
+          registrationData
+        )
+      ).rejects.toThrow("Event event-456 is full");
     });
 
-    it("should throw if already registered", async() => {
+    it("should throw if already registered", async () => {
       const registrationData = {
         user_id: "user-123",
         event_id: "event-456",
       };
 
-      (AttendeeRepository.getRegisteredAttendee as jest.Mock).mockResolvedValueOnce({ data: registrationData });
+      (
+        AttendeeRepository.getRegisteredAttendee as jest.Mock
+      ).mockResolvedValueOnce({ data: registrationData });
 
-      await expect(createAttendee(mockEvent, registrationData)).rejects.toThrow("User already registered for event");
+      await expect(createAttendee(mockEvent, registrationData)).rejects.toThrow(
+        "User already registered for event"
+      );
     });
-
 
     it("should not throw when all validations pass", async () => {
       const registrationData = {
@@ -198,15 +204,14 @@ describe("AttendeeService", () => {
         event_id: "event-456",
       };
 
-      (AttendeeRepository.getRegisteredAttendee as jest.Mock).mockResolvedValueOnce({ data: null });
+      (
+        AttendeeRepository.getRegisteredAttendee as jest.Mock
+      ).mockResolvedValueOnce({ data: null });
 
       expect(await createAttendee(mockEvent, registrationData)).toEqual({
         ...registrationData,
         status: "PROCESSING",
       });
     });
-
   });
-
-
 });
