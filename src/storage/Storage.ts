@@ -6,11 +6,19 @@ type UploadOptions = {
     isPublic: boolean;
 };
 
+const sanitizeFileName = (name: string) =>
+  name
+    .normalize("NFKD")               
+    .replace(/[^\w.-]+/g, "_")       
+    .replace(/_+/g, "_");           
+
+
 const uploadSupabaseFiles = async (files: Express.Multer.File[],  { parentPath, bucketName, isPublic }: UploadOptions): Promise<Record<string, string>> => {
     const result: Record<string, string> = {};
 
     for (const file of files) {
-        const filePath = `${parentPath}${file.fieldname}-${file.originalname}`;
+        const safeName = sanitizeFileName(file.originalname);
+        const filePath = `${parentPath}${file.fieldname}-${safeName}`;
 
         // Upload file to Supabase bucket 
         const { data: uploadData, error: uploadError} = await supabase.storage.from(bucketName).upload(filePath, file.buffer, {upsert: true})

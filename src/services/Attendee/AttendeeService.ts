@@ -1,3 +1,4 @@
+import { attempt } from "lodash";
 import { Tables, TablesInsert } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { EventInformation } from "../Event/EventService";
@@ -50,3 +51,16 @@ export const createAttendee = async (event: EventInformation, registrationData: 
         status: event.needs_review ? 'APPLIED' : 'PROCESSING',
     }
 }
+
+export const getTeam = async (attendee_id: string) => {
+  const { data: teamData, error: teamIdError } =
+    await AttendeeRepository.getTeamDetailsByAttendee(attendee_id);
+  if (!teamData) {
+    throw new Error("No team found");
+  }
+  if (teamIdError) {
+    throw new Error("Supabase error: " + teamIdError);
+  }
+
+  return teamData;
+};

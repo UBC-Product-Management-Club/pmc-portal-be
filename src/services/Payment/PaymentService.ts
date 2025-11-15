@@ -5,11 +5,7 @@ import { PaymentRepository } from "../../storage/PaymentRepository";
 import { UserRepository } from "../../storage/UserRepository";
 import { CheckoutSessionRepository } from "../../storage/CheckoutSessionRepository";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
-import {
-  addToMailingList,
-  LoopsEvent,
-  sendEmail,
-} from "../Email/EmailService";
+import { addToMailingList, LoopsEvent, sendEmail } from "../Email/EmailService";
 import { Enums, Tables } from "../../schema/v2/database.types";
 
 export enum Status {
@@ -216,15 +212,7 @@ export const handleStripeEvent = async (event: Stripe.Event) => {
 const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
   const paymentIntent = stripeEvent.data.object as Stripe.PaymentIntent;
 
-  await logTransaction({
-    payment_id: paymentIntent.id,
-    user_id: paymentIntent.metadata?.user_id,
-    type: paymentIntent.metadata?.payment_type,
-    amount: paymentIntent.amount,
-    status: mapTransactionStatus(paymentIntent),
-    payment_date: new Date().toISOString(),
-  });
-
+  upsertPaymentTransaction(paymentIntent);
   switch (stripeEvent.type) {
     case "payment_intent.succeeded": {
       const userId = paymentIntent.metadata?.user_id;
@@ -271,7 +259,7 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
       // work around for free events
       if (checkoutSession.amount_total === 0) {
         upsertPaymentTransaction(checkoutSession);
-        updateAttendee(attendeeId, paymentId, "REGISTERED")
+        updateAttendee(attendeeId, paymentId, "REGISTERED");
       }
 
       try {
@@ -361,6 +349,6 @@ export const logTransaction = async (transaction: Tables<"Payment">) => {
   const { data: payment, error } = await PaymentRepository.logTransaction(
     transaction
   );
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return payment;
 };
