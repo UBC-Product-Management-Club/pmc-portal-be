@@ -72,7 +72,7 @@ export const createCheckoutSession = async (userId: string) => {
   return session;
 };
 
-export const saveEventCheckoutSession = async (
+export const saveCheckoutSession = async (
   attendeeId: string,
   checkoutId: string
 ) => {
@@ -85,17 +85,17 @@ export const saveEventCheckoutSession = async (
   }
 };
 
-export const fetchEventCheckoutSession = async (attendeeId: string) => {
+export const getCheckoutSession = async (attendeeId: string) => {
   const { data, error } = await CheckoutSessionRepository.getCheckoutSession(
     attendeeId
   );
   if (error) {
     throw error;
   }
-  return stripe.checkout.sessions.retrieve(data.checkout_id);
+    return data ? stripe.checkout.sessions.retrieve(data.checkout_id) : null;
 };
 
-export const deleteEventCheckoutSession = async (attendeeId: string) => {
+export const deleteCheckoutSession = async (attendeeId: string) => {
   const { error } = await CheckoutSessionRepository.deleteCheckoutSession(
     attendeeId
   );
@@ -104,14 +104,17 @@ export const deleteEventCheckoutSession = async (attendeeId: string) => {
   }
 };
 
-// save this link in another table temporarily (30 mins)
-export const createEventCheckoutSession = async (
+export const getOrCreateEventCheckoutSession = async (
   attendeeId: string,
   eventId: string,
   userId: string,
   priceId: string
 ) => {
   try {
+    const existing = await getCheckoutSession(attendeeId)
+    if (existing) {
+        return existing;
+    }
     const session = await stripe.checkout.sessions.create({
       line_items: [
         {
@@ -136,9 +139,53 @@ export const createEventCheckoutSession = async (
         },
       },
     });
+    saveCheckoutSession(attendeeId, session.id)
     return session;
   } catch (error: any) {
-    console.log(error.message);
+    console.error(error);
+    throw error;
+  }
+};
+
+export const getOrCreateRSVPCheckoutSession = async (
+  attendeeId: string,
+  eventId: string,
+  userId: string,
+  priceId: string
+) => {
+  try {
+    const existing = await getCheckoutSession(attendeeId)
+    if (existing) {
+        return existing;
+    }
+    const session = await stripe.checkout.sessions.create({
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
+      success_url: `${process.env.ORIGIN}/events/${eventId}`,
+      cancel_url: `${process.env.ORIGIN}/events/${eventId}`, // you cant actually cancel a checkout session.
+      metadata: {
+        user_id: userId,
+        payment_type: "event",
+        attendee_id: attendeeId,
+      },
+      payment_intent_data: {
+        metadata: {
+          user_id: userId,
+          payment_type: "event",
+          attendee_id: attendeeId,
+        },
+      },
+    });        
+    saveCheckoutSession(attendeeId, session.id)
+    return session;
+  } catch (error: any) {
+    console.error(error);
     throw error;
   }
 };
@@ -216,7 +263,7 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
       }
 
       try {
-        deleteEventCheckoutSession(attendeeId);
+        deleteCheckoutSession(attendeeId);
         addToMailingList(attendeeId);
         console.log(
           `Added user ${userId} to mailing list for event attendee ${attendeeId}`
@@ -227,7 +274,7 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
       break;
     case "checkout.session.expired":
       AttendeeRepository.deleteAttendee(attendeeId);
-      deleteEventCheckoutSession(attendeeId);
+      deleteCheckoutSession(attendeeId);
       break;
   }
 };
