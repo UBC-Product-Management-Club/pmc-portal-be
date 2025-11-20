@@ -5,7 +5,7 @@ import { PaymentRepository } from "../../storage/PaymentRepository";
 import { UserRepository } from "../../storage/UserRepository";
 import { CheckoutSessionRepository } from "../../storage/CheckoutSessionRepository";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
-import { addToMailingList, LoopsEvent, sendEmail } from "../Email/EmailService";
+import { addToMailingList } from "../Email/EmailService";
 import { Enums, Tables } from "../../schema/v2/database.types";
 
 export enum Status {
@@ -92,7 +92,7 @@ export const getCheckoutSession = async (attendeeId: string) => {
   if (error) {
     throw error;
   }
-    return data ? stripe.checkout.sessions.retrieve(data.checkout_id) : null;
+  return data ? stripe.checkout.sessions.retrieve(data.checkout_id) : null;
 };
 
 export const deleteCheckoutSession = async (attendeeId: string) => {
@@ -111,9 +111,9 @@ export const getOrCreateEventCheckoutSession = async (
   priceId: string
 ) => {
   try {
-    const existing = await getCheckoutSession(attendeeId)
+    const existing = await getCheckoutSession(attendeeId);
     if (existing) {
-        return existing;
+      return existing;
     }
     const session = await stripe.checkout.sessions.create({
       line_items: [
@@ -139,7 +139,7 @@ export const getOrCreateEventCheckoutSession = async (
         },
       },
     });
-    saveCheckoutSession(attendeeId, session.id)
+    saveCheckoutSession(attendeeId, session.id);
     return session;
   } catch (error: any) {
     console.error(error);
@@ -154,9 +154,9 @@ export const getOrCreateRSVPCheckoutSession = async (
   priceId: string
 ) => {
   try {
-    const existing = await getCheckoutSession(attendeeId)
+    const existing = await getCheckoutSession(attendeeId);
     if (existing) {
-        return existing;
+      return existing;
     }
     const session = await stripe.checkout.sessions.create({
       line_items: [
@@ -181,8 +181,8 @@ export const getOrCreateRSVPCheckoutSession = async (
           attendee_id: attendeeId,
         },
       },
-    });        
-    saveCheckoutSession(attendeeId, session.id)
+    });
+    saveCheckoutSession(attendeeId, session.id);
     return session;
   } catch (error: any) {
     console.error(error);
@@ -212,7 +212,7 @@ export const handleStripeEvent = async (event: Stripe.Event) => {
 const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
   const paymentIntent = stripeEvent.data.object as Stripe.PaymentIntent;
 
-  upsertPaymentTransaction(paymentIntent);
+  await upsertPaymentTransaction(paymentIntent);
   switch (stripeEvent.type) {
     case "payment_intent.succeeded": {
       const userId = paymentIntent.metadata?.user_id;
@@ -231,7 +231,6 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
         console.log(
           `Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`
         );
-        sendEmail(userId, LoopsEvent.MembershipPayment);
       } else if (paymentType === "event" && attendeeId) {
         updateAttendee(attendeeId, paymentId, "REGISTERED");
       }
@@ -258,7 +257,7 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
     case "checkout.session.completed":
       // work around for free events
       if (checkoutSession.amount_total === 0) {
-        upsertPaymentTransaction(checkoutSession);
+        await upsertPaymentTransaction(checkoutSession);
         updateAttendee(attendeeId, paymentId, "REGISTERED");
       }
 
