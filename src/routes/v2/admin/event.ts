@@ -3,7 +3,7 @@ import { uuidv4 } from "zod/v4";
 import { supabase } from "../../../config/supabase";
 import { EventSchema } from "../../../schema/v2/Event";
 import { addEvent, createEventTeam } from "../../../services/Event/EventService";
-import { uploadSupabaseFiles } from "../../../storage/Storage";
+import { uploadSupabaseFiles, getDeliverableDownloadUrls } from "../../../storage/Storage";
 import multer from "multer";
 
 const memStorage = multer.memoryStorage();
@@ -118,5 +118,30 @@ eventRouter.post("/:eventId/team", async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error(error);
         return res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+eventRouter.get("/:eventId/deliverable/:userId", async (req: Request, res: Response) => {
+    const userId = req.params.userId;
+    const eventId = req.params.eventId;
+
+    if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+    }
+
+    if (!eventId) {
+        return res.status(400).json({ error: "Event ID is required" });
+    }
+
+    try {
+        const result = await getDeliverableDownloadUrls(userId, eventId);
+
+        res.status(200).json({
+            message: "Deliverable fetched successfully",
+            data: result,
+        });
+    } catch (error: any) {
+        console.error("Fetch deliverable error:", error);
+        res.status(500).json({ error: error.message });
     }
 });
