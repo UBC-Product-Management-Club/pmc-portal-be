@@ -72,36 +72,42 @@ export const uploadDeliverableFiles = async (files: Express.Multer.File[], userI
     const uploadedFiles = await uploadSupabaseFiles(files, {
         parentPath,
         bucketName,
-        isPublic: false,
+        isPublic: true,
     });
 
     const filePaths = Object.values(uploadedFiles);
+    const submissionWithLinks = {
+        ...(formData as object),
+        links: filePaths,
+    };
     const { data: version, error: versionError } = await supabase
         .from("Deliverable_Version")
         .insert({
             version_id: version_id,
             deliverable_id: deliverableId,
-            file_path: filePaths,
             submitted_at: new Date().toISOString(),
             submitted_by: userId,
-            form_data: formData as any,
+            submission: submissionWithLinks,
         })
-        .select("version_id, file_path")
+        .select("submission")
         .single();
+
+    const links = version!.submission as { links: string[] };
 
     if (versionError || !version) {
         throw versionError;
     }
 
-    await supabase.from("Deliverable").update({ version_id: version.version_id }).eq("deliverable_id", deliverableId);
+    await supabase.from("Deliverable").update({ version_id: version_id }).eq("deliverable_id", deliverableId);
 
     return {
         deliverableId,
-        version,
+        version_id,
+        links,
     };
 };
 
-export const getDeliverableDownloadUrls = async (userId: string, eventId: string): Promise<string[]> => {
+export const getDeliverable = async (userId: string, eventId: string): Promise<unknown> => {
     const { data: attendee, error: attendeeError } = await supabase.from("Attendee").select("attendee_id").eq("user_id", userId).eq("event_id", eventId).single();
     if (attendeeError || !attendee) {
         throw new Error("User is not registered as an attendee for this event");
@@ -120,27 +126,10 @@ export const getDeliverableDownloadUrls = async (userId: string, eventId: string
     }
     const versionId = deliverable.version_id;
 
-    const { data: version, error: versionError } = await supabase.from("Deliverable_Version").select("file_path").eq("version_id", versionId!).single();
+    const { data: version, error: versionError } = await supabase.from("Deliverable_Version").select("*").eq("version_id", versionId!).single();
     if (versionError || !version) {
         throw new Error("Deliverable version not found");
     }
-    const bucketName = process.env.SUPABASE_DELIVERABLES_BUCKET!;
 
-    const downloadUrls: string[] = [];
-    if (Array.isArray(version.file_path)) {
-        for (const path of version.file_path) {
-            if (typeof path !== "string") {
-                throw new Error("Invalid file path format");
-            }
-            const { data: urlData, error: urlError } = await supabase.storage.from(bucketName).createSignedUrl(path, 60 * 60);
-            if (urlError) {
-                throw urlError;
-            }
-            downloadUrls.push(urlData.signedUrl);
-        }
-    } else {
-        throw new Error("Deliverable version file paths are not in the expected format");
-    }
-
-    return downloadUrls;
+    return version;
 };

@@ -7,7 +7,7 @@ import { authenticated } from "../../middleware/Session";
 import { DraftService } from "../../services/Drafts/DraftService";
 import multer from "multer";
 import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
-import { getDeliverableDownloadUrls, uploadDeliverableFiles, uploadSupabaseFiles } from "../../storage/Storage";
+import { getDeliverable, uploadDeliverableFiles, uploadSupabaseFiles } from "../../storage/Storage";
 
 type AttendeeInsert = Database["public"]["Tables"]["Attendee"]["Insert"];
 
@@ -163,8 +163,9 @@ eventRouter.delete("/drafts/:eventId", ...authenticated, async (req, res) => {
 });
 
 // submit deliverables for team member
-eventRouter.post("/:eventId/deliverable", ...authenticated, upload.any(), async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
+eventRouter.post("/:eventId/deliverable", upload.any(), async (req: Request, res: Response) => {
+    // const userId = req.user?.user_id;
+    const userId = "google-oauth2|102878363522701307422";
     const eventId = req.params.eventId;
     const files = req.files as Express.Multer.File[];
     const formData = req.body;
@@ -190,8 +191,9 @@ eventRouter.post("/:eventId/deliverable", ...authenticated, upload.any(), async 
     }
 });
 
-eventRouter.get("/:eventId/deliverable", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
+eventRouter.get("/:eventId/deliverable", async (req: Request, res: Response) => {
+    // const userId = req.user?.user_id;
+    const userId = "google-oauth2|102878363522701307422";
     const eventId = req.params.eventId;
 
     if (!userId) {
@@ -203,7 +205,7 @@ eventRouter.get("/:eventId/deliverable", ...authenticated, async (req: Request, 
     }
 
     try {
-        const result = await getDeliverableDownloadUrls(userId, eventId);
+        const result = await getDeliverable(userId, eventId);
 
         res.status(200).json({
             message: "Deliverable fetched successfully",

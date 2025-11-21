@@ -176,24 +176,21 @@ export type Database = {
             Deliverable_Version: {
                 Row: {
                     deliverable_id: string;
-                    file_path: Json | null;
-                    form_data: Json | null;
+                    submission: Json;
                     submitted_at: string | null;
                     submitted_by: string | null;
                     version_id: string;
                 };
                 Insert: {
                     deliverable_id: string;
-                    file_path?: Json | null;
-                    form_data?: Json | null;
+                    submission: Json;
                     submitted_at?: string | null;
                     submitted_by?: string | null;
                     version_id?: string;
                 };
                 Update: {
                     deliverable_id?: string;
-                    file_path?: Json | null;
-                    form_data?: Json | null;
+                    submission?: Json;
                     submitted_at?: string | null;
                     submitted_by?: string | null;
                     version_id?: string;

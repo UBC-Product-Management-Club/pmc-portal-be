@@ -3,7 +3,7 @@ import { uuidv4 } from "zod/v4";
 import { supabase } from "../../../config/supabase";
 import { EventSchema } from "../../../schema/v2/Event";
 import { addEvent, createEventTeam } from "../../../services/Event/EventService";
-import { uploadSupabaseFiles, getDeliverableDownloadUrls } from "../../../storage/Storage";
+import { uploadSupabaseFiles, getDeliverable } from "../../../storage/Storage";
 import multer from "multer";
 
 const memStorage = multer.memoryStorage();
@@ -134,7 +134,7 @@ eventRouter.get("/:eventId/deliverable/:userId", async (req: Request, res: Respo
     }
 
     try {
-        const result = await getDeliverableDownloadUrls(userId, eventId);
+        const result = await getDeliverable(userId, eventId);
 
         res.status(200).json({
             message: "Deliverable fetched successfully",
