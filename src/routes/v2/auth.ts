@@ -1,7 +1,7 @@
 import { Request, Response, Router } from "express";
 import { User } from "../../schema/v1/User";
 import { addUser, getUsers } from "../../services/User/UserService";
-import { sendMembershipEmail } from "../../services/Email/EmailService";
+import { addContact } from "../../services/Email/EmailService";
 
 export const authRouter = Router();
 
@@ -9,7 +9,7 @@ authRouter.post("/onboard", async (req: Request, res: Response) => {
   const { user }: { user: User } = req.body;
   try {
     await addUser(user);
-    await sendMembershipEmail(user);
+    await addContact(user);
     return res.status(200).json({
       message: "Supabase Login success. New user created",
     });

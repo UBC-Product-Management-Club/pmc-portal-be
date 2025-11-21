@@ -5,7 +5,7 @@ import { PaymentRepository } from "../../storage/PaymentRepository";
 import { UserRepository } from "../../storage/UserRepository";
 import { CheckoutSessionRepository } from "../../storage/CheckoutSessionRepository";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
-import { addToMailingList } from "../Email/EmailService";
+import { addToMailingList, LoopsEvent, sendEmail } from "../Email/EmailService";
 import { Enums, Tables } from "../../schema/v2/database.types";
 
 export enum Status {
@@ -62,6 +62,10 @@ export const createCheckoutSession = async (userId: string) => {
     payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
     success_url: `${process.env.ORIGIN}/dashboard/success`,
     cancel_url: `${process.env.ORIGIN}/dashboard/canceled`,
+    metadata: {
+      user_id: userId,
+      payment_type: "membership",
+    },
     payment_intent_data: {
       metadata: {
         user_id: userId,
@@ -231,6 +235,7 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
         console.log(
           `Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`
         );
+        sendEmail(userId, LoopsEvent.MembershipPayment);
       } else if (paymentType === "event" && attendeeId) {
         updateAttendee(attendeeId, paymentId, "REGISTERED");
       }

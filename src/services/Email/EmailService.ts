@@ -10,22 +10,18 @@ enum LoopsEvent {
   ApplicationReceived = "application_received",
 }
 
-const sendMembershipEmail = async (user: User) => {
+const addContact = async (user: User) => {
   try {
-    const resp = await loops.sendEvent({
-      email: user.email,
-      eventName: LoopsEvent.MembershipPayment,
-      contactProperties: {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        pronouns: user.pronouns,
-        university: user.university,
-        faculty: user.faculty,
-        major: user.major,
-        year: user.year,
-        pmcMember: true,
-      },
+    const resp = await loops.createContact(user.email, {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      pronouns: user.pronouns,
+      university: user.university,
+      faculty: user.faculty,
+      major: user.major,
+      year: user.year,
     });
+
     console.log(
       "Event:" + LoopsEvent.MembershipPayment + " email sent successfully:",
       resp
@@ -100,4 +96,4 @@ const addToMailingList = async (attendeeId: string) => {
   }
 };
 
-export { LoopsEvent, sendMembershipEmail, sendEmail, addToMailingList };
+export { LoopsEvent, addContact, sendEmail, addToMailingList };
