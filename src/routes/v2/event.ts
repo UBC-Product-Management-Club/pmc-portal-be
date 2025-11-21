@@ -163,16 +163,11 @@ eventRouter.delete("/drafts/:eventId", ...authenticated, async (req, res) => {
 });
 
 // submit deliverables for team member
-eventRouter.post("/:eventId/deliverable", upload.any(), async (req: Request, res: Response) => {
-    // const userId = req.user?.user_id;
-    const userId = "google-oauth2|102878363522701307422";
+eventRouter.post("/:eventId/deliverable", ...authenticated, upload.any(), async (req: Request, res: Response) => {
+    const userId = req.user?.user_id;
     const eventId = req.params.eventId;
     const files = req.files as Express.Multer.File[];
     const formData = req.body;
-
-    if (!files || files.length === 0) {
-        return res.status(400).json({ error: "No files uploaded" });
-    }
 
     if (!userId) {
         return res.status(400).json({ error: "User ID is required" });
@@ -191,9 +186,8 @@ eventRouter.post("/:eventId/deliverable", upload.any(), async (req: Request, res
     }
 });
 
-eventRouter.get("/:eventId/deliverable", async (req: Request, res: Response) => {
-    // const userId = req.user?.user_id;
-    const userId = "google-oauth2|102878363522701307422";
+eventRouter.get("/:eventId/deliverable", ...authenticated, async (req: Request, res: Response) => {
+    const userId = req.user?.user_id;
     const eventId = req.params.eventId;
 
     if (!userId) {
