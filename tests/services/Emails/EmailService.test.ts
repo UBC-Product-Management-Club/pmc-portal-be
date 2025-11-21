@@ -1,5 +1,6 @@
 import { loops } from "../../../src/config/loops";
 import {
+  addContact,
   addToMailingList,
   LoopsEvent,
   sendEmail,
@@ -11,8 +12,45 @@ jest.mock("../../../src/config/loops", () => ({
   loops: {
     sendEvent: jest.fn(),
     updateContact: jest.fn(),
+    createContact: jest.fn(),
   },
 }));
+
+describe("addContact", () => {
+  const mockEmail = "test@example.com";
+  const mockUserId = "user-123";
+  const mockUser = {
+    userId: mockUserId,
+    email: mockEmail,
+    firstName: "geary",
+    lastName: "gears",
+    pronouns: "he/him",
+    university: "ubc",
+    faculty: "test",
+    major: "test",
+    year: "test",
+    displayName: "",
+    pfp: "",
+    studentId: "",
+    whyPm: "",
+  };
+
+  it("adds contact to Loops", async () => {
+    (loops.sendEvent as jest.Mock).mockResolvedValue({ status: "ok" });
+
+    await expect(addContact(mockUser)).resolves.not.toThrow();
+
+    expect(loops.createContact).toHaveBeenCalledWith(mockEmail, {
+      firstName: "geary",
+      lastName: "gears",
+      pronouns: "he/him",
+      university: "ubc",
+      faculty: "test",
+      major: "test",
+      year: "test",
+    });
+  });
+});
 
 describe("sendEmail", () => {
   const mockEmail = "test@example.com";

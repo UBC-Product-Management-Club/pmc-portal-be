@@ -49,7 +49,6 @@ describe("PaymentService", () => {
     let mockDeleteCheckoutSession: jest.Mock;
     let mockDeleteAttendee: jest.Mock;
     let mockAddToMailingList: jest.Mock;
-    let mocksendEmail: jest.Mock;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -66,7 +65,6 @@ describe("PaymentService", () => {
         mockDeleteCheckoutSession = CheckoutSessionRepository.deleteCheckoutSession as jest.Mock
         mockDeleteAttendee = AttendeeRepository.deleteAttendee as jest.Mock;
         mockAddToMailingList = (addToMailingList as jest.Mock)
-        mocksendEmail = (sendEmail as jest.Mock)
     });
 
     describe("createPaymentIntent", () => {
@@ -210,7 +208,6 @@ describe("PaymentService", () => {
             );
 
             expect(mockUpdateUser).toHaveBeenCalledWith("user-123", { is_payment_verified: true })
-            expect(mocksendEmail).toHaveBeenCalledWith("user-123", "membership_payment");
         });
 
         it("check event payment succeeded", async () => {

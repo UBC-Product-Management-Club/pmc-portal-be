@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { Database } from "../schema/v2/database.types";
 
 dotenv.config({ path: "./.secret/.env" });

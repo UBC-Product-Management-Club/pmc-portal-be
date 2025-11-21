@@ -62,6 +62,10 @@ export const createCheckoutSession = async (userId: string) => {
     payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
     success_url: `${process.env.ORIGIN}/dashboard/success`,
     cancel_url: `${process.env.ORIGIN}/dashboard/canceled`,
+    metadata: {
+      user_id: userId,
+      payment_type: "membership",
+    },
     payment_intent_data: {
       metadata: {
         user_id: userId,
@@ -92,7 +96,7 @@ export const getCheckoutSession = async (attendeeId: string) => {
   if (error) {
     throw error;
   }
-    return data ? stripe.checkout.sessions.retrieve(data.checkout_id) : null;
+  return data ? stripe.checkout.sessions.retrieve(data.checkout_id) : null;
 };
 
 export const deleteCheckoutSession = async (attendeeId: string) => {
@@ -111,9 +115,9 @@ export const getOrCreateEventCheckoutSession = async (
   priceId: string
 ) => {
   try {
-    const existing = await getCheckoutSession(attendeeId)
+    const existing = await getCheckoutSession(attendeeId);
     if (existing) {
-        return existing;
+      return existing;
     }
     const session = await stripe.checkout.sessions.create({
       line_items: [
@@ -139,7 +143,7 @@ export const getOrCreateEventCheckoutSession = async (
         },
       },
     });
-    saveCheckoutSession(attendeeId, session.id)
+    saveCheckoutSession(attendeeId, session.id);
     return session;
   } catch (error: any) {
     console.error(error);
@@ -154,9 +158,9 @@ export const getOrCreateRSVPCheckoutSession = async (
   priceId: string
 ) => {
   try {
-    const existing = await getCheckoutSession(attendeeId)
+    const existing = await getCheckoutSession(attendeeId);
     if (existing) {
-        return existing;
+      return existing;
     }
     const session = await stripe.checkout.sessions.create({
       line_items: [
@@ -181,8 +185,8 @@ export const getOrCreateRSVPCheckoutSession = async (
           attendee_id: attendeeId,
         },
       },
-    });        
-    saveCheckoutSession(attendeeId, session.id)
+    });
+    saveCheckoutSession(attendeeId, session.id);
     return session;
   } catch (error: any) {
     console.error(error);
@@ -212,7 +216,7 @@ export const handleStripeEvent = async (event: Stripe.Event) => {
 const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
   const paymentIntent = stripeEvent.data.object as Stripe.PaymentIntent;
 
-  upsertPaymentTransaction(paymentIntent);
+  await upsertPaymentTransaction(paymentIntent);
   switch (stripeEvent.type) {
     case "payment_intent.succeeded": {
       const userId = paymentIntent.metadata?.user_id;
@@ -258,7 +262,7 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
     case "checkout.session.completed":
       // work around for free events
       if (checkoutSession.amount_total === 0) {
-        upsertPaymentTransaction(checkoutSession);
+        await upsertPaymentTransaction(checkoutSession);
         updateAttendee(attendeeId, paymentId, "REGISTERED");
       }
 

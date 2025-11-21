@@ -2,12 +2,34 @@ import { EventProperties } from "loops";
 import { loops } from "../../config/loops";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { UserRepository } from "../../storage/UserRepository";
+import { User } from "../../schema/v1/User";
 
 enum LoopsEvent {
   MembershipPayment = "membership_payment",
   EventPayment = "event_payment",
   ApplicationReceived = "application_received",
 }
+
+const addContact = async (user: User) => {
+  try {
+    const resp = await loops.createContact(user.email, {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      pronouns: user.pronouns,
+      university: user.university,
+      faculty: user.faculty,
+      major: user.major,
+      year: user.year,
+    });
+
+    console.log(
+      "Event:" + LoopsEvent.MembershipPayment + " email sent successfully:",
+      resp
+    );
+  } catch (error) {
+    console.error("Failed to send membership email " + error);
+  }
+};
 
 const sendEmail = async (
   userId: string,
@@ -74,4 +96,4 @@ const addToMailingList = async (attendeeId: string) => {
   }
 };
 
-export { LoopsEvent, sendEmail, addToMailingList };
+export { LoopsEvent, addContact, sendEmail, addToMailingList };
