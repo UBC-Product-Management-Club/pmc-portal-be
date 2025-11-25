@@ -68,7 +68,9 @@ export const uploadDeliverableFiles = async (files: Express.Multer.File[], userI
 
     const bucketName = process.env.SUPABASE_DELIVERABLES_BUCKET!;
     const version_id = crypto.randomUUID();
-    const parentPath = `events/${eventId}/teams/${teamId}/deliverables/${version_id}/`;
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[:.]/g, "-");
+    const parentPath = `events/${eventId}/teams/${teamId}/deliverables/${timestamp}-${teamId}/`;
     const uploadedFiles = await uploadSupabaseFiles(files, {
         parentPath,
         bucketName,
@@ -78,21 +80,21 @@ export const uploadDeliverableFiles = async (files: Express.Multer.File[], userI
     const filePaths = Object.values(uploadedFiles);
     const submissionWithLinks = {
         ...(formData as object),
-        links: filePaths,
+        file_links: filePaths,
     };
     const { data: version, error: versionError } = await supabase
         .from("Deliverable_Version")
         .insert({
             version_id: version_id,
             deliverable_id: deliverableId,
-            submitted_at: new Date().toISOString(),
+            submitted_at: now.toISOString(),
             submitted_by: userId,
             submission: submissionWithLinks,
         })
         .select("submission")
         .single();
 
-    const links = version!.submission as { links: string[] };
+    const file_links = version!.submission as { file_links: string[] };
 
     if (versionError || !version) {
         throw versionError;
@@ -103,7 +105,7 @@ export const uploadDeliverableFiles = async (files: Express.Multer.File[], userI
     return {
         deliverableId,
         version_id,
-        links,
+        file_links,
     };
 };
 
