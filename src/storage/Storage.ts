@@ -70,7 +70,7 @@ export const uploadDeliverableFiles = async (files: Express.Multer.File[], userI
     const version_id = crypto.randomUUID();
     const now = new Date();
     const timestamp = now.toISOString().replace(/[:.]/g, "-");
-    const parentPath = `events/${eventId}/teams/${teamId}/deliverables/${timestamp}-${teamId}/`;
+    const parentPath = `events/${eventId}/teams/${teamId}/${timestamp}-${teamId}/`;
     const uploadedFiles = await uploadSupabaseFiles(files, {
         parentPath,
         bucketName,
