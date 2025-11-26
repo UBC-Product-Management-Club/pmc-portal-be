@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { getEvent, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
 import { Database } from "../../schema/v2/database.types";
 import { addAttendee, getAttendee } from "../../services/Attendee/AttendeeService";
+import { createUserTeam, getUserTeam, joinTeamWithCode, leaveUserTeam } from "../../services/Team/TeamService";
 import { authenticated } from "../../middleware/Session";
 
 import { DraftService } from "../../services/Drafts/DraftService";
@@ -208,5 +209,83 @@ eventRouter.get("/:eventId/deliverable", ...authenticated, async (req: Request, 
     } catch (error: any) {
         console.error("Fetch deliverable error:", error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.get("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
+    const userId = req.user?.user_id;
+    const eventId = req.params.eventId;
+
+    if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+    }
+
+    try {
+        const team = await getUserTeam(eventId, userId);
+        return res.status(200).json(team);
+    } catch (error: any) {
+        console.error("Fetch team error:", error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.post("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
+    const userId = req.user?.user_id;
+    const eventId = req.params.eventId;
+    const { team_name } = req.body;
+
+    if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+    }
+
+    if (!team_name || typeof team_name !== "string") {
+        return res.status(400).json({ error: "team_name is required" });
+    }
+
+    try {
+        const team = await createUserTeam(eventId, userId, team_name); // returns TeamResponse
+        return res.status(201).json(team);
+    } catch (error: any) {
+        console.error("Create team error:", error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.post("/:eventId/team/join", ...authenticated, async (req: Request, res: Response) => {
+    const userId = req.user?.user_id;
+    const eventId = req.params.eventId;
+    const { team_code } = req.body;
+
+    if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+    }
+
+    if (!team_code || typeof team_code !== "string") {
+        return res.status(400).json({ error: "team_code is required" });
+    }
+
+    try {
+        const team = await joinTeamWithCode(eventId, userId, team_code); // returns TeamResponse
+        return res.status(200).json(team);
+    } catch (error: any) {
+        console.error("Join team error:", error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.delete("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
+    const userId = req.user?.user_id;
+    const eventId = req.params.eventId;
+
+    if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+    }
+
+    try {
+        await leaveUserTeam(eventId, userId);
+        return res.status(200).json({ message: "Left team successfully" });
+    } catch (error: any) {
+        console.error("Leave team error:", error);
+        return res.status(500).json({ error: error.message });
     }
 });
