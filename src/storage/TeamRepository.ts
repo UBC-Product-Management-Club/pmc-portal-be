@@ -7,7 +7,22 @@ type TeamMember = TablesInsert<"Team_Member">;
 export const TeamRepository = {
     createTeam: (team: Team) => supabase.from("Team").insert(team).select().single(),
     getTeamById: (teamId: string) => supabase.from("Team").select("*").eq("team_id", teamId).single(),
-    getTeamByCode: (eventId: string, code: string) => supabase.from("Team").select("*").eq("event_id", eventId).eq("team_code", code).single(),
+    getTeamByCode: (eventId: string, code: string) =>
+        supabase
+            .from("Team")
+            .select(
+                `
+      team_id,
+      team_code,
+      team_name,
+      Team_Member (
+          attendee_id
+      )
+      `
+            )
+            .eq("event_id", eventId)
+            .eq("team_code", code)
+            .single(),
     getTeamsByEvent: (eventId: string) => supabase.from("Team").select("*").eq("event_id", eventId),
     updateTeam: (teamId: string, updates: Record<string, any>) => supabase.from("Team").update(updates).eq("team_id", teamId),
     deleteTeam: (teamId: string) => supabase.from("Team").delete().eq("team_id", teamId),

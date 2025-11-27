@@ -95,6 +95,10 @@ export const joinTeamWithCode = async (eventId: string, userId: string, teamCode
         throw new Error("Team with the provided code not found.");
     }
 
+    if (teamData.Team_Member && teamData.Team_Member.length >= 4) {
+        throw new Error("This team is already full.");
+    }
+
     const { error: memberError } = await TeamRepository.addMember({
         team_id: teamData.team_id,
         attendee_id: attendeeData.attendee_id,

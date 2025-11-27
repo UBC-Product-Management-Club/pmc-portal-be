@@ -243,7 +243,7 @@ eventRouter.post("/:eventId/team", ...authenticated, async (req: Request, res: R
     }
 
     try {
-        const team = await createUserTeam(eventId, userId, team_name); // returns TeamResponse
+        const team = await createUserTeam(eventId, userId, team_name);
         return res.status(201).json(team);
     } catch (error: any) {
         console.error("Create team error:", error);
@@ -265,7 +265,7 @@ eventRouter.post("/:eventId/team/join", ...authenticated, async (req: Request, r
     }
 
     try {
-        const team = await joinTeamWithCode(eventId, userId, team_code); // returns TeamResponse
+        const team = await joinTeamWithCode(eventId, userId, team_code);
         return res.status(200).json(team);
     } catch (error: any) {
         console.error("Join team error:", error);
