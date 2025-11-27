@@ -1,4 +1,4 @@
-import { Tables, TablesInsert } from "../../schema/v2/database.types";
+import { Tables } from "../../schema/v2/database.types";
 import { TeamRepository } from "../../storage/TeamRepository";
 import { getAttendee } from "../Attendee/AttendeeService";
 

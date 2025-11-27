@@ -44,6 +44,7 @@ export const TeamRepository = {
         team_id,
         Team (
           team_name,
+          team_code,
           Team_Member (
             attendee_id,
             Attendee (

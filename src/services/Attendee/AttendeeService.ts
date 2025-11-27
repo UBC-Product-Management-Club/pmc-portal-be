@@ -1,5 +1,6 @@
 import { Tables, TablesInsert } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
+import { TeamRepository } from "../../storage/TeamRepository";
 import { EventInformation } from "../Event/EventService";
 
 type Attendee = TablesInsert<"Attendee">;
@@ -52,7 +53,7 @@ export const createAttendee = async (event: EventInformation, registrationData: 
 };
 
 export const getTeam = async (attendee_id: string) => {
-    const { data: teamData, error: teamIdError } = await AttendeeRepository.getTeamDetailsByAttendee(attendee_id);
+    const { data: teamData, error: teamIdError } = await TeamRepository.getTeamByAttendee(attendee_id);
     if (!teamData) {
         throw new Error("No team found");
     }
