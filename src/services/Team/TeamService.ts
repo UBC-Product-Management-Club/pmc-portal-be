@@ -22,7 +22,7 @@ export const getUserTeam = async (eventId: string, userId: string): Promise<any>
     return teamData;
 };
 
-export const createUserTeam = async (eventId: string, userId: string, teamName: string): Promise<Tables<"Team">> => {
+export const createUserTeam = async (eventId: string, userId: string, teamName: string): Promise<any> => {
     const attendeeData = await getAttendee(eventId, userId);
     if (!attendeeData) {
         throw new Error("Attendee not found for this event and user.");
@@ -69,10 +69,16 @@ export const createUserTeam = async (eventId: string, userId: string, teamName: 
         throw new Error(`Failed to add attendee to team: ${memberError.message}`);
     }
 
-    return teamData;
+    const { data: fullTeam, error: fullError } = await TeamRepository.getTeamByAttendee(attendeeData.attendee_id);
+
+    if (fullError || !fullTeam) {
+        throw new Error(`Failed to fetch full team after creation: ${fullError?.message ?? "unknown error"}`);
+    }
+
+    return fullTeam;
 };
 
-export const joinTeamWithCode = async (eventId: string, userId: string, teamCode: string): Promise<Tables<"Team">> => {
+export const joinTeamWithCode = async (eventId: string, userId: string, teamCode: string): Promise<any> => {
     const attendeeData = await getAttendee(eventId, userId);
     if (!attendeeData) {
         throw new Error("Attendee not found for this event and user.");
@@ -98,7 +104,13 @@ export const joinTeamWithCode = async (eventId: string, userId: string, teamCode
         throw new Error(`Failed to add attendee to team: ${memberError.message}`);
     }
 
-    return teamData;
+    const { data: fullTeam, error: fullError } = await TeamRepository.getTeamByAttendee(attendeeData.attendee_id);
+
+    if (fullError || !fullTeam) {
+        throw new Error(`Failed to fetch full team after joining: ${fullError?.message ?? "unknown error"}`);
+    }
+
+    return fullTeam;
 };
 
 export const leaveUserTeam = async (eventId: string, userId: string): Promise<{ message: string }> => {
