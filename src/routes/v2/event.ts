@@ -202,10 +202,7 @@ eventRouter.get("/:eventId/deliverable", ...authenticated, async (req: Request, 
     try {
         const result = await getDeliverable(userId, eventId);
 
-        res.status(200).json({
-            message: "Deliverable fetched successfully",
-            data: result,
-        });
+        res.status(200).json(result);
     } catch (error: any) {
         console.error("Fetch deliverable error:", error);
         res.status(500).json({ error: error.message });
