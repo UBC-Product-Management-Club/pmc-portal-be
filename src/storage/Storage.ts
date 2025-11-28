@@ -128,7 +128,21 @@ export const getDeliverable = async (userId: string, eventId: string): Promise<u
     }
     const versionId = deliverable.version_id;
 
-    const { data: version, error: versionError } = await supabase.from("Deliverable_Version").select("*").eq("version_id", versionId!).single();
+    const { data: version, error: versionError } = await supabase
+        .from("Deliverable_Version")
+        .select(
+            `
+    submission,
+    submitted_at,
+    User:submitted_by (
+      first_name,
+      last_name
+    )
+  `
+        )
+        .eq("version_id", versionId!)
+        .single();
+
     if (versionError || !version) {
         throw new Error("Deliverable version not found");
     }

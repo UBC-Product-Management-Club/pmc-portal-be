@@ -378,16 +378,19 @@ export type Database = {
                     event_id: string;
                     team_id: string;
                     team_name: string;
+                    team_code: string;
                 };
                 Insert: {
                     event_id?: string;
                     team_id?: string;
                     team_name: string;
+                    team_code: string;
                 };
                 Update: {
                     event_id?: string;
                     team_id?: string;
                     team_name?: string;
+                    team_code?: string;
                 };
                 Relationships: [
                     {
