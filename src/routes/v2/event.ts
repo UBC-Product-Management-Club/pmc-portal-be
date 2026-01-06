@@ -124,11 +124,6 @@ eventRouter.post(
         message: "Registration successful",
         attendee: result,
       });
-
-      res.status(201).json({
-        message: "Registration successful",
-        attendee: result,
-      });
     } catch (error: any) {
       console.error(error);
       res.status(500).json(error);
