@@ -7,6 +7,7 @@ import { CheckoutSessionRepository } from "../../storage/CheckoutSessionReposito
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { addToMailingList, LoopsEvent, sendEmail } from "../Email/EmailService";
 import { Enums, Tables } from "../../schema/v2/database.types";
+import moment from "moment";
 
 export enum Status {
   PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
@@ -130,6 +131,7 @@ export const getOrCreateEventCheckoutSession = async (
       payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
       success_url: `${process.env.ORIGIN}/events/${eventId}/register?success=true`,
       cancel_url: `${process.env.ORIGIN}/events/${eventId}/register`, // you cant actually cancel a checkout session.
+      expires_at: moment().unix() + 1900, // 30 minutes
       metadata: {
         user_id: userId,
         payment_type: "event",
