@@ -2,13 +2,14 @@ import { Request, Response, Router } from "express";
 import { uuidv4 } from "zod/v4";
 import { supabase } from "../../../config/supabase";
 import { EventSchema } from "../../../schema/v2/Event";
-import { addEvent, createEventTeam } from "../../../services/Event/EventService";
+import { addEvent, createEventTeam, getEvent } from "../../../services/Event/EventService";
 import { uploadSupabaseFiles, getDeliverable } from "../../../storage/Storage";
 import multer from "multer";
 
 const memStorage = multer.memoryStorage();
 const upload = multer({ storage: memStorage });
 export const eventRouter = Router();
+
 
 eventRouter.get("/basic", async (req: Request, res: Response) => {
     const { data, error } = await supabase.from("Event").select("event_id, name");
@@ -17,6 +18,23 @@ eventRouter.get("/basic", async (req: Request, res: Response) => {
         return res.status(500).json(error);
     }
     return res.status(200).json(data);
+});
+
+eventRouter.get("/:eventId", async (req: Request, res: Response) => {
+    const eventId = req.params.eventId;
+
+    if (!eventId) {
+        return res.status(400).json({ error: "Event ID is required" });
+    }
+
+    try {
+        const result = await getEvent(eventId);
+
+        res.status(200).json(result);
+    } catch (error: any) {
+        console.error("Failed to fetch event:", error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 //[WIP Needs to be retested]
