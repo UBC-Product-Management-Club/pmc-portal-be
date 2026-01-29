@@ -3,6 +3,7 @@ import { supabase } from "../../config/supabase";
 import { Tables } from "../../schema/v2/database.types";
 import { EventInsert } from "../../schema/v2/Event";
 import { EventRepository } from "../../storage/EventRepository";
+import { stripe } from "../../config/stripe";
 
 type EventRow = Tables<"Event">;
 type EventCreate = EventInsert;
@@ -21,7 +22,10 @@ export const getEvent = async (
   if (error) throw new Error(error.message);
   if (!data) return null;
 
-  return { ..._.omit(data, "Attendee"), registered: data.Attendee[0].count };
+  const non_member_price = await stripe.prices.retrieve(await getEventPriceId(id, false));
+  const member_price = await stripe.prices.retrieve(await getEventPriceId(id, true));
+
+  return { ..._.omit(data, "Attendee"), member_price: (member_price.unit_amount! / 100), non_member_price: (non_member_price.unit_amount! / 100), registered: data.Attendee[0].count };
 };
 
 export const getRegisteredEvents = async (userId: string) => {
