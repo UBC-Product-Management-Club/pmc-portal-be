@@ -80,4 +80,13 @@ export const createEventTeam = async (
   }
 };
 
+export const getEventDeliverableFlags = async (
+  eventId: string,
+) => {
+  const data = await EventRepository.getEventDeliverableFlags(eventId);
+
+  if (!data) throw new Error("Event price id not found");
+  return data;
+};
+
 export type { EventInformation };
