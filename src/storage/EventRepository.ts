@@ -1,4 +1,3 @@
-import _ from "lodash";
 import { supabase } from "../config/supabase";
 import { Tables } from "../schema/v2/database.types";
 import { EventInsert } from "../schema/v2/Event";
@@ -69,4 +68,9 @@ export const EventRepository = {
       .select("mailing_list")
       .eq("event_id", eventId)
       .single(),
+  getEventDeliverableFlags: (eventId: string) =>
+    supabase
+      .from("Deliverable_Flags")
+      .select("*")
+      .eq("event_id", eventId)
 };

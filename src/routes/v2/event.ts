@@ -1,24 +1,25 @@
-import { Router, Request, Response } from "express";
-import {
-  getEvent,
-  getEvents,
-  getRegisteredEvents,
-} from "../../services/Event/EventService";
+import { Request, Response, Router } from "express";
+import { authenticated } from "../../middleware/Session";
 import { Database } from "../../schema/v2/database.types";
 import {
   addAttendee,
   getAttendee,
 } from "../../services/Attendee/AttendeeService";
 import {
+  getEvent,
+  getEventDeliverableFlags,
+  getEvents,
+  getRegisteredEvents
+} from "../../services/Event/EventService";
+import {
   createUserTeam,
   getUserTeam,
   joinTeamWithCode,
   leaveUserTeam,
 } from "../../services/Team/TeamService";
-import { authenticated } from "../../middleware/Session";
 
-import { DraftService } from "../../services/Drafts/DraftService";
 import multer from "multer";
+import { DraftService } from "../../services/Drafts/DraftService";
 import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
 import {
   getDeliverable,
@@ -361,3 +362,24 @@ eventRouter.delete(
     }
   }
 );
+
+eventRouter.get(
+  "/:eventId/flags",
+  ...authenticated,
+  async (req: Request, res: Response) => {
+    const userId = req.user?.user_id;
+    const eventId = req.params.eventId;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    try {
+      const deliverables = await getEventDeliverableFlags(eventId);
+      return res.status(200).json(deliverables);
+    } catch (error: any) {
+      console.error("Get event deliverable error:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  }
+)
