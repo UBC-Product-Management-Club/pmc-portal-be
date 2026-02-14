@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       Attendee: {
@@ -192,18 +167,21 @@ export type Database = {
           event_id: string
           id: string
           is_enabled: boolean
+          starttime: string | null
         }
         Insert: {
           deadline: string
           event_id: string
           id?: string
           is_enabled: boolean
+          starttime?: string | null
         }
         Update: {
           deadline?: string
           event_id?: string
           id?: string
           is_enabled?: boolean
+          starttime?: string | null
         }
         Relationships: [
           {
@@ -310,7 +288,6 @@ export type Database = {
           registration_closes: string | null
           registration_opens: string | null
           start_time: string | null
-          thumbnail: string | null
           waitlist_form: string | null
         }
         Insert: {
@@ -335,7 +312,6 @@ export type Database = {
           registration_closes?: string | null
           registration_opens?: string | null
           start_time?: string | null
-          thumbnail?: string | null
           waitlist_form?: string | null
         }
         Update: {
@@ -360,7 +336,6 @@ export type Database = {
           registration_closes?: string | null
           registration_opens?: string | null
           start_time?: string | null
-          thumbnail?: string | null
           waitlist_form?: string | null
         }
         Relationships: []
@@ -709,9 +684,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       ATTENDEE_STATUS: [

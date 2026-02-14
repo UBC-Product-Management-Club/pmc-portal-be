@@ -10,7 +10,7 @@ export const EventRepository = {
     supabase
       .from("Event")
       .select(
-        "event_id, name, blurb, date, start_time, end_time, location, member_price, non_member_price, thumbnail, is_disabled"
+        "event_id, name, blurb, date, start_time, end_time, location, member_price, non_member_price, is_disabled"
       )
       .order("date", { ascending: false }),
   getEvent: (eventId: string) =>
@@ -35,7 +35,6 @@ export const EventRepository = {
           location,
           member_price,
           non_member_price,
-          thumbnail,
           is_disabled,
           external_page
         )

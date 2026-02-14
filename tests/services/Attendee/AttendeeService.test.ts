@@ -32,8 +32,6 @@ describe("AttendeeService", () => {
     start_time: "2025-07-24T21:30:00+00:00",
     end_time: "2025-07-24T22:30:00+00:00",
     location: "UBC Sauder Building",
-    thumbnail:
-      "https://dthvbanipvldaiabgvuc.supabase.co/storage/v1/object/public/event-media/events/75f6ef8e-12d7-48f3-a0a8-96443ae5d1f7/media/umm-nocturnaltrashposts-and-then-uhh.jpeg",
     member_price: 1,
     non_member_price: 2,
     member_price_id: "",
