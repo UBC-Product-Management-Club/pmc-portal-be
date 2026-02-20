@@ -4,11 +4,14 @@ import Stripe from "stripe";
 import { PaymentRepository } from "../../storage/PaymentRepository";
 import { UserRepository } from "../../storage/UserRepository";
 import { CheckoutSessionRepository } from "../../storage/CheckoutSessionRepository";
-import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { addToMailingList, LoopsEvent, sendEmail } from "../Email/EmailService";
 import { Enums, Tables } from "../../schema/v2/database.types";
 import moment from "moment";
-import { getAttendee } from "../Attendee/AttendeeService";
+import {
+  deleteAttendee,
+  getAttendee,
+  updateAttendee,
+} from "../Attendee/AttendeeService";
 import { getEvent } from "../Event/EventService";
 
 export enum Status {
@@ -240,7 +243,11 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
         );
         sendEmail(userId, LoopsEvent.MembershipPayment);
       } else if (paymentType === "event" && attendeeId) {
-        updateAttendee(attendeeId, paymentId, "REGISTERED");
+        updateAttendee(attendeeId, {
+          is_payment_verified: true,
+          payment_id: paymentId,
+          status: "REGISTERED",
+        });
       }
       break;
     }
@@ -250,13 +257,21 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
         if (!attendee) return;
         const event = await getEvent(attendee.event_id);
         if (event?.needs_review) {
-          await updateAttendee(attendeeId, paymentId, "ACCEPTED");
+          updateAttendee(attendeeId, {
+            is_payment_verified: false,
+            payment_id: paymentId,
+            status: "ACCEPTED",
+          });
         }
       }
       break;
     case "payment_intent.processing":
       if (paymentType === "event") {
-        await updateAttendee(attendeeId, paymentId, "PROCESSING");
+        await updateAttendee(attendeeId, {
+          is_payment_verified: false,
+          payment_id: paymentId,
+          status: "PROCESSING",
+        });
       }
       break;
   }
@@ -279,7 +294,11 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
       // work around for free events
       if (checkoutSession.amount_total === 0) {
         await upsertPaymentTransaction(checkoutSession);
-        updateAttendee(attendeeId, paymentId, "REGISTERED");
+        updateAttendee(attendeeId, {
+          is_payment_verified: true,
+          payment_id: paymentId,
+          status: "REGISTERED",
+        });
       }
 
       try {
@@ -293,7 +312,7 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
       }
       break;
     case "checkout.session.expired":
-      AttendeeRepository.deleteAttendee(attendeeId);
+      deleteAttendee(attendeeId);
       deleteCheckoutSession(attendeeId);
       break;
   }
@@ -316,21 +335,6 @@ const mapTransactionStatus = (
     default:
       return Status.PAYMENT_PENDING;
   }
-};
-
-const updateAttendee = async (
-  attendeeId: string,
-  paymentId: string,
-  status: Enums<"ATTENDEE_STATUS">
-) => {
-  const { error } = await AttendeeRepository.updateAttendee(attendeeId, {
-    is_payment_verified: status === "REGISTERED",
-    payment_id: paymentId,
-    status: status,
-  });
-  if (error)
-    console.error(`Failed to update attendee ${attendeeId}! ${error.message}`);
-  console.log(`Payment ${paymentId} succeeded for attendee ${attendeeId}`);
 };
 
 const upsertPaymentTransaction = async (

@@ -14,10 +14,11 @@ import {
 import { authenticated } from "../../middleware/Session";
 import {
   getAttendee,
-  rsvpFreeAttendee,
+  updateAttendee
 } from "../../services/Attendee/AttendeeService";
 import { getEventPriceId } from "../../services/Event/EventService";
 import { getUser } from "../../services/User/UserService";
+import { addToMailingList } from "../../services/Email/EmailService";
 
 export const paymentRouter = Router();
 
@@ -129,7 +130,8 @@ paymentRouter.get(
         );
         return res.status(200).json(session);
       }
-      await rsvpFreeAttendee(attendee.attendee_id);
+      await updateAttendee(attendee.attendee_id, { status: "REGISTERED" })
+      addToMailingList(attendee.attendee_id);
       return res.status(200).send();
     } catch (error) {
       console.log(error);

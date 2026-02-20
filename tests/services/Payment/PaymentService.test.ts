@@ -26,11 +26,12 @@ import {
 } from "../../../src/services/Payment/PaymentService";
 import * as PaymentService from "../../../src/services/Payment/PaymentService";
 import * as EventService from "../../../src/services/Event/EventService";
+import * as AttendeeService from "../../../src/services/Attendee/AttendeeService";
 import { stripe } from "../../../src/config/stripe";
 import Stripe from "stripe";
 import { UserRepository } from "../../../src/storage/UserRepository";
 import { PaymentRepository } from "../../../src/storage/PaymentRepository";
-import { AttendeeRepository } from "../../../src/storage/AttendeeRepository";
+// import { AttendeeRepository } from "../../../src/storage/AttendeeRepository";
 import { ProductRepository } from "../../../src/storage/ProductRepository";
 import {
   addToMailingList,
@@ -39,6 +40,7 @@ import {
 import { CheckoutSessionRepository } from "../../../src/storage/CheckoutSessionRepository";
 
 jest.mock("../../../src/services/User/UserService");
+jest.mock("../../../src/services/Attendee/AttendeeService");
 jest.mock("../../../src/services/Event/EventService");
 jest.mock("../../../src/services/Email/EmailService");
 
@@ -66,10 +68,10 @@ describe("PaymentService", () => {
     mockGetProduct = ProductRepository.getPriceId as jest.Mock;
     mockGetCheckoutSession =
       CheckoutSessionRepository.getCheckoutSession as jest.Mock;
-    mockGetAttendee = AttendeeRepository.getAttendee as jest.Mock;
+    mockGetAttendee = AttendeeService.getAttendee as jest.Mock;
     mockGetEvent = EventService.getEvent as jest.Mock;
     mockUpdateUser = UserRepository.updateUser as jest.Mock;
-    mockUpdateAttendee = AttendeeRepository.updateAttendee as jest.Mock;
+    mockUpdateAttendee = AttendeeService.updateAttendee as jest.Mock;
     mockTransactionLogger = PaymentRepository.logTransaction as jest.Mock;
     mockCreatePaymentIntent = stripe.paymentIntents.create as jest.Mock;
     mockCreateStripeCheckout = stripe.checkout.sessions.create as jest.Mock;
@@ -78,7 +80,7 @@ describe("PaymentService", () => {
       CheckoutSessionRepository.addCheckoutSession as jest.Mock;
     mockDeleteCheckoutSession =
       CheckoutSessionRepository.deleteCheckoutSession as jest.Mock;
-    mockDeleteAttendee = AttendeeRepository.deleteAttendee as jest.Mock;
+    mockDeleteAttendee = AttendeeService.deleteAttendee as jest.Mock;
     mockAddToMailingList = addToMailingList as jest.Mock;
   });
 

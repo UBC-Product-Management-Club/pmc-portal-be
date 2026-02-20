@@ -1,7 +1,6 @@
 import { Enums, Tables, TablesInsert } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { TeamRepository } from "../../storage/TeamRepository";
-import { addToMailingList } from "../Email/EmailService";
 import { EventInformation } from "../Event/EventService";
 
 type Attendee = TablesInsert<"Attendee">;
@@ -32,6 +31,18 @@ export const getAttendee = async (
     );
   }
   return attendee;
+};
+
+export const updateAttendee = async (
+  attendeeId: string,
+  data: Partial<Tables<"Attendee">>
+): Promise<void> => {
+  const { error } = await AttendeeRepository.updateAttendee(attendeeId, data);
+  if (error) {
+    throw new Error(
+      `Failed to update attendee ${attendeeId} with data ${data}`
+    );
+  }
 };
 
 export const deleteAttendee = async (
@@ -78,11 +89,6 @@ export const updateAttendeeStatus = async (
   status: Enums<"ATTENDEE_STATUS">
 ) => {
   await AttendeeRepository.updateAttendee(attendee_id, { status });
-};
-
-export const rsvpFreeAttendee = async (attendee_id: string) => {
-  AttendeeRepository.updateAttendee(attendee_id, { status: "REGISTERED" });
-  addToMailingList(attendee_id);
 };
 
 export const getTeam = async (attendee_id: string) => {
