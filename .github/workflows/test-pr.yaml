@@ -25,13 +25,10 @@ jobs:
           echo ADMIN_PORTAL_ORIGIN=${{ secrets.ADMIN_ORIGIN }} >> .env
           echo BUCKET_NAME=${{ secrets.BUCKET_NAME }} >> .env
           echo STRIPE_SECRET=${{ secrets.STRIPE_SECRET }} >> .env
-          echo FIRESTORE_DATABASE_ID=${{ secrets.FIRESTORE_DATABASE_ID }} >> .env
-          echo PMC_EMAIL_SENDER="${{ secrets.PMC_EMAIL_SENDER }}" >> .env
-          echo PMC_EMAIL_LOGIN=${{ secrets.PMC_EMAIL_LOGIN }} >> .env
-          echo PMC_EMAIL_PWD="${{ secrets.PMC_EMAIL_PWD }}" >> .env
           echo EXPORT_PASSWORD=${{ secrets.EXPORT_PASSWORD }} >> .env
           echo SUPABASE_URL=${{ secrets.SUPABASE_URL }} >> .env
           echo SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} >> .env
+          echo LOOPS_API_KEY=${{ secrets.LOOPS_API_KEY }} >> .env
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
