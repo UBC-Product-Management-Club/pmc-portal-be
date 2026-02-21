@@ -17,7 +17,7 @@ export const uploadSupabaseFiles = async (files: Express.Multer.File[], { parent
 
     for (const file of files) {
         const safeName = sanitizeFileName(file.originalname);
-        const filePath = `${parentPath}${file.fieldname}-${safeName}`;
+        const filePath = `${parentPath}${safeName}`;
 
         // upload file to Supabase bucket
         const { data: uploadData, error: uploadError } = await supabase.storage.from(bucketName).upload(filePath, file.buffer, {
@@ -38,7 +38,7 @@ export const uploadSupabaseFiles = async (files: Express.Multer.File[], { parent
     return result;
 };
 
-export const uploadDeliverableFiles = async (files: Express.Multer.File[], userId: string, eventId: string, formData: unknown) => {
+export const uploadDeliverableFiles = async (files: Express.Multer.File[], userId: string, eventId: string, phaseId: string, formData: unknown) => {
     const { data: attendee, error: attendeeError } = await supabase.from("Attendee").select("attendee_id").eq("user_id", userId).eq("event_id", eventId).single();
 
     if (attendeeError || !attendee) {
@@ -55,61 +55,57 @@ export const uploadDeliverableFiles = async (files: Express.Multer.File[], userI
 
     const teamId = teamMember.team_id;
 
-    const { data: parent, error: upsertError } = await supabase
-        .from("Deliverable")
-        .upsert([{ event_id: eventId, team_id: teamId }], { onConflict: "event_id,team_id" })
-        .select("deliverable_id")
-        .single();
-
-    if (upsertError || !parent) {
-        throw new Error("Failed to upsert parent");
-    }
-    const deliverableId = parent.deliverable_id;
-
-    const bucketName = process.env.SUPABASE_DELIVERABLES_BUCKET!;
-    const version_id = crypto.randomUUID();
     const now = new Date();
-    const timestamp = now.toISOString().replace(/[:.]/g, "-");
-    const parentPath = `events/${eventId}/teams/${teamId}/${timestamp}-${teamId}/`;
-    const uploadedFiles = await uploadSupabaseFiles(files, {
-        parentPath,
-        bucketName,
-        isPublic: true,
-    });
 
-    const filePaths = Object.values(uploadedFiles);
-    const submissionWithLinks = {
-        ...(formData as object),
-        file_links: filePaths,
-    };
-    const { data: version, error: versionError } = await supabase
-        .from("Deliverable_Version")
-        .insert({
-            version_id: version_id,
-            deliverable_id: deliverableId,
-            submitted_at: now.toISOString(),
-            submitted_by: userId,
-            submission: submissionWithLinks,
-        })
-        .select("submission")
-        .single();
-
-    const file_links = version!.submission as { file_links: string[] };
-
-    if (versionError || !version) {
-        throw versionError;
+    // Only upload files if there are any
+    let filePaths: string[] = [];
+    if (files.length > 0) {
+        const bucketName = process.env.SUPABASE_DELIVERABLES_BUCKET!;
+        const parentPath = `events/${eventId}/teams/${teamId}/${phaseId}/`;
+        const uploadedFiles = await uploadSupabaseFiles(files, {
+            parentPath,
+            bucketName,
+            isPublic: true,
+        });
+        filePaths = Object.values(uploadedFiles);
     }
 
-    await supabase.from("Deliverable").update({ version_id: version_id }).eq("deliverable_id", deliverableId);
+    const submission = {
+        ...(formData as object),
+        ...(filePaths.length > 0 && { file_links: filePaths }),
+    };
+
+    const { data: deliverable, error: upsertError } = await supabase
+        .from("Deliverable")
+        .upsert(
+            [
+                {
+                    event_id: eventId,
+                    team_id: teamId,
+                    phase_id: phaseId,
+                    submission,
+                    submitted_at: now.toISOString(),
+                    submitted_by: userId,
+                },
+            ],
+            { onConflict: "event_id,team_id,phase_id" }
+        )
+        .select("deliverable_id, submission")
+        .single();
+
+    if (upsertError || !deliverable) {
+        throw new Error("Failed to save deliverable");
+    }
+
+    const file_links = deliverable.submission as { file_links: string[] };
 
     return {
-        deliverableId,
-        version_id,
+        deliverableId: deliverable.deliverable_id,
         file_links,
     };
 };
 
-export const getDeliverable = async (userId: string, eventId: string): Promise<unknown> => {
+export const getDeliverable = async (userId: string, eventId: string, phaseId: string): Promise<unknown> => {
     const { data: attendee, error: attendeeError } = await supabase.from("Attendee").select("attendee_id").eq("user_id", userId).eq("event_id", eventId).single();
     if (attendeeError || !attendee) {
         throw new Error("User is not registered as an attendee for this event");
@@ -122,30 +118,22 @@ export const getDeliverable = async (userId: string, eventId: string): Promise<u
     }
     const teamId = teamMember.team_id;
 
-    const { data: deliverable, error: deliverableError } = await supabase.from("Deliverable").select("version_id").eq("team_id", teamId).single();
-    if (deliverableError || !deliverable) {
-        throw new Error("Deliverable not found");
-    }
-    const versionId = deliverable.version_id;
-
-    const { data: version, error: versionError } = await supabase
-        .from("Deliverable_Version")
+    const { data: deliverable } = await supabase
+        .from("Deliverable")
         .select(
             `
-    submission,
-    submitted_at,
-    User:submitted_by (
-      first_name,
-      last_name
-    )
-  `
+      submission,
+      submitted_at,
+      User:submitted_by (
+        first_name,
+        last_name
+      )
+    `
         )
-        .eq("version_id", versionId!)
-        .single();
+        .eq("team_id", teamId)
+        .eq("event_id", eventId)
+        .eq("phase_id", phaseId)
+        .maybeSingle();
 
-    if (versionError || !version) {
-        throw new Error("Deliverable version not found");
-    }
-
-    return version;
+    return deliverable;
 };
