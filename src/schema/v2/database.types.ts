@@ -124,27 +124,40 @@ export type Database = {
           created_at: string | null
           deliverable_id: string
           event_id: string
+          submission: Json | null
+          submitted_at: string | null
+          submitted_by: string | null
           team_id: string
           title: string | null
-          version_id: string | null
         }
         Insert: {
           created_at?: string | null
           deliverable_id?: string
           event_id: string
+          submission?: Json | null
+          submitted_at?: string | null
+          submitted_by?: string | null
           team_id: string
           title?: string | null
-          version_id?: string | null
         }
         Update: {
           created_at?: string | null
           deliverable_id?: string
           event_id?: string
+          submission?: Json | null
+          submitted_at?: string | null
+          submitted_by?: string | null
           team_id?: string
           title?: string | null
-          version_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "Deliverable_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "deliverables_event_id_fkey"
             columns: ["event_id"]
@@ -190,45 +203,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "Event"
             referencedColumns: ["event_id"]
-          },
-        ]
-      }
-      Deliverable_Version: {
-        Row: {
-          deliverable_id: string
-          submission: Json | null
-          submitted_at: string | null
-          submitted_by: string | null
-          version_id: string
-        }
-        Insert: {
-          deliverable_id: string
-          submission?: Json | null
-          submitted_at?: string | null
-          submitted_by?: string | null
-          version_id?: string
-        }
-        Update: {
-          deliverable_id?: string
-          submission?: Json | null
-          submitted_at?: string | null
-          submitted_by?: string | null
-          version_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "Deliverable_Version_deliverable_id_fkey"
-            columns: ["deliverable_id"]
-            isOneToOne: false
-            referencedRelation: "Deliverable"
-            referencedColumns: ["deliverable_id"]
-          },
-          {
-            foreignKeyName: "Deliverable_Version_submitted_by_fkey"
-            columns: ["submitted_by"]
-            isOneToOne: false
-            referencedRelation: "User"
-            referencedColumns: ["user_id"]
           },
         ]
       }

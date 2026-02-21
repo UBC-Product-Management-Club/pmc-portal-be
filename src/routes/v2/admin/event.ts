@@ -10,7 +10,6 @@ const memStorage = multer.memoryStorage();
 const upload = multer({ storage: memStorage });
 export const eventRouter = Router();
 
-
 eventRouter.get("/basic", async (req: Request, res: Response) => {
     const { data, error } = await supabase.from("Event").select("event_id, name");
     if (error || !data) {
@@ -82,8 +81,16 @@ eventRouter.post(
             // Upload files to get download url
             const bucketName = process.env.SUPABASE_BUCKET_NAME!;
             const parentPath = `events/${event_Id}/media/`;
-            const mediaData = await uploadSupabaseFiles(mediaFiles, { parentPath, bucketName, isPublic: true });
-            const thumbnailData = await uploadSupabaseFiles(thumbnailFile, { parentPath, bucketName, isPublic: true });
+            const mediaData = await uploadSupabaseFiles(mediaFiles, {
+                parentPath,
+                bucketName,
+                isPublic: true,
+            });
+            const thumbnailData = await uploadSupabaseFiles(thumbnailFile, {
+                parentPath,
+                bucketName,
+                isPublic: true,
+            });
 
             // Convert object into expected type
             const media = Object.values(mediaData);
@@ -139,9 +146,10 @@ eventRouter.post("/:eventId/team", async (req: Request, res: Response) => {
     }
 });
 
-eventRouter.get("/:eventId/deliverable/:userId", async (req: Request, res: Response) => {
+eventRouter.get("/:eventId/deliverable/:userId/:phaseId", async (req: Request, res: Response) => {
     const userId = req.params.userId;
     const eventId = req.params.eventId;
+    const phaseId = req.params.phaseId;
 
     if (!userId) {
         return res.status(400).json({ error: "User ID is required" });
@@ -152,7 +160,7 @@ eventRouter.get("/:eventId/deliverable/:userId", async (req: Request, res: Respo
     }
 
     try {
-        const result = await getDeliverable(userId, eventId);
+        const result = await getDeliverable(userId, eventId, phaseId);
 
         res.status(200).json({
             message: "Deliverable fetched successfully",
