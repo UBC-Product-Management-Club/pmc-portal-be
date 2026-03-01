@@ -159,15 +159,22 @@ export const leaveUserTeam = async (
     throw new Error("User is not in a team for this event.");
   }
 
+  const teamId = teamData.team_id;
+
   const { error: removeError } = await TeamRepository.removeMember(
-    teamData.team_id,
-    attendeeData.attendee_id
+    teamId,
+    attendeeData.attendee_id,
   );
 
   if (removeError) {
     throw new Error(
       `Failed to remove attendee from team: ${removeError.message}`
     );
+  }
+
+  const { data: remainingTeam } = await TeamRepository.getTeamWithMembers(teamId);
+  if (remainingTeam && remainingTeam.Team_Member.length === 0) {
+    await TeamRepository.deleteTeam(teamId);
   }
 
   return { message: "Successfully left the team." };
