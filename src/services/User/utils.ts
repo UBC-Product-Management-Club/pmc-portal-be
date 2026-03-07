@@ -45,4 +45,9 @@ const formatCSV = (users: UserExportFields[]) => {
     return parser.parse(users);
 };
 
-export { formatCSV, checkSupabaseUserExists, mapToSupabaseUser };
+const formatGenericCSV = <T extends Record<string, unknown>>(data: T[], fields: string[]) => {
+    const parser = new Parser({ fields });
+    return parser.parse(data);
+};
+
+export { formatCSV, formatGenericCSV, checkSupabaseUserExists, mapToSupabaseUser };
