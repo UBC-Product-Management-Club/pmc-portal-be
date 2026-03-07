@@ -3,8 +3,9 @@ import { uuidv4 } from "zod/v4";
 import { supabase } from "../../../config/supabase";
 import { EventSchema } from "../../../schema/v2/Event";
 import { addEvent, createEventTeam, getEvent } from "../../../services/Event/EventService";
-import { uploadSupabaseFiles, getDeliverable } from "../../../storage/Storage";
+import { uploadSupabaseFiles, getDeliverable, getEventDeliverables } from "../../../storage/Storage";
 import multer from "multer";
+import { formatGenericCSV } from "../../../services/User/utils";
 
 const memStorage = multer.memoryStorage();
 const upload = multer({ storage: memStorage });
@@ -169,5 +170,70 @@ eventRouter.get("/:eventId/deliverable/:userId/:phaseId", async (req: Request, r
     } catch (error: any) {
         console.error("Fetch deliverable error:", error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.get("/:eventId/deliverables/export", async (req: Request, res: Response) => {
+    const eventId = req.params.eventId;
+    const format = (req.query.format as string) || "json";
+
+    if (!eventId) {
+        return res.status(400).json({ error: "Event ID is required" });
+    }
+
+    try {
+        const deliverables = await getEventDeliverables(eventId);
+
+        if (!deliverables || deliverables.length === 0) {
+            return res.status(200).json({});
+        }
+
+        // Collect all phases and group by team
+        const phases = new Set<string>();
+        const byTeam: Record<string, { phases: Record<string, string>; lastSubmittedAt: string | null }> = {};
+
+        for (const d of deliverables as any[]) {
+            const teamName = d.Team?.team_name || "Unknown Team";
+            const phase = d.phase_id || "unknown";
+            const submission = d.submission as { file_links?: string[] } | null;
+            const fileLinks = submission?.file_links || [];
+            const submittedAt = d.submitted_at as string | null;
+
+            phases.add(phase);
+
+            if (!byTeam[teamName]) {
+                byTeam[teamName] = { phases: {}, lastSubmittedAt: null };
+            }
+
+            byTeam[teamName].phases[phase] = fileLinks.join(", ");
+
+            if (submittedAt && (!byTeam[teamName].lastSubmittedAt || submittedAt > byTeam[teamName].lastSubmittedAt)) {
+                byTeam[teamName].lastSubmittedAt = submittedAt;
+            }
+        }
+
+        const sortedPhases = Array.from(phases).sort();
+
+        if (format === "csv") {
+            const csvData = Object.entries(byTeam).map(([teamName, teamData]) => {
+                const row: Record<string, string> = { team_name: teamName };
+                for (const phase of sortedPhases) {
+                    row[phase] = teamData.phases[phase] || "";
+                }
+                row["last_submitted_at"] = teamData.lastSubmittedAt || "";
+                return row;
+            });
+
+            const csv = formatGenericCSV(csvData, ["team_name", ...sortedPhases, "last_submitted_at"]);
+
+            res.setHeader("Content-Type", "text/csv");
+            res.setHeader("Content-Disposition", `attachment; filename="event_${eventId}_deliverables.csv"`);
+            return res.send(csv);
+        }
+
+        return res.status(200).json(byTeam);
+    } catch (error: any) {
+        console.error("Export deliverables error:", error);
+        return res.status(500).json({ error: error.message });
     }
 });

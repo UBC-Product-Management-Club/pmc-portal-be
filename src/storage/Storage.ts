@@ -106,6 +106,30 @@ export const uploadDeliverableFiles = async (files: Express.Multer.File[], userI
     };
 };
 
+export const getEventDeliverables = async (eventId: string) => {
+    const { data: deliverables, error } = await supabase
+        .from("Deliverable")
+        .select(
+            `
+            deliverable_id,
+            phase_id,
+            submission,
+            submitted_at,
+            Team!inner (
+                team_id,
+                team_name
+            )
+        `
+        )
+        .eq("event_id", eventId);
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    return deliverables;
+};
+
 export const getDeliverable = async (userId: string, eventId: string, phaseId: string): Promise<unknown> => {
     const { data: attendee, error: attendeeError } = await AttendeeRepository.getAttendee(eventId, userId);
     if (attendeeError || !attendee) {
