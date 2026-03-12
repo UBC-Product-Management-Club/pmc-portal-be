@@ -3,6 +3,7 @@ import { uuidv4 } from "zod/v4";
 import { supabase } from "../../../config/supabase";
 import { EventSchema } from "../../../schema/v2/Event";
 import { addEvent, createEventTeam, getEvent } from "../../../services/Event/EventService";
+import { getEventAttendees } from "../../../services/Attendee/AttendeeService";
 import { uploadSupabaseFiles, getDeliverable, getEventDeliverables } from "../../../storage/Storage";
 import multer from "multer";
 import { formatGenericCSV } from "../../../services/User/utils";
@@ -234,6 +235,22 @@ eventRouter.get("/:eventId/deliverables/export", async (req: Request, res: Respo
         return res.status(200).json(byTeam);
     } catch (error: any) {
         console.error("Export deliverables error:", error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.get("/:eventId/attendees", async (req: Request, res: Response) => {
+    const eventId = req.params.eventId;
+
+    if (!eventId) {
+        return res.status(400).json({ error: "Event ID is required" });
+    }
+
+    try {
+        const attendees = await getEventAttendees(eventId);
+        return res.status(200).json(attendees);
+    } catch (error: any) {
+        console.error("Fetch attendees error:", error);
         return res.status(500).json({ error: error.message });
     }
 });
