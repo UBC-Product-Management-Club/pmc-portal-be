@@ -9,7 +9,7 @@ import { webhookRouter } from "./routes/v2/stripe";
 dotenv.config();
 console.log("Environment Variables:");
 Object.keys(process.env).forEach((key) => {
-    console.log(`${key}: ${process.env[key]}`);
+  console.log(`${key}: ${process.env[key]}`);
 });
 
 const app = express();
@@ -17,15 +17,15 @@ const app = express();
 const allowedOrigins = [process.env.ORIGIN, process.env.ADMIN_PORTAL_ORIGIN];
 
 const corsOptions = {
-    origin: function (origin: any, callback: any) {
-        if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-            callback(null, true);
-        } else {
-            callback(new Error("Not allowed by CORS"));
-        }
-    },
-    optionsSuccessStatus: 200,
-    credentials: true,
+  origin: function (origin: any, callback: any) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  optionsSuccessStatus: 200,
+  credentials: true,
 };
 
 // SET WEBHOOK
@@ -35,7 +35,7 @@ app.use("/webhook", webhookRouter);
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "500mb" }));
 
 // SET ROUTES
 app.use("/api", v2ApiRouter);
@@ -43,5 +43,5 @@ app.use("/api", v2ApiRouter);
 const PORT = process.env.PORT || 8000;
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
