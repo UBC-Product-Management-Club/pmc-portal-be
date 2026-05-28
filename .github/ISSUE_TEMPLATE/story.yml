@@ -1,59 +1,53 @@
 name: Story
-description: User-facing feature or behavior
-title: '[Story] '
-labels: ['type: story']
+description: User-facing feature or product improvement
+title: '[STORY] '
+labels:
+  - story
 body:
   - type: textarea
-    id: user_story
+    id: user-story
     attributes:
       label: User Story
-      description: Describe the feature from the user's perspective.
-      placeholder: 'As a member, I want to join a team using a code so that I can participate with friends.'
-    validations:
-      required: true
-
-  - type: dropdown
-    id: area
-    attributes:
-      label: Area
-      options:
-        - Backend
-        - Membership Frontend
-        - Admin Frontend
-        - Full Stack
-        - Design / Product
+      description: Who is this for and what should they be able to do?
+      placeholder: As a [user], I want to [do something], so that [benefit].
     validations:
       required: true
 
   - type: textarea
-    id: related_epic
+    id: description
     attributes:
-      label: Related Epic
-      description: Link the planning epic this story belongs to.
-      placeholder: 'Related to planning#2'
+      label: Description
+      description: What are we building or changing?
+      placeholder: Describe the feature or behavior.
     validations:
       required: true
 
   - type: textarea
-    id: requirements
-    attributes:
-      label: Requirements
-      placeholder: |
-        - User can...
-        - System should...
-        - Error state should...
-    validations:
-      required: true
-
-  - type: textarea
-    id: acceptance_criteria
+    id: acceptance-criteria
     attributes:
       label: Acceptance Criteria
+      description: What needs to be true for this story to be complete?
       placeholder: |
-        - [ ] User can complete the flow
-        - [ ] Loading state is handled
-        - [ ] Error state is handled
-        - [ ] Works on mobile and desktop if frontend
-        - [ ] Tested locally
+        - [ ] User can...
+        - [ ] System handles...
+        - [ ] UI shows...
     validations:
       required: true
+
+  - type: textarea
+    id: parent-related-work
+    attributes:
+      label: Parent / Related Work
+      description: Link related epic, issue, PR, design, or project item if applicable.
+      placeholder: This can be left blank if this is already created as a sub-issue.
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / Considerations
+      description: Anything else to consider?
+      placeholder: Add edge cases, constraints, design notes, or implementation details.
+    validations:
+      required: false

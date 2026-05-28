@@ -1,42 +1,23 @@
 name: Bug
-description: Report something broken
-title: '[Bug] '
-labels: ['type: bug']
+description: Report something that is broken or not working as expected
+title: '[BUG] '
+labels:
+  - bug
 body:
   - type: textarea
-    id: problem
+    id: description
     attributes:
-      label: Problem
+      label: Description
       description: What is broken?
-      placeholder: 'Example: Members can register twice for the same event.'
+      placeholder: Describe the bug clearly.
     validations:
       required: true
-
-  - type: dropdown
-    id: area
-    attributes:
-      label: Area
-      options:
-        - Backend
-        - Membership Frontend
-        - Admin Frontend
-        - Full Stack
-        - Design / Product
-    validations:
-      required: true
-
-  - type: textarea
-    id: related_epic
-    attributes:
-      label: Related Epic
-      placeholder: 'Related to planning#2'
-    validations:
-      required: false
 
   - type: textarea
     id: steps
     attributes:
       label: Steps to Reproduce
+      description: How can someone reproduce this bug?
       placeholder: |
         1. Go to...
         2. Click...
@@ -48,7 +29,17 @@ body:
     id: expected
     attributes:
       label: Expected Behavior
-      placeholder: 'What should happen instead?'
+      description: What should happen instead?
+      placeholder: Describe the expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happens?
+      placeholder: Describe the actual behavior.
     validations:
       required: true
 
@@ -56,18 +47,16 @@ body:
     id: screenshots
     attributes:
       label: Screenshots / Logs
-      placeholder: 'Paste screenshots, console errors, backend logs, etc.'
+      description: Add screenshots, console logs, terminal errors, or relevant output.
+      placeholder: Paste screenshots or logs here if applicable.
     validations:
       required: false
 
-  - type: dropdown
-    id: priority
+  - type: textarea
+    id: parent-related-work
     attributes:
-      label: Priority
-      options:
-        - P0
-        - P1
-        - P2
-        - P3
+      label: Parent / Related Work
+      description: Link related epic, story, PR, design, or project item if applicable.
+      placeholder: This can be left blank if this is already created as a sub-issue.
     validations:
-      required: true
+      required: false
