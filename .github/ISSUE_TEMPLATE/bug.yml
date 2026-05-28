@@ -1,0 +1,73 @@
+name: Bug
+description: Report something broken
+title: '[Bug] '
+labels: ['type: bug']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is broken?
+      placeholder: 'Example: Members can register twice for the same event.'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Backend
+        - Membership Frontend
+        - Admin Frontend
+        - Full Stack
+        - Design / Product
+    validations:
+      required: true
+
+  - type: textarea
+    id: related_epic
+    attributes:
+      label: Related Epic
+      placeholder: 'Related to planning#2'
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Go to...
+        2. Click...
+        3. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      placeholder: 'What should happen instead?'
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Logs
+      placeholder: 'Paste screenshots, console errors, backend logs, etc.'
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0
+        - P1
+        - P2
+        - P3
+    validations:
+      required: true
