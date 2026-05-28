@@ -1,57 +1,53 @@
 name: Task
-description: Technical or internal work
-title: '[Task] '
-labels: ['type: task']
+description: Engineering task or implementation work
+title: "[TASK] "
+labels:
+    - task
 body:
-  - type: textarea
-    id: summary
-    attributes:
-      label: Summary
-      description: What technical work needs to be done?
-      placeholder: 'Example: Refactor event card components into reusable UI modules.'
-    validations:
-      required: true
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: What needs to be done?
+          placeholder: Describe the task.
+      validations:
+          required: true
 
-  - type: dropdown
-    id: area
-    attributes:
-      label: Area
-      options:
-        - Backend
-        - Membership Frontend
-        - Admin Frontend
-        - Full Stack
-        - Design / Product
-    validations:
-      required: true
+    - type: textarea
+      id: context
+      attributes:
+          label: Context
+          description: Why is this task needed?
+          placeholder: Explain the reason behind this task.
+      validations:
+          required: false
 
-  - type: textarea
-    id: related_epic
-    attributes:
-      label: Related Epic
-      placeholder: 'Related to planning#2'
-    validations:
-      required: false
+    - type: textarea
+      id: checklist
+      attributes:
+          label: Checklist
+          description: Break the task into concrete steps.
+          placeholder: |
+              - [ ] Step 1
+              - [ ] Step 2
+              - [ ] Step 3
+      validations:
+          required: true
 
-  - type: textarea
-    id: implementation_notes
-    attributes:
-      label: Implementation Notes
-      placeholder: |
-        - Files/components likely affected:
-        - Technical approach:
-        - Risks:
-    validations:
-      required: false
+    - type: textarea
+      id: parent-related-work
+      attributes:
+          label: Parent / Related Work
+          description: Link related epic, story, PR, design, or project item if applicable.
+          placeholder: This can be left blank if this is already created as a sub-issue.
+      validations:
+          required: false
 
-  - type: textarea
-    id: acceptance_criteria
-    attributes:
-      label: Acceptance Criteria
-      placeholder: |
-        - [ ] Code is cleaned up
-        - [ ] Existing behavior still works
-        - [ ] No regressions introduced
-        - [ ] Tested locally
-    validations:
-      required: true
+    - type: textarea
+      id: notes
+      attributes:
+          label: Notes / Considerations
+          description: Anything else to consider?
+          placeholder: Add technical notes, constraints, or edge cases.
+      validations:
+          required: false
