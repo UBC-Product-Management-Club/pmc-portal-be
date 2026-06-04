@@ -9,7 +9,20 @@ export const AttendeeRepository = {
     getRegisteredAttendee: (eventId: string, userId: string) => supabase.from("Attendee").select("*").eq("event_id", eventId).eq("user_id", userId).eq("is_payment_verified", true).maybeSingle(),
     deleteAttendee: (attendeeId: string) => supabase.from("Attendee").delete().eq("attendee_id", attendeeId),
     countByEvent: (eventId: string) => supabase.from("Attendee").select("*", { count: "exact", head: true }).eq("event_id", eventId),
-    getAttendeesByEvent: (eventId: string) => supabase.from("Attendee").select("*, User(*)").eq("event_id", eventId),
+    getAttendeesByEvent: (eventId: string) =>
+        supabase
+            .from("Attendee")
+            .select(
+                `
+        user_id,
+        User!inner (
+          first_name,
+          last_name,
+          email
+        )
+        `
+            )
+            .eq("event_id", eventId),
     updateAttendee: async (attendeeId: string, updates: Record<string, any>) => supabase.from("Attendee").update(updates).eq("attendee_id", attendeeId),
     getEmailAndMailingListByAttendee: async (attendeeId: string) =>
         supabase

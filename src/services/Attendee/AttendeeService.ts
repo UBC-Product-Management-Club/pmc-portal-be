@@ -96,7 +96,12 @@ export const getEventAttendees = async (eventId: string) => {
   if (error) {
     throw new Error(`Failed to fetch attendees for event ${eventId}: ${error.message}`);
   }
-  return data;
+  return (data ?? []).map(({ user_id, User }) => ({
+    user_id,
+    first_name: User.first_name,
+    last_name: User.last_name,
+    email: User.email,
+  }));
 };
 
 export const getTeam = async (attendee_id: string) => {
