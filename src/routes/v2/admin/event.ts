@@ -12,7 +12,11 @@ const upload = multer({ storage: memStorage });
 export const eventRouter = Router();
 
 eventRouter.get("/basic", async (req: Request, res: Response) => {
-    const { data, error } = await supabase.from("Event").select("event_id, name");
+    const { data, error } = await supabase
+        .from("Event")
+        .select("event_id, name, thumbnail, date")
+        .order("date", { ascending: false });
+
     if (error || !data) {
         console.error("Error fetching events: ", error);
         return res.status(500).json(error);
