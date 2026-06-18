@@ -124,6 +124,7 @@ export type Database = {
           created_at: string | null
           deliverable_id: string
           event_id: string
+          phase_id: string
           submission: Json | null
           submitted_at: string | null
           submitted_by: string | null
@@ -134,6 +135,7 @@ export type Database = {
           created_at?: string | null
           deliverable_id?: string
           event_id: string
+          phase_id?: string
           submission?: Json | null
           submitted_at?: string | null
           submitted_by?: string | null
@@ -144,6 +146,7 @@ export type Database = {
           created_at?: string | null
           deliverable_id?: string
           event_id?: string
+          phase_id?: string
           submission?: Json | null
           submitted_at?: string | null
           submitted_by?: string | null
@@ -262,6 +265,7 @@ export type Database = {
           registration_closes: string | null
           registration_opens: string | null
           start_time: string | null
+          thumbnail: string | null
           waitlist_form: string | null
         }
         Insert: {
@@ -286,6 +290,7 @@ export type Database = {
           registration_closes?: string | null
           registration_opens?: string | null
           start_time?: string | null
+          thumbnail?: string | null
           waitlist_form?: string | null
         }
         Update: {
@@ -310,7 +315,32 @@ export type Database = {
           registration_closes?: string | null
           registration_opens?: string | null
           start_time?: string | null
+          thumbnail?: string | null
           waitlist_form?: string | null
+        }
+        Relationships: []
+      }
+      execs: {
+        Row: {
+          birthday: string | null
+          id: number
+          name: string
+          roles: string[] | null
+          slack_user_id: string
+        }
+        Insert: {
+          birthday?: string | null
+          id?: never
+          name: string
+          roles?: string[] | null
+          slack_user_id: string
+        }
+        Update: {
+          birthday?: string | null
+          id?: never
+          name?: string
+          roles?: string[] | null
+          slack_user_id?: string
         }
         Relationships: []
       }
@@ -361,6 +391,48 @@ export type Database = {
         Update: {
           id?: string
           product?: string
+        }
+        Relationships: []
+      }
+      Recruiting: {
+        Row: {
+          closes_at: string | null
+          created_at: string | null
+          description: string | null
+          opens_at: string | null
+          questions: Json | null
+          recruiting_id: string
+          role: string | null
+          season: string | null
+          status: Database["public"]["Enums"]["RECRUITING_FORM_STATUS"] | null
+          title: string
+          year: number | null
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          opens_at?: string | null
+          questions?: Json | null
+          recruiting_id?: string
+          role?: string | null
+          season?: string | null
+          status?: Database["public"]["Enums"]["RECRUITING_FORM_STATUS"] | null
+          title: string
+          year?: number | null
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          opens_at?: string | null
+          questions?: Json | null
+          recruiting_id?: string
+          role?: string | null
+          season?: string | null
+          status?: Database["public"]["Enums"]["RECRUITING_FORM_STATUS"] | null
+          title?: string
+          year?: number | null
         }
         Relationships: []
       }
@@ -533,6 +605,7 @@ export type Database = {
         | "REGISTERED"
         | "ACCEPTED"
       PAYMENT_STATUS: "PROCESSING" | "VERIFIED"
+      RECRUITING_FORM_STATUS: "DRAFT" | "PUBLISHED" | "CLOSED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -668,6 +741,7 @@ export const Constants = {
         "ACCEPTED",
       ],
       PAYMENT_STATUS: ["PROCESSING", "VERIFIED"],
+      RECRUITING_FORM_STATUS: ["DRAFT", "PUBLISHED", "CLOSED"],
     },
   },
 } as const
