@@ -5,6 +5,7 @@ import { attendeeRouter } from "./attendee";
 import { profileRouter } from "./profile";
 import { paymentRouter } from "./payments";
 import { adminRouter } from "./admin";
+import { applicationRouter } from "./application";
 import { authenticated, supabaseJwtCheck } from "../../middleware/Session";
 
 export const v2ApiRouter = Router();
@@ -15,3 +16,4 @@ v2ApiRouter.use("/v2/events", eventRouter);
 v2ApiRouter.use("/v2/auth", authenticated, authRouter);
 v2ApiRouter.use("/v2/profile", authenticated, profileRouter);
 v2ApiRouter.use("/v2/attendee", authenticated, attendeeRouter);
+v2ApiRouter.use("/v2/application", authenticated, applicationRouter);
