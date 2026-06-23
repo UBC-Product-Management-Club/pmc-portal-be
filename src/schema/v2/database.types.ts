@@ -349,6 +349,24 @@ export type Database = {
           },
         ]
       }
+      Portal_Settings: {
+        Row: {
+          construction_mode_enabled: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          construction_mode_enabled?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          construction_mode_enabled?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       Products: {
         Row: {
           id: string

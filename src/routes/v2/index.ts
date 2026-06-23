@@ -4,12 +4,14 @@ import { eventRouter} from "./event";
 import { attendeeRouter } from "./attendee";
 import { profileRouter } from "./profile";
 import { paymentRouter } from "./payments";
+import { settingsRouter } from "./settings";
 import { adminRouter } from "./admin";
 import { authenticated, supabaseJwtCheck } from "../../middleware/Session";
 
 export const v2ApiRouter = Router();
 
 v2ApiRouter.use("/v2/admin", supabaseJwtCheck, adminRouter);
+v2ApiRouter.use("/v2/settings", settingsRouter);
 v2ApiRouter.use("/v2/payments", paymentRouter);
 v2ApiRouter.use("/v2/events", eventRouter);
 v2ApiRouter.use("/v2/auth", authenticated, authRouter);
