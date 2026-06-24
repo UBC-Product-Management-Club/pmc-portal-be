@@ -32,6 +32,7 @@ describe("AttendeeService", () => {
     start_time: "2025-07-24T21:30:00+00:00",
     end_time: "2025-07-24T22:30:00+00:00",
     location: "UBC Sauder Building",
+    thumbnail: null,
     member_price: 1,
     non_member_price: 2,
     member_price_id: "",
