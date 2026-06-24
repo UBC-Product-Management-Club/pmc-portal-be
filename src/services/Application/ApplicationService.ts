@@ -22,6 +22,13 @@ export const submitApplication = async (
         status: "SUBMITTED",
     });
     if (error) {
+        // Postgres unique_violation: the pre-check above raced with a concurrent
+        // submit. Map it back to the same friendly error rather than a raw 500.
+        if (error.code === "23505") {
+            throw new Error(
+                `User ${userId} has already submitted an application`
+            );
+        }
         throw new Error(`Failed to create application: ${error.message}`);
     }
     return data;

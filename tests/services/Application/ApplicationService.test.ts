@@ -67,6 +67,22 @@ describe("ApplicationService", () => {
       );
     });
 
+    it("maps a unique-violation race to the 'already submitted' error", async () => {
+      (
+        ApplicationRepository.getApplicationByUser as jest.Mock
+      ).mockResolvedValueOnce({ data: null, error: null });
+      (
+        ApplicationRepository.addApplication as jest.Mock
+      ).mockResolvedValueOnce({
+        data: null,
+        error: { code: "23505", message: "duplicate key value" },
+      });
+
+      await expect(submitApplication("user-123", {})).rejects.toThrow(
+        "User user-123 has already submitted an application"
+      );
+    });
+
     it("throws on insert error", async () => {
       (
         ApplicationRepository.getApplicationByUser as jest.Mock
