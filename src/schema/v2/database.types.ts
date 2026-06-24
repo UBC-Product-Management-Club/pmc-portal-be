@@ -72,6 +72,41 @@ export type Database = {
           },
         ]
       }
+      Application: {
+        Row: {
+          application_data: Json
+          application_id: string
+          form_id: string | null
+          status: Database["public"]["Enums"]["APPLICATION_STATUS"]
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          application_data: Json
+          application_id?: string
+          form_id?: string | null
+          status?: Database["public"]["Enums"]["APPLICATION_STATUS"]
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          application_data?: Json
+          application_id?: string
+          form_id?: string | null
+          status?: Database["public"]["Enums"]["APPLICATION_STATUS"]
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Application_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       birthdays: {
         Row: {
           birthday: string
@@ -526,6 +561,11 @@ export type Database = {
       }
     }
     Enums: {
+      APPLICATION_STATUS:
+        | "SUBMITTED"
+        | "UNDER_REVIEW"
+        | "ACCEPTED"
+        | "REJECTED"
       ATTENDEE_STATUS:
         | "FAILED"
         | "PROCESSING"
@@ -660,6 +700,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      APPLICATION_STATUS: [
+        "SUBMITTED",
+        "UNDER_REVIEW",
+        "ACCEPTED",
+        "REJECTED",
+      ],
       ATTENDEE_STATUS: [
         "FAILED",
         "PROCESSING",
