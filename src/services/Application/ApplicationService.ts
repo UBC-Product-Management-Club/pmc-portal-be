@@ -1,4 +1,4 @@
-import { Json, Tables } from "../../schema/v2/database.types";
+import { Enums, Json, Tables } from "../../schema/v2/database.types";
 import { ApplicationRepository } from "../../storage/ApplicationRepository";
 
 export const submitApplication = async (
@@ -65,6 +65,23 @@ export const getApplication = async (
     if (error) {
         throw new Error(
             `Failed to get application ${applicationId}: ${error.message}`
+        );
+    }
+    return data;
+};
+
+// Returns null when no application matches the id (caller should 404).
+export const updateApplicationStatus = async (
+    applicationId: string,
+    status: Enums<"APPLICATION_STATUS">
+): Promise<Tables<"Application"> | null> => {
+    const { data, error } = await ApplicationRepository.updateStatus(
+        applicationId,
+        status
+    );
+    if (error) {
+        throw new Error(
+            `Failed to update application ${applicationId} status: ${error.message}`
         );
     }
     return data;
