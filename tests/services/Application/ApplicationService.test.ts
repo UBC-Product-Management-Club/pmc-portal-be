@@ -4,6 +4,7 @@ import {
   getApplicationByUser,
   listApplications,
   getApplication,
+  updateApplicationStatus,
 } from "../../../src/services/Application/ApplicationService";
 import { ApplicationRepository } from "../../../src/storage/ApplicationRepository";
 
@@ -162,6 +163,41 @@ describe("ApplicationService", () => {
       await expect(getApplication("app-123")).rejects.toThrow(
         "Failed to get application app-123: fail"
       );
+    });
+  });
+
+  describe("updateApplicationStatus", () => {
+    it("returns the updated application", async () => {
+      const updated = { ...mockApplication, status: "ACCEPTED" as const };
+      (
+        ApplicationRepository.updateStatus as jest.Mock
+      ).mockResolvedValueOnce({ data: updated, error: null });
+
+      const result = await updateApplicationStatus("app-123", "ACCEPTED");
+
+      expect(result).toEqual(updated);
+      expect(ApplicationRepository.updateStatus).toHaveBeenCalledWith(
+        "app-123",
+        "ACCEPTED"
+      );
+    });
+
+    it("returns null when the application does not exist", async () => {
+      (
+        ApplicationRepository.updateStatus as jest.Mock
+      ).mockResolvedValueOnce({ data: null, error: null });
+
+      expect(await updateApplicationStatus("missing", "ACCEPTED")).toBeNull();
+    });
+
+    it("throws on error", async () => {
+      (
+        ApplicationRepository.updateStatus as jest.Mock
+      ).mockResolvedValueOnce({ data: null, error: { message: "fail" } });
+
+      await expect(
+        updateApplicationStatus("app-123", "ACCEPTED")
+      ).rejects.toThrow("Failed to update application app-123 status: fail");
     });
   });
 });

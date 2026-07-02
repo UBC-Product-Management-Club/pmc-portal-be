@@ -29,6 +29,9 @@ export const sessionFilter = async (req: Request, res: Response, next: NextFunct
     next();
 };
 
+// Only PMC execs (verified by their email domain) may access the admin portal.
+const ADMIN_EMAIL_DOMAIN = process.env.ADMIN_EMAIL_DOMAIN ?? "ubcpmc.com";
+
 export const supabaseJwtCheck = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -41,6 +44,13 @@ export const supabaseJwtCheck = async (req: Request, res: Response, next: NextFu
   if (error || !data?.user) {
     return res.status(401).json({ message: "Invalid Supabase token" });
   }
+
+  // The leading "@" anchors the domain so lookalikes (e.g. evil-ubcpmc.com) are rejected.
+  const email = data.user.email?.toLowerCase();
+  if (!email || !email.endsWith(`@${ADMIN_EMAIL_DOMAIN}`)) {
+    return res.status(403).json({ message: "Forbidden: PMC exec access required" });
+  }
+
   next();
 };
 
