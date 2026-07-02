@@ -13,5 +13,5 @@ export const ApplicationRepository = {
     getApplicationById: (applicationId: string) => supabase.from("Exec_Application").select(WITH_APPLICANT).eq("application_id", applicationId).maybeSingle(),
     getApplicationsByUser: (userId: string) => supabase.from("Exec_Application").select("*").eq("user_id", userId).order("submitted_at", { ascending: false }),
     setStarred: (applicationId: string, isStarred: boolean) => supabase.from("Exec_Application").update({ is_starred: isStarred }).eq("application_id", applicationId).select().maybeSingle(),
-    updateStatus: (applicationId: string, status: Enums<"APPLICATION_STATUS">) => supabase.from("Exec_Application").update({ status }).eq("application_id", applicationId),
+    updateStatus: (applicationId: string, status: Enums<"APPLICATION_STATUS">) => supabase.from("Exec_Application").update({ status }).eq("application_id", applicationId).select().maybeSingle(),
 };

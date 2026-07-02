@@ -6,6 +6,9 @@ export const supabase = {
       delete: jest.fn(),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
-    })
+    }),
+    auth: {
+      getUser: jest.fn(),
+    },
   };
   

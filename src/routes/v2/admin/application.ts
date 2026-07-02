@@ -1,8 +1,12 @@
 import { Request, Response, Router } from "express";
-import { ApplicationStarSchema } from "../../../schema/v2/Application";
+import {
+    ApplicationStarSchema,
+    ApplicationStatusUpdateSchema,
+} from "../../../schema/v2/Application";
 import {
     listApplications,
     setApplicationStar,
+    updateApplicationStatus,
     viewApplication,
 } from "../../../services/Application/ApplicationService";
 
@@ -66,6 +70,31 @@ applicationRouter.patch("/:id/star", async (req: Request, res: Response) => {
         const application = await setApplicationStar(
             req.params.id,
             result.data.is_starred
+        );
+        if (!application) {
+            return res.status(404).json({ error: "Application not found" });
+        }
+        return res.status(200).json(application);
+    } catch (error: any) {
+        console.error(error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Update an applicant's status. Invalid statuses are rejected by the schema.
+applicationRouter.patch("/:id/status", async (req: Request, res: Response) => {
+    if (!UUID_RE.test(req.params.id)) {
+        return res.status(404).json({ error: "Application not found" });
+    }
+    const result = ApplicationStatusUpdateSchema.safeParse(req.body);
+    if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+    }
+
+    try {
+        const application = await updateApplicationStatus(
+            req.params.id,
+            result.data.status
         );
         if (!application) {
             return res.status(404).json({ error: "Application not found" });

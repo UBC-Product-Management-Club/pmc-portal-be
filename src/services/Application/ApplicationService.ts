@@ -1,4 +1,4 @@
-import { Json, Tables } from "../../schema/v2/database.types";
+import { Enums, Json, Tables } from "../../schema/v2/database.types";
 import { ApplicationRepository } from "../../storage/ApplicationRepository";
 
 type ExecApplication = Tables<"Exec_Application">;
@@ -118,6 +118,24 @@ export const setApplicationStar = async (
     if (error) {
         throw new Error(
             `Failed to update star on application ${applicationId}: ${error.message}`
+        );
+    }
+    return data;
+};
+
+// Explicitly set an applicant's status (accept/reject/etc). Returns null when
+// no application matches the id (caller should 404).
+export const updateApplicationStatus = async (
+    applicationId: string,
+    status: Enums<"APPLICATION_STATUS">
+): Promise<ExecApplication | null> => {
+    const { data, error } = await ApplicationRepository.updateStatus(
+        applicationId,
+        status
+    );
+    if (error) {
+        throw new Error(
+            `Failed to update application ${applicationId} status: ${error.message}`
         );
     }
     return data;

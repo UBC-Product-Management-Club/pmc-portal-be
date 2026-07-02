@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { Constants } from "./database.types";
 
 // Validates an applicant submission for a single exec position. Applicants apply
 // once per position (see the unique(user_id, position) constraint). `user_id`,
@@ -32,3 +33,13 @@ export const ApplicationStarSchema = z.object({
 });
 
 export type ApplicationStar = z.infer<typeof ApplicationStarSchema>;
+
+// Validates an admin/reviewer status update. Enum values are sourced from the
+// generated DB constants so invalid statuses are rejected without duplicating them.
+export const ApplicationStatusUpdateSchema = z.object({
+    status: z.enum(Constants.public.Enums.APPLICATION_STATUS),
+});
+
+export type ApplicationStatusUpdate = z.infer<
+    typeof ApplicationStatusUpdateSchema
+>;
