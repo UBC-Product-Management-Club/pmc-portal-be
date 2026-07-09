@@ -1,4 +1,5 @@
 import {
+  getPortalSetting,
   getPortalSettings,
   updatePortalSettings,
 } from "../../../src/services/PortalSettings/PortalSettingsService";
@@ -44,6 +45,22 @@ describe("PortalSettingsService", () => {
       await expect(getPortalSettings()).rejects.toThrow(
         "Failed to fetch portal settings: DB Down"
       );
+    });
+  });
+
+  describe("getPortalSetting", () => {
+    it("returns a single setting by key", async () => {
+      (PortalSettingsRepository.getSettings as jest.Mock).mockResolvedValueOnce({
+        data: {
+          id: "settings-id",
+          construction_mode_enabled: true,
+          updated_at: "2025-01-01T00:00:00.000Z",
+        },
+      });
+
+      const result = await getPortalSetting("construction_mode_enabled");
+
+      expect(result).toEqual({ construction_mode_enabled: true });
     });
   });
 

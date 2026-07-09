@@ -2,10 +2,19 @@ import {
   PortalSettingsRepository,
   PortalSettingsRow,
 } from "../../storage/PortalSettingsRepository";
-import { PortalSettingsUpdate } from "../../schema/v2/PortalSettings";
+import {
+  PortalSettingKey,
+  PortalSettingsUpdate,
+} from "../../schema/v2/PortalSettings";
 
 export type PortalSettingsResponse = {
   construction_mode_enabled: boolean;
+};
+
+export type PortalSettingResponse = Partial<PortalSettingsResponse>;
+
+const DEFAULT_SETTINGS: PortalSettingsResponse = {
+  construction_mode_enabled: false,
 };
 
 const toResponse = (settings: PortalSettingsRow): PortalSettingsResponse => ({
@@ -21,11 +30,18 @@ export const getPortalSettings =
     }
 
     if (!data) {
-      return { construction_mode_enabled: false };
+      return DEFAULT_SETTINGS;
     }
 
     return toResponse(data);
   };
+
+export const getPortalSetting = async (
+  key: PortalSettingKey
+): Promise<PortalSettingResponse> => {
+  const settings = await getPortalSettings();
+  return { [key]: settings[key] };
+};
 
 export const updatePortalSettings = async (
   updates: PortalSettingsUpdate

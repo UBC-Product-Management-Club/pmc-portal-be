@@ -1,5 +1,11 @@
 import { z } from "zod/v4";
 
+export const PORTAL_SETTING_KEYS = ["construction_mode_enabled"] as const;
+
+export type PortalSettingKey = (typeof PORTAL_SETTING_KEYS)[number];
+
+export const PortalSettingKeySchema = z.enum(PORTAL_SETTING_KEYS);
+
 export const PortalSettingsUpdateSchema = z
   .object({
     construction_mode_enabled: z.boolean().optional(),
