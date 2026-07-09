@@ -2,6 +2,7 @@ import {
   PortalSettingsRepository,
   PortalSettingsRow,
 } from "../../storage/PortalSettingsRepository";
+import { PortalSettingsUpdate } from "../../schema/v2/PortalSettings";
 
 export type PortalSettingsResponse = {
   construction_mode_enabled: boolean;
@@ -26,8 +27,8 @@ export const getPortalSettings =
     return toResponse(data);
   };
 
-export const updateConstructionMode = async (
-  constructionModeEnabled: boolean
+export const updatePortalSettings = async (
+  updates: PortalSettingsUpdate
 ): Promise<PortalSettingsResponse> => {
   const { data: existing, error: fetchError } =
     await PortalSettingsRepository.getSettings();
@@ -43,7 +44,7 @@ export const updateConstructionMode = async (
   const { data, error } = await PortalSettingsRepository.updateSettings(
     existing.id,
     {
-      construction_mode_enabled: constructionModeEnabled,
+      ...updates,
       updated_at: new Date().toISOString(),
     }
   );

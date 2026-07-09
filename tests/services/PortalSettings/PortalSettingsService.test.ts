@@ -1,6 +1,6 @@
 import {
   getPortalSettings,
-  updateConstructionMode,
+  updatePortalSettings,
 } from "../../../src/services/PortalSettings/PortalSettingsService";
 import { PortalSettingsRepository } from "../../../src/storage/PortalSettingsRepository";
 
@@ -47,7 +47,7 @@ describe("PortalSettingsService", () => {
     });
   });
 
-  describe("updateConstructionMode", () => {
+  describe("updatePortalSettings", () => {
     it("updates and returns settings", async () => {
       (PortalSettingsRepository.getSettings as jest.Mock).mockResolvedValueOnce({
         data: {
@@ -64,7 +64,9 @@ describe("PortalSettingsService", () => {
         },
       });
 
-      const result = await updateConstructionMode(false);
+      const result = await updatePortalSettings({
+        construction_mode_enabled: false,
+      });
 
       expect(result).toEqual({ construction_mode_enabled: false });
       expect(PortalSettingsRepository.updateSettings).toHaveBeenCalledWith(
@@ -78,9 +80,9 @@ describe("PortalSettingsService", () => {
         data: null,
       });
 
-      await expect(updateConstructionMode(true)).rejects.toThrow(
-        "Portal settings not initialized"
-      );
+      await expect(
+        updatePortalSettings({ construction_mode_enabled: true })
+      ).rejects.toThrow("Portal settings not initialized");
     });
   });
 });

@@ -1,6 +1,6 @@
 import { Request, Response, Router } from "express";
 import { PortalSettingsUpdateSchema } from "../../../schema/v2/PortalSettings";
-import { updateConstructionMode } from "../../../services/PortalSettings/PortalSettingsService";
+import { updatePortalSettings } from "../../../services/PortalSettings/PortalSettingsService";
 
 export const settingsRouter = Router();
 
@@ -12,9 +12,7 @@ settingsRouter.patch("/", async (req: Request, res: Response) => {
   }
 
   try {
-    const settings = await updateConstructionMode(
-      parsed.data.construction_mode_enabled
-    );
+    const settings = await updatePortalSettings(parsed.data);
     return res.status(200).json(settings);
   } catch (error: any) {
     console.error("Update portal settings error:", error);
