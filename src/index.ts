@@ -14,13 +14,7 @@ Object.keys(process.env).forEach((key) => {
 
 const app = express();
 
-const parseOrigins = (value?: string) =>
-  value?.split(",").map((origin) => origin.trim()).filter(Boolean) ?? [];
-
-const allowedOrigins = [
-  ...parseOrigins(process.env.ORIGIN),
-  ...parseOrigins(process.env.ADMIN_PORTAL_ORIGIN),
-];
+const allowedOrigins = [process.env.ORIGIN, process.env.ADMIN_PORTAL_ORIGIN];
 
 const corsOptions = {
   origin: function (origin: any, callback: any) {
