@@ -1,0 +1,53 @@
+name: Story
+description: User-facing feature or product improvement
+title: '[STORY] '
+labels:
+  - story
+body:
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      description: Who is this for and what should they be able to do?
+      placeholder: As a [user], I want to [do something], so that [benefit].
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What are we building or changing?
+      placeholder: Describe the feature or behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What needs to be true for this story to be complete?
+      placeholder: |
+        - [ ] User can...
+        - [ ] System handles...
+        - [ ] UI shows...
+    validations:
+      required: true
+
+  - type: textarea
+    id: parent-related-work
+    attributes:
+      label: Parent / Related Work
+      description: Link related epic, issue, PR, design, or project item if applicable.
+      placeholder: This can be left blank if this is already created as a sub-issue.
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / Considerations
+      description: Anything else to consider?
+      placeholder: Add edge cases, constraints, design notes, or implementation details.
+    validations:
+      required: false

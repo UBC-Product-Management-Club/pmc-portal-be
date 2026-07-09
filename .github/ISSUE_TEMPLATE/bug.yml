@@ -1,0 +1,62 @@
+name: Bug
+description: Report something that is broken or not working as expected
+title: '[BUG] '
+labels:
+  - bug
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is broken?
+      placeholder: Describe the bug clearly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can someone reproduce this bug?
+      placeholder: |
+        1. Go to...
+        2. Click...
+        3. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen instead?
+      placeholder: Describe the expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happens?
+      placeholder: Describe the actual behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Logs
+      description: Add screenshots, console logs, terminal errors, or relevant output.
+      placeholder: Paste screenshots or logs here if applicable.
+    validations:
+      required: false
+
+  - type: textarea
+    id: parent-related-work
+    attributes:
+      label: Parent / Related Work
+      description: Link related epic, story, PR, design, or project item if applicable.
+      placeholder: This can be left blank if this is already created as a sub-issue.
+    validations:
+      required: false

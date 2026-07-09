@@ -1,0 +1,53 @@
+name: Task
+description: Engineering task or implementation work
+title: "[TASK] "
+labels:
+    - task
+body:
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: What needs to be done?
+          placeholder: Describe the task.
+      validations:
+          required: true
+
+    - type: textarea
+      id: context
+      attributes:
+          label: Context
+          description: Why is this task needed?
+          placeholder: Explain the reason behind this task.
+      validations:
+          required: false
+
+    - type: textarea
+      id: checklist
+      attributes:
+          label: Checklist
+          description: Break the task into concrete steps.
+          placeholder: |
+              - [ ] Step 1
+              - [ ] Step 2
+              - [ ] Step 3
+      validations:
+          required: true
+
+    - type: textarea
+      id: parent-related-work
+      attributes:
+          label: Parent / Related Work
+          description: Link related epic, story, PR, design, or project item if applicable.
+          placeholder: This can be left blank if this is already created as a sub-issue.
+      validations:
+          required: false
+
+    - type: textarea
+      id: notes
+      attributes:
+          label: Notes / Considerations
+          description: Anything else to consider?
+          placeholder: Add technical notes, constraints, or edge cases.
+      validations:
+          required: false
