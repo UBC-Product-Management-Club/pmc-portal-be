@@ -1,7 +1,4 @@
-import {
-  PortalSettingsRepository,
-  PortalSettingsRow,
-} from "../../storage/PortalSettingsRepository";
+import { PortalSettingsRepository } from "../../storage/PortalSettingsRepository";
 import {
   PortalSettingKey,
   PortalSettingsUpdate,
@@ -17,10 +14,6 @@ const DEFAULT_SETTINGS: PortalSettingsResponse = {
   construction_mode_enabled: false,
 };
 
-const toResponse = (settings: PortalSettingsRow): PortalSettingsResponse => ({
-  construction_mode_enabled: settings.construction_mode_enabled,
-});
-
 export const getPortalSettings =
   async (): Promise<PortalSettingsResponse> => {
     const { data, error } = await PortalSettingsRepository.getSettings();
@@ -33,7 +26,8 @@ export const getPortalSettings =
       return DEFAULT_SETTINGS;
     }
 
-    return toResponse(data);
+    const { construction_mode_enabled } = data;
+    return { construction_mode_enabled };
   };
 
 export const getPortalSetting = async (
@@ -71,5 +65,6 @@ export const updatePortalSettings = async (
     );
   }
 
-  return toResponse(data);
+  const { construction_mode_enabled } = data;
+  return { construction_mode_enabled };
 };
