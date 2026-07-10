@@ -16,4 +16,5 @@ v2ApiRouter.use("/v2/events", eventRouter);
 v2ApiRouter.use("/v2/auth", authenticated, authRouter);
 v2ApiRouter.use("/v2/profile", authenticated, profileRouter);
 v2ApiRouter.use("/v2/attendee", authenticated, attendeeRouter);
-v2ApiRouter.use("/v2/application", authenticated, applicationRouter);
+// Auth is applied per-route inside applicationRouter so GET /questions stays public.
+v2ApiRouter.use("/v2/application", applicationRouter);

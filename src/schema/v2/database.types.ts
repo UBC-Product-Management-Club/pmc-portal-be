@@ -72,11 +72,14 @@ export type Database = {
           },
         ]
       }
-      Application: {
+      Exec_Application: {
         Row: {
           application_data: Json
           application_id: string
-          form_id: string | null
+          choice_rank: string | null
+          is_starred: boolean
+          position: string
+          resume_url: string | null
           status: Database["public"]["Enums"]["APPLICATION_STATUS"]
           submitted_at: string
           user_id: string
@@ -84,7 +87,10 @@ export type Database = {
         Insert: {
           application_data: Json
           application_id?: string
-          form_id?: string | null
+          choice_rank?: string | null
+          is_starred?: boolean
+          position: string
+          resume_url?: string | null
           status?: Database["public"]["Enums"]["APPLICATION_STATUS"]
           submitted_at?: string
           user_id: string
@@ -92,16 +98,19 @@ export type Database = {
         Update: {
           application_data?: Json
           application_id?: string
-          form_id?: string | null
+          choice_rank?: string | null
+          is_starred?: boolean
+          position?: string
+          resume_url?: string | null
           status?: Database["public"]["Enums"]["APPLICATION_STATUS"]
           submitted_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "Application_user_id_fkey"
+            foreignKeyName: "Exec_Application_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "User"
             referencedColumns: ["user_id"]
           },

@@ -1,17 +1,38 @@
 import { Request, Response, Router } from "express";
+import {
+    POSITIONS,
+    getQuestionsForPosition,
+} from "../../config/recruitingQuestions";
+import { authenticated } from "../../middleware/Session";
 import { ApplicationSubmissionSchema } from "../../schema/v2/Application";
 import {
-    getApplicationByUser,
+    getApplicationsByUser,
     submitApplication,
 } from "../../services/Application/ApplicationService";
 
 export const applicationRouter = Router();
 
-// Submit an application for the authenticated applicant.
-applicationRouter.post("/", async (req: Request, res: Response) => {
+// Public: the questions to render for an application form. Static config with
+// nothing sensitive, so applicants can see the form before logging in. Without
+// ?position returns the base questions; with one, base + that role's questions.
+applicationRouter.get("/questions", (req: Request, res: Response) => {
+    const position = req.query.position as string | undefined;
+    return res.status(200).json({
+        positions: POSITIONS,
+        position: position ?? null,
+        questions: getQuestionsForPosition(position),
+    });
+});
+
+// Submit an application for one position as the authenticated applicant.
+// Note the req.user guard is NOT redundant with `authenticated`: sessionFilter
+// verifies the token but still calls next() when no User row exists for it, so
+// req.user can be undefined here (e.g. a valid Auth0 account that never
+// completed onboarding).
+applicationRouter.post("/", ...authenticated, async (req: Request, res: Response) => {
     const userId = req.user?.user_id;
     if (!userId) {
-        return res.status(401).json({ error: "User not authenticated" });
+        return res.status(401).json({ error: "No user profile found for this account" });
     }
 
     const result = ApplicationSubmissionSchema.safeParse(req.body);
@@ -20,10 +41,7 @@ applicationRouter.post("/", async (req: Request, res: Response) => {
     }
 
     try {
-        const application = await submitApplication(
-            userId,
-            result.data.application_data
-        );
+        const application = await submitApplication(userId, result.data);
         return res.status(201).json(application);
     } catch (error: any) {
         console.error(error);
@@ -31,19 +49,16 @@ applicationRouter.post("/", async (req: Request, res: Response) => {
     }
 });
 
-// Retrieve the authenticated applicant's own submission.
-applicationRouter.get("/me", async (req: Request, res: Response) => {
+// Retrieve all of the authenticated applicant's submissions (one per position).
+applicationRouter.get("/me", ...authenticated, async (req: Request, res: Response) => {
     const userId = req.user?.user_id;
     if (!userId) {
-        return res.status(401).json({ error: "User not authenticated" });
+        return res.status(401).json({ error: "No user profile found for this account" });
     }
 
     try {
-        const application = await getApplicationByUser(userId);
-        if (!application) {
-            return res.status(404).json({ error: "Application not found" });
-        }
-        return res.status(200).json(application);
+        const applications = await getApplicationsByUser(userId);
+        return res.status(200).json(applications);
     } catch (error: any) {
         console.error(error);
         return res.status(500).json({ error: error.message });
