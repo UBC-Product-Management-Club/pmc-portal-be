@@ -6,6 +6,7 @@ import {
 import { authenticated } from "../../middleware/Session";
 import { ApplicationSubmissionSchema } from "../../schema/v2/Application";
 import {
+    getActiveCycle,
     getApplicationsByUser,
     submitApplication,
 } from "../../services/Application/ApplicationService";
@@ -41,7 +42,19 @@ applicationRouter.post("/", ...authenticated, async (req: Request, res: Response
     }
 
     try {
-        const application = await submitApplication(userId, result.data);
+        // Submissions attach to the active hiring cycle; none active = closed.
+        const cycle = await getActiveCycle();
+        if (!cycle) {
+            return res
+                .status(403)
+                .json({ error: "Applications are currently closed" });
+        }
+
+        const application = await submitApplication(
+            userId,
+            result.data,
+            cycle.cycle_id
+        );
         return res.status(201).json(application);
     } catch (error: any) {
         console.error(error);

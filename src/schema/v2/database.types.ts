@@ -77,6 +77,7 @@ export type Database = {
           application_data: Json
           application_id: string
           choice_rank: string | null
+          cycle_id: string | null
           is_starred: boolean
           position: string
           resume_url: string | null
@@ -88,6 +89,7 @@ export type Database = {
           application_data: Json
           application_id?: string
           choice_rank?: string | null
+          cycle_id?: string | null
           is_starred?: boolean
           position: string
           resume_url?: string | null
@@ -99,6 +101,7 @@ export type Database = {
           application_data?: Json
           application_id?: string
           choice_rank?: string | null
+          cycle_id?: string | null
           is_starred?: boolean
           position?: string
           resume_url?: string | null
@@ -113,6 +116,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "User"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "Exec_Application_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Cycle"
+            referencedColumns: ["cycle_id"]
           },
         ]
       }
@@ -405,6 +415,33 @@ export type Database = {
         Update: {
           id?: string
           product?: string
+        }
+        Relationships: []
+      }
+      Recruiting_Cycle: {
+        Row: {
+          closes_at: string | null
+          created_at: string
+          cycle_id: string
+          is_active: boolean
+          name: string
+          opens_at: string | null
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string
+          cycle_id?: string
+          is_active?: boolean
+          name: string
+          opens_at?: string | null
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string
+          cycle_id?: string
+          is_active?: boolean
+          name?: string
+          opens_at?: string | null
         }
         Relationships: []
       }

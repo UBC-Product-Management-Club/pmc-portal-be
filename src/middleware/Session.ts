@@ -30,6 +30,10 @@ export const sessionFilter = async (req: Request, res: Response, next: NextFunct
 };
 
 // Only PMC execs (verified by their email domain) may access the admin portal.
+// This is an app-level check so it works with the current Supabase email auth
+// on any plan. If the club later adopts Supabase enterprise SSO (SAML) or an
+// OAuth provider restricted to the ubcpmc.com workspace, sign-in itself will
+// enforce the domain and this check becomes defense-in-depth.
 const ADMIN_EMAIL_DOMAIN = process.env.ADMIN_EMAIL_DOMAIN ?? "ubcpmc.com";
 
 export const supabaseJwtCheck = async (req: Request, res: Response, next: NextFunction) => {

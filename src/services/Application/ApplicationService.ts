@@ -1,7 +1,9 @@
 import { Enums, Json, Tables } from "../../schema/v2/database.types";
 import { ApplicationRepository } from "../../storage/ApplicationRepository";
+import { RecruitingCycleRepository } from "../../storage/RecruitingCycleRepository";
 
 type ExecApplication = Tables<"Exec_Application">;
+type RecruitingCycle = Tables<"Recruiting_Cycle">;
 
 export interface NewApplication {
     position: string;
@@ -15,12 +17,25 @@ export interface PaginatedApplications {
     total: number;
 }
 
+// The hiring cycle currently accepting applications, or null when none is open.
+export const getActiveCycle = async (): Promise<RecruitingCycle | null> => {
+    const { data, error } = await RecruitingCycleRepository.getActiveCycle();
+    if (error) {
+        throw new Error(
+            `Failed to resolve the active recruiting cycle: ${error.message}`
+        );
+    }
+    return data;
+};
+
 export const submitApplication = async (
     userId: string,
-    application: NewApplication
+    application: NewApplication,
+    cycleId: string
 ): Promise<ExecApplication> => {
     const { data, error } = await ApplicationRepository.addApplication({
         user_id: userId,
+        cycle_id: cycleId,
         position: application.position,
         application_data: application.application_data,
         choice_rank: application.choice_rank,
@@ -28,11 +43,11 @@ export const submitApplication = async (
         status: "SUBMITTED",
     });
     if (error) {
-        // The unique(user_id, position) constraint is the single source of truth
-        // for duplicate submissions — map its violation to a friendly message.
+        // The unique(user_id, position, cycle_id) constraint is the single source
+        // of truth for duplicates — one application per position per hiring cycle.
         if (error.code === "23505") {
             throw new Error(
-                `User ${userId} has already applied for ${application.position}`
+                `User ${userId} has already applied for ${application.position} this cycle`
             );
         }
         throw new Error(`Failed to create application: ${error.message}`);
@@ -56,11 +71,13 @@ export const getApplicationsByUser = async (
 
 export const listApplications = async (
     limit: number,
-    offset: number
+    offset: number,
+    cycleId?: string
 ): Promise<PaginatedApplications> => {
     const { data, error, count } = await ApplicationRepository.getApplications(
         limit,
-        offset
+        offset,
+        cycleId
     );
     if (error) {
         throw new Error(`Failed to list applications: ${error.message}`);

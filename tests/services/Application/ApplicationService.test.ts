@@ -1,6 +1,7 @@
 import { Tables } from "../../../src/schema/v2/database.types";
 import {
   submitApplication,
+  getActiveCycle,
   getApplicationsByUser,
   listApplications,
   getApplication,
@@ -9,12 +10,14 @@ import {
   viewApplication,
 } from "../../../src/services/Application/ApplicationService";
 import { ApplicationRepository } from "../../../src/storage/ApplicationRepository";
+import { RecruitingCycleRepository } from "../../../src/storage/RecruitingCycleRepository";
 
 type ExecApplicationRow = Tables<"Exec_Application">;
 
 const mockApplication: ExecApplicationRow = {
   application_id: "app-123",
   user_id: "user-123",
+  cycle_id: "cycle-123",
   position: "Developer",
   choice_rank: "First Choice",
   resume_url: "https://storage/resume.pdf",
@@ -36,17 +39,51 @@ describe("ApplicationService", () => {
     jest.clearAllMocks();
   });
 
+  describe("getActiveCycle", () => {
+    it("returns the active cycle", async () => {
+      const cycle = { cycle_id: "cycle-123", name: "Spring '26", is_active: true };
+      (
+        RecruitingCycleRepository.getActiveCycle as jest.Mock
+      ).mockResolvedValueOnce({ data: cycle, error: null });
+
+      expect(await getActiveCycle()).toEqual(cycle);
+    });
+
+    it("returns null when no cycle is active", async () => {
+      (
+        RecruitingCycleRepository.getActiveCycle as jest.Mock
+      ).mockResolvedValueOnce({ data: null, error: null });
+
+      expect(await getActiveCycle()).toBeNull();
+    });
+
+    it("throws on error", async () => {
+      (
+        RecruitingCycleRepository.getActiveCycle as jest.Mock
+      ).mockResolvedValueOnce({ data: null, error: { message: "fail" } });
+
+      await expect(getActiveCycle()).rejects.toThrow(
+        "Failed to resolve the active recruiting cycle: fail"
+      );
+    });
+  });
+
   describe("submitApplication", () => {
-    it("creates an application", async () => {
+    it("creates an application attached to the given cycle", async () => {
       (
         ApplicationRepository.addApplication as jest.Mock
       ).mockResolvedValueOnce({ data: mockApplication, error: null });
 
-      const result = await submitApplication("user-123", newApplication);
+      const result = await submitApplication(
+        "user-123",
+        newApplication,
+        "cycle-123"
+      );
 
       expect(result).toEqual(mockApplication);
       expect(ApplicationRepository.addApplication).toHaveBeenCalledWith({
         user_id: "user-123",
+        cycle_id: "cycle-123",
         position: "Developer",
         application_data: { whyPm: "I love product" },
         choice_rank: "First Choice",
@@ -55,7 +92,7 @@ describe("ApplicationService", () => {
       });
     });
 
-    it("maps a unique-violation to an 'already applied for position' error", async () => {
+    it("maps a unique-violation to an 'already applied this cycle' error", async () => {
       (
         ApplicationRepository.addApplication as jest.Mock
       ).mockResolvedValueOnce({
@@ -64,8 +101,10 @@ describe("ApplicationService", () => {
       });
 
       await expect(
-        submitApplication("user-123", newApplication)
-      ).rejects.toThrow("User user-123 has already applied for Developer");
+        submitApplication("user-123", newApplication, "cycle-123")
+      ).rejects.toThrow(
+        "User user-123 has already applied for Developer this cycle"
+      );
     });
 
     it("throws on a non-unique insert error", async () => {
@@ -74,7 +113,7 @@ describe("ApplicationService", () => {
       ).mockResolvedValueOnce({ data: null, error: { message: "DB fail" } });
 
       await expect(
-        submitApplication("user-123", newApplication)
+        submitApplication("user-123", newApplication, "cycle-123")
       ).rejects.toThrow("Failed to create application: DB fail");
     });
   });
@@ -117,7 +156,11 @@ describe("ApplicationService", () => {
         applications: [mockApplication],
         total: 1,
       });
-      expect(ApplicationRepository.getApplications).toHaveBeenCalledWith(20, 0);
+      expect(ApplicationRepository.getApplications).toHaveBeenCalledWith(
+        20,
+        0,
+        undefined
+      );
     });
 
     it("defaults to empty list and zero total when data/count are null", async () => {

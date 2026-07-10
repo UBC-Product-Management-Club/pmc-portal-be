@@ -20,8 +20,9 @@ const MAX_LIMIT = 100;
 const UUID_RE =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// List submitted applications, most recent first. Supports ?limit & ?offset;
-// returns { applications, total, limit, offset } so the dashboard can paginate.
+// List submitted applications, most recent first. Supports ?limit & ?offset
+// plus ?cycle=<cycle_id> to scope to one hiring cycle; returns
+// { applications, total, limit, offset } so the dashboard can paginate.
 applicationRouter.get("/", async (req: Request, res: Response) => {
     const parsedLimit = Number.parseInt(req.query.limit as string, 10);
     const parsedOffset = Number.parseInt(req.query.offset as string, 10);
@@ -30,8 +31,17 @@ applicationRouter.get("/", async (req: Request, res: Response) => {
         : Math.min(Math.max(parsedLimit, 1), MAX_LIMIT);
     const offset = Number.isNaN(parsedOffset) ? 0 : Math.max(parsedOffset, 0);
 
+    const cycle = req.query.cycle as string | undefined;
+    if (cycle && !UUID_RE.test(cycle)) {
+        return res.status(400).json({ error: "Invalid cycle id" });
+    }
+
     try {
-        const { applications, total } = await listApplications(limit, offset);
+        const { applications, total } = await listApplications(
+            limit,
+            offset,
+            cycle
+        );
         return res.status(200).json({ applications, total, limit, offset });
     } catch (error: any) {
         console.error(error);

@@ -9,7 +9,13 @@ const WITH_APPLICANT = "*, User(first_name, last_name)";
 
 export const ApplicationRepository = {
     addApplication: (application: ExecApplication) => supabase.from("Exec_Application").insert(application).select().single(),
-    getApplications: (limit: number, offset: number) => supabase.from("Exec_Application").select(WITH_APPLICANT, { count: "exact" }).order("submitted_at", { ascending: false }).range(offset, offset + limit - 1),
+    getApplications: (limit: number, offset: number, cycleId?: string) => {
+        let query = supabase.from("Exec_Application").select(WITH_APPLICANT, { count: "exact" });
+        if (cycleId) {
+            query = query.eq("cycle_id", cycleId);
+        }
+        return query.order("submitted_at", { ascending: false }).range(offset, offset + limit - 1);
+    },
     getApplicationById: (applicationId: string) => supabase.from("Exec_Application").select(WITH_APPLICANT).eq("application_id", applicationId).maybeSingle(),
     getApplicationsByUser: (userId: string) => supabase.from("Exec_Application").select("*").eq("user_id", userId).order("submitted_at", { ascending: false }),
     setStarred: (applicationId: string, isStarred: boolean) => supabase.from("Exec_Application").update({ is_starred: isStarred }).eq("application_id", applicationId).select().maybeSingle(),
