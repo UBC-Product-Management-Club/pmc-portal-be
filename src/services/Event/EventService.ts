@@ -52,6 +52,19 @@ export const addEvent = async (event: EventCreate) => {
   if (error) throw error;
 };
 
+export const updateEventThumbnail = async (
+  eventId: string,
+  thumbnail: string
+): Promise<EventInformation | null> => {
+  const { data, error } = await EventRepository.updateEvent(eventId, {
+    thumbnail,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  return getEvent(eventId);
+};
+
 export const isFull = async (eventId: string) => {
   const { data, error } = await EventRepository.getCapacityStatus(eventId);
   if (error) throw error;

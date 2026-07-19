@@ -1,5 +1,5 @@
 import { supabase } from "../config/supabase";
-import { Tables } from "../schema/v2/database.types";
+import { Tables, TablesUpdate } from "../schema/v2/database.types";
 import { EventInsert } from "../schema/v2/Event";
 
 type EventRow = Tables<"Event">;
@@ -50,6 +50,16 @@ export const EventRepository = {
   ) =>
     supabase.from("Event").select(selectField).eq("event_id", eventId).single(),
   addEvent: (event: EventCreate) => supabase.from("Event").insert(event),
+  updateEvent: (
+    eventId: string,
+    fields: TablesUpdate<"Event"> & { thumbnail?: string | null }
+  ) =>
+    supabase
+      .from("Event")
+      .update(fields)
+      .eq("event_id", eventId)
+      .select("event_id")
+      .maybeSingle(),
   getCapacityStatus: (eventId: string) =>
     supabase
       .from("Event")
