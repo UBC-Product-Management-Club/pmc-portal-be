@@ -1,8 +1,8 @@
 import { Request, Response, Router } from "express";
-import { uuidv4 } from "zod/v4";
+import { uuidv4, z } from "zod/v4";
 import { supabase } from "../../../config/supabase";
-import { EventSchema } from "../../../schema/v2/Event";
-import { addEvent, createEventTeam, getEvent, updateEventThumbnail } from "../../../services/Event/EventService";
+import { EventSchema, EventUpdateSchema } from "../../../schema/v2/Event";
+import { addEvent, createEventTeam, getEvent, updateEvent, updateEventThumbnail } from "../../../services/Event/EventService";
 import { uploadSupabaseFiles, getDeliverable, getEventDeliverables } from "../../../storage/Storage";
 import multer from "multer";
 import { formatGenericCSV } from "../../../services/User/utils";
@@ -38,6 +38,36 @@ eventRouter.get("/:eventId", async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error("Failed to fetch event:", error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.patch("/:eventId", async (req: Request, res: Response) => {
+    const eventId = req.params.eventId;
+
+    if (!eventId) {
+        return res.status(400).json({ error: "Event ID is required" });
+    }
+
+    const result = EventUpdateSchema.safeParse(req.body);
+    if (!result.success) {
+        const flattened = z.flattenError(result.error);
+        return res.status(400).json({
+            error: "Validation failed",
+            fieldErrors: flattened.fieldErrors,
+            formErrors: flattened.formErrors,
+        });
+    }
+
+    try {
+        const updated = await updateEvent(eventId, result.data);
+        if (!updated) {
+            return res.status(404).json({ error: "Event not found" });
+        }
+
+        return res.status(200).json(updated);
+    } catch (error: any) {
+        console.error("Failed to update event:", error);
+        return res.status(500).json({ error: error.message });
     }
 });
 

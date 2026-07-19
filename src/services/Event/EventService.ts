@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { supabase } from "../../config/supabase";
 import { Tables } from "../../schema/v2/database.types";
-import { EventInsert } from "../../schema/v2/Event";
+import { EventInsert, EventUpdate } from "../../schema/v2/Event";
 import { EventRepository } from "../../storage/EventRepository";
 import { stripe } from "../../config/stripe";
 
@@ -50,6 +50,17 @@ export const getEventPriceId = async (eventId: string, isMember: boolean) => {
 export const addEvent = async (event: EventCreate) => {
   const { error } = await EventRepository.addEvent(event);
   if (error) throw error;
+};
+
+export const updateEvent = async (
+  eventId: string,
+  fields: EventUpdate
+): Promise<EventInformation | null> => {
+  const { data, error } = await EventRepository.updateEvent(eventId, fields);
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  return getEvent(eventId);
 };
 
 export const updateEventThumbnail = async (

@@ -18,3 +18,17 @@ export const EventSchema = z.object({
 });
 
 export type EventInsert = z.infer<typeof EventSchema>;
+
+export const EventUpdateSchema = z
+    .strictObject({
+        name: z.string().min(1).optional(),
+        blurb: z.string().optional(),
+        description: z.string().optional(),
+        location: z.string().min(1).optional(),
+        max_attendees: z.number().int().positive().optional(),
+    })
+    .refine((fields) => Object.keys(fields).length > 0, {
+        message: "At least one field is required",
+    });
+
+export type EventUpdate = z.infer<typeof EventUpdateSchema>;
