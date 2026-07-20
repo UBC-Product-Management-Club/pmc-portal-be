@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { supabase } from "../../config/supabase";
-import { Tables } from "../../schema/v2/database.types";
+import { Tables, TablesUpdate } from "../../schema/v2/database.types";
 import { EventInsert, EventUpdate } from "../../schema/v2/Event";
 import { EventRepository } from "../../storage/EventRepository";
 import { stripe } from "../../config/stripe";
@@ -56,7 +56,13 @@ export const updateEvent = async (
   eventId: string,
   fields: EventUpdate
 ): Promise<EventInformation | null> => {
-  const { data, error } = await EventRepository.updateEvent(eventId, fields);
+  const patch: TablesUpdate<"Event"> & { thumbnail?: string | null } = { ...fields };
+  // Keep the denormalized `date` column in sync with the start of the event.
+  if (fields.start_time) {
+    patch.date = fields.start_time.slice(0, 10);
+  }
+
+  const { data, error } = await EventRepository.updateEvent(eventId, patch);
   if (error) throw new Error(error.message);
   if (!data) return null;
 
