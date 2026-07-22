@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      Admin_Allowlist: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          email: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          email: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Admin_Allowlist_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      Application: {
+        Row: {
+          answers: Json
+          application_id: string
+          choice_rank: Database["public"]["Enums"]["APPLICATION_CHOICE_RANK"]
+          role_form_id: string
+          status: Database["public"]["Enums"]["APPLICATION_STATUS"]
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers: Json
+          application_id?: string
+          choice_rank: Database["public"]["Enums"]["APPLICATION_CHOICE_RANK"]
+          role_form_id: string
+          status?: Database["public"]["Enums"]["APPLICATION_STATUS"]
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          application_id?: string
+          choice_rank?: Database["public"]["Enums"]["APPLICATION_CHOICE_RANK"]
+          role_form_id?: string
+          status?: Database["public"]["Enums"]["APPLICATION_STATUS"]
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Application_role_form_id_fkey"
+            columns: ["role_form_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Role_Form"
+            referencedColumns: ["role_form_id"]
+          },
+          {
+            foreignKeyName: "Application_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       Attendee: {
         Row: {
           attendee_id: string
@@ -364,6 +438,167 @@ export type Database = {
         }
         Relationships: []
       }
+      Recruiting_Cycle: {
+        Row: {
+          closes_at: string | null
+          created_at: string
+          cycle_id: string
+          is_active: boolean
+          name: string
+          opens_at: string | null
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string
+          cycle_id?: string
+          is_active?: boolean
+          name: string
+          opens_at?: string | null
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string
+          cycle_id?: string
+          is_active?: boolean
+          name?: string
+          opens_at?: string | null
+        }
+        Relationships: []
+      }
+      Recruiting_General_Question: {
+        Row: {
+          display_order: number
+          is_required: boolean
+          key: string
+          label: string
+          max_words: number | null
+          options: string[] | null
+          question_id: string
+          type: Database["public"]["Enums"]["QUESTION_TYPE"]
+        }
+        Insert: {
+          display_order: number
+          is_required?: boolean
+          key: string
+          label: string
+          max_words?: number | null
+          options?: string[] | null
+          question_id?: string
+          type: Database["public"]["Enums"]["QUESTION_TYPE"]
+        }
+        Update: {
+          display_order?: number
+          is_required?: boolean
+          key?: string
+          label?: string
+          max_words?: number | null
+          options?: string[] | null
+          question_id?: string
+          type?: Database["public"]["Enums"]["QUESTION_TYPE"]
+        }
+        Relationships: []
+      }
+      Recruiting_Role: {
+        Row: {
+          created_at: string
+          is_active: boolean
+          name: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          is_active?: boolean
+          name: string
+          role_id?: string
+        }
+        Update: {
+          created_at?: string
+          is_active?: boolean
+          name?: string
+          role_id?: string
+        }
+        Relationships: []
+      }
+      Recruiting_Role_Form: {
+        Row: {
+          created_at: string
+          cycle_id: string
+          role_form_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id: string
+          role_form_id?: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string
+          role_form_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Recruiting_Role_Form_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Cycle"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "Recruiting_Role_Form_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Role"
+            referencedColumns: ["role_id"]
+          },
+        ]
+      }
+      Recruiting_Role_Form_Question: {
+        Row: {
+          display_order: number
+          is_required: boolean
+          key: string
+          label: string
+          max_words: number | null
+          options: string[] | null
+          question_id: string
+          role_form_id: string
+          type: Database["public"]["Enums"]["QUESTION_TYPE"]
+        }
+        Insert: {
+          display_order: number
+          is_required?: boolean
+          key: string
+          label: string
+          max_words?: number | null
+          options?: string[] | null
+          question_id?: string
+          role_form_id: string
+          type: Database["public"]["Enums"]["QUESTION_TYPE"]
+        }
+        Update: {
+          display_order?: number
+          is_required?: boolean
+          key?: string
+          label?: string
+          max_words?: number | null
+          options?: string[] | null
+          question_id?: string
+          role_form_id?: string
+          type?: Database["public"]["Enums"]["QUESTION_TYPE"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Recruiting_Role_Form_Question_role_form_id_fkey"
+            columns: ["role_form_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Role_Form"
+            referencedColumns: ["role_form_id"]
+          },
+        ]
+      }
       roles: {
         Row: {
           id: number
@@ -494,7 +729,34 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      Current_Cycle_Application: {
+        Row: {
+          answers: Json | null
+          application_id: string | null
+          choice_rank: Database["public"]["Enums"]["APPLICATION_CHOICE_RANK"] | null
+          role_form_id: string | null
+          status: Database["public"]["Enums"]["APPLICATION_STATUS"] | null
+          submitted_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Application_role_form_id_fkey"
+            columns: ["role_form_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Role_Form"
+            referencedColumns: ["role_form_id"]
+          },
+          {
+            foreignKeyName: "Application_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Functions: {
       create_team_with_members: {
@@ -526,6 +788,18 @@ export type Database = {
       }
     }
     Enums: {
+      APPLICATION_CHOICE_RANK: "FIRST" | "SECOND" | "THIRD_PLUS" | "ONLY"
+      APPLICATION_STATUS:
+        | "SUBMITTED"
+        | "REVIEWED"
+        | "WILL_REJECT"
+        | "REJECTED_EMAIL_SENT"
+        | "INTERVIEW_INVITED"
+        | "INTERVIEW_SCHEDULED"
+        | "INTERVIEWED"
+        | "OFFER_SENT"
+        | "OFFER_ACCEPTED"
+        | "OFFER_DECLINED"
       ATTENDEE_STATUS:
         | "FAILED"
         | "PROCESSING"
@@ -533,6 +807,13 @@ export type Database = {
         | "REGISTERED"
         | "ACCEPTED"
       PAYMENT_STATUS: "PROCESSING" | "VERIFIED"
+      QUESTION_TYPE:
+        | "SHORT_TEXT"
+        | "LONG_TEXT"
+        | "SELECT"
+        | "MULTI_SELECT"
+        | "FILE"
+        | "URL"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -660,6 +941,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      APPLICATION_CHOICE_RANK: ["FIRST", "SECOND", "THIRD_PLUS", "ONLY"],
+      APPLICATION_STATUS: [
+        "SUBMITTED",
+        "REVIEWED",
+        "WILL_REJECT",
+        "REJECTED_EMAIL_SENT",
+        "INTERVIEW_INVITED",
+        "INTERVIEW_SCHEDULED",
+        "INTERVIEWED",
+        "OFFER_SENT",
+        "OFFER_ACCEPTED",
+        "OFFER_DECLINED",
+      ],
       ATTENDEE_STATUS: [
         "FAILED",
         "PROCESSING",
@@ -668,6 +962,14 @@ export const Constants = {
         "ACCEPTED",
       ],
       PAYMENT_STATUS: ["PROCESSING", "VERIFIED"],
+      QUESTION_TYPE: [
+        "SHORT_TEXT",
+        "LONG_TEXT",
+        "SELECT",
+        "MULTI_SELECT",
+        "FILE",
+        "URL",
+      ],
     },
   },
 } as const
