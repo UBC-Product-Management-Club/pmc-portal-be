@@ -11,10 +11,15 @@
 -- Supabase CLI migration runner wired up for this project yet.
 -- -----------------------------------------------------------------------------
 
--- Clean up the superseded draft (staging only -- prod never had this table).
+-- Clean up superseded drafts (staging only -- prod never had these tables).
+-- Exec_Application/APPLICATION_STATUS: the earlier applicant-submission draft
+-- from PRs #183/#184 (closed). Recruiting/RECRUITING_FORM_STATUS: the
+-- independent form-schema draft from PR #181 (closed, #174/#175).
 drop view if exists "Current_Cycle_Application";
 drop table if exists "Exec_Application";
 drop type if exists "APPLICATION_STATUS";
+drop table if exists "Recruiting";
+drop type if exists "RECRUITING_FORM_STATUS";
 
 -- Enums -----------------------------------------------------------------------
 
