@@ -14,7 +14,8 @@ export const EventSchema = z.object({
     event_form_questions: z.json(),
     is_disabled: z.boolean().default(false),
     media: z.array(z.string()),
-    needs_review: z.boolean()
+    needs_review: z.boolean(),
+    thumbnail: z.string().nullable().optional(),
 });
 
 export type EventInsert = z.infer<typeof EventSchema>;
