@@ -53,14 +53,80 @@ export const addEvent = async (event: EventCreate) => {
   if (error) throw error;
 };
 
+// Stripe prices are immutable once created, so a price change means creating a new
+// Price object rather than editing the old one. The Product is reused across edits
+// (created once, on the first price set) so an event's prices stay grouped together
+// in Stripe instead of spawning a new Product every time an admin tweaks a price.
+const syncStripePrice = async (
+  eventName: string,
+  label: "Member" | "Non-Member",
+  existingPriceId: string | null,
+  newAmountDollars: number
+): Promise<string> => {
+  const unitAmount = Math.round(newAmountDollars * 100);
+
+  if (existingPriceId) {
+    const existingPrice = await stripe.prices.retrieve(existingPriceId);
+    if (existingPrice.unit_amount === unitAmount) {
+      return existingPriceId;
+    }
+    const productId =
+      typeof existingPrice.product === "string"
+        ? existingPrice.product
+        : existingPrice.product.id;
+    const newPrice = await stripe.prices.create({
+      product: productId,
+      unit_amount: unitAmount,
+      currency: existingPrice.currency,
+    });
+    return newPrice.id;
+  }
+
+  const product = await stripe.products.create({
+    name: `${eventName} - ${label} Price`,
+  });
+  const newPrice = await stripe.prices.create({
+    product: product.id,
+    unit_amount: unitAmount,
+    currency: "cad",
+  });
+  return newPrice.id;
+};
+
 export const updateEvent = async (
   eventId: string,
   fields: EventUpdate
 ): Promise<EventInformation | null> => {
-  const patch: TablesUpdate<"Event"> & { thumbnail?: string | null } = { ...fields };
+  const { member_price, non_member_price, ...rest } = fields;
+  const patch: TablesUpdate<"Event"> & { thumbnail?: string | null } = { ...rest };
   // Keep the denormalized `date` column in sync with the start of the event.
   if (fields.start_time) {
     patch.date = fields.start_time.slice(0, 10);
+  }
+
+  if (member_price !== undefined || non_member_price !== undefined) {
+    const { data: pricing, error: pricingError } = await EventRepository.getEventPricing(eventId);
+    if (pricingError) throw new Error(pricingError.message);
+    if (!pricing) return null;
+
+    if (member_price !== undefined) {
+      patch.member_price_id = await syncStripePrice(
+        pricing.name,
+        "Member",
+        pricing.member_price_id,
+        member_price
+      );
+      patch.member_price = member_price;
+    }
+    if (non_member_price !== undefined) {
+      patch.non_member_price_id = await syncStripePrice(
+        pricing.name,
+        "Non-Member",
+        pricing.non_member_price_id,
+        non_member_price
+      );
+      patch.non_member_price = non_member_price;
+    }
   }
 
   const { data, error } = await EventRepository.updateEvent(eventId, patch);

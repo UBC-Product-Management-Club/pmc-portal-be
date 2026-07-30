@@ -50,6 +50,12 @@ export const EventRepository = {
     selectField: "member_price_id" | "non_member_price_id"
   ) =>
     supabase.from("Event").select(selectField).eq("event_id", eventId).single(),
+  getEventPricing: (eventId: string) =>
+    supabase
+      .from("Event")
+      .select("name, member_price_id, non_member_price_id")
+      .eq("event_id", eventId)
+      .maybeSingle(),
   addEvent: (event: EventCreate) => supabase.from("Event").insert(event),
   updateEvent: (
     eventId: string,

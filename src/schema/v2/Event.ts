@@ -27,6 +27,8 @@ export const EventUpdateSchema = z
         description: z.string().optional(),
         location: z.string().min(1, "Location can't be empty").optional(),
         max_attendees: z.number("Max attendees must be a number").int("Max attendees must be a whole number").positive("Max attendees must be positive").optional(),
+        member_price: z.number("Member price must be a number").nonnegative("Member price can't be negative").optional(),
+        non_member_price: z.number("Non-member price must be a number").nonnegative("Non-member price can't be negative").optional(),
         start_time: z.iso.datetime({ offset: true }).optional(),
         end_time: z.iso.datetime({ offset: true }).optional(),
         registration_opens: z.iso.datetime({ offset: true }).optional(),
