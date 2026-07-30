@@ -61,6 +61,12 @@ export const EventRepository = {
       .eq("event_id", eventId)
       .select("event_id")
       .maybeSingle(),
+  getEventMedia: (eventId: string) =>
+    supabase
+      .from("Event")
+      .select("thumbnail, media")
+      .eq("event_id", eventId)
+      .maybeSingle<{ thumbnail: string | null; media: string[] | null }>(),
   getCapacityStatus: (eventId: string) =>
     supabase
       .from("Event")

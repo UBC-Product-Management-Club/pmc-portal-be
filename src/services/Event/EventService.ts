@@ -8,6 +8,7 @@ import { stripe } from "../../config/stripe";
 type EventRow = Tables<"Event">;
 type EventCreate = EventInsert;
 type EventInformation = EventRow & { registered: number };
+type EventMedia = { thumbnail: string | null; media: string[] | null };
 
 export const getEvents = async () => {
   const { data, error } = await EventRepository.getEvents();
@@ -67,6 +68,13 @@ export const updateEvent = async (
   if (!data) return null;
 
   return getEvent(eventId);
+};
+
+// The image this event currently points at, read before a replacement overwrites it.
+export const getEventMedia = async (eventId: string): Promise<EventMedia | null> => {
+  const { data, error } = await EventRepository.getEventMedia(eventId);
+  if (error) throw new Error(error.message);
+  return data;
 };
 
 export const updateEventThumbnail = async (

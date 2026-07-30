@@ -2,8 +2,8 @@ import { Request, Response, Router } from "express";
 import { uuidv4, z } from "zod/v4";
 import { supabase } from "../../../config/supabase";
 import { EventSchema, EventUpdateSchema } from "../../../schema/v2/Event";
-import { addEvent, createEventTeam, getEvent, updateEvent, updateEventThumbnail } from "../../../services/Event/EventService";
-import { uploadSupabaseFiles, getDeliverable, getEventDeliverables } from "../../../storage/Storage";
+import { addEvent, createEventTeam, getEvent, getEventMedia, updateEvent, updateEventThumbnail } from "../../../services/Event/EventService";
+import { uploadSupabaseFiles, getDeliverable, getEventDeliverables, deleteSupabaseFile, storagePathFromPublicUrl } from "../../../storage/Storage";
 import multer from "multer";
 import { formatGenericCSV } from "../../../services/User/utils";
 
@@ -71,6 +71,31 @@ eventRouter.patch("/:eventId", async (req: Request, res: Response) => {
     }
 });
 
+// Best-effort removal of the image a new thumbnail replaced, so re-uploading doesn't
+// leave a copy behind. Deliberately never throws: the event already points at the new
+// image, so a failed delete is a stray file rather than a failed save.
+const deleteReplacedThumbnail = async (
+    previous: { thumbnail: string | null; media: string[] | null } | null,
+    replacement: string,
+    bucketName: string
+) => {
+    const old = previous?.thumbnail;
+    if (!old || old === replacement) return;
+    // Still on show in the event's gallery.
+    if (previous?.media?.includes(old)) return;
+
+    // Uploads live under `events/<eventId>/media/`, so a thumbnail in this bucket
+    // can only belong to the event being edited.
+    const path = storagePathFromPublicUrl(old, bucketName);
+    if (!path) return;
+
+    try {
+        await deleteSupabaseFile(path, bucketName);
+    } catch (error: any) {
+        console.error(`Failed to delete replaced thumbnail ${path}:`, error.message);
+    }
+};
+
 eventRouter.patch(
     "/:eventId/thumbnail",
     upload.single("thumbnail"),
@@ -89,6 +114,9 @@ eventRouter.patch(
         try {
             const bucketName = process.env.SUPABASE_BUCKET_NAME!;
             const parentPath = `events/${eventId}/media/`;
+            // Read the outgoing image before the row starts pointing at the new one.
+            const previous = await getEventMedia(eventId);
+
             // Timestamp prefix keeps each upload at a unique path so the public URL
             // changes on every save and the CDN never serves a stale thumbnail.
             file.originalname = `${Date.now()}-${file.originalname}`;
@@ -103,6 +131,8 @@ eventRouter.patch(
             if (!updated) {
                 return res.status(404).json({ error: "Event not found" });
             }
+
+            await deleteReplacedThumbnail(previous, thumbnailUrl, bucketName);
 
             return res.status(200).json(updated);
         } catch (error: any) {

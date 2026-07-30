@@ -29,6 +29,8 @@ export const EventUpdateSchema = z
         max_attendees: z.number("Max attendees must be a number").int("Max attendees must be a whole number").positive("Max attendees must be positive").optional(),
         start_time: z.iso.datetime({ offset: true }).optional(),
         end_time: z.iso.datetime({ offset: true }).optional(),
+        registration_opens: z.iso.datetime({ offset: true }).optional(),
+        registration_closes: z.iso.datetime({ offset: true }).optional(),
     })
     .refine((fields) => Object.keys(fields).length > 0, {
         message: "At least one field is required",
@@ -45,6 +47,25 @@ export const EventUpdateSchema = z
         {
             message: "end_time must not be before start_time",
             path: ["end_time"],
+        }
+    )
+    .refine(
+        (fields) =>
+            (fields.registration_opens === undefined) ===
+            (fields.registration_closes === undefined),
+        {
+            message: "registration_opens and registration_closes must be provided together",
+            path: ["registration_closes"],
+        }
+    )
+    .refine(
+        (fields) =>
+            !fields.registration_opens ||
+            !fields.registration_closes ||
+            new Date(fields.registration_closes) >= new Date(fields.registration_opens),
+        {
+            message: "registration_closes must not be before registration_opens",
+            path: ["registration_closes"],
         }
     );
 
