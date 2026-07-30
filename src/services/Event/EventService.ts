@@ -1,13 +1,14 @@
 import _ from "lodash";
 import { supabase } from "../../config/supabase";
-import { Tables } from "../../schema/v2/database.types";
-import { EventInsert } from "../../schema/v2/Event";
+import { Tables, TablesUpdate } from "../../schema/v2/database.types";
+import { EventInsert, EventUpdate } from "../../schema/v2/Event";
 import { EventRepository } from "../../storage/EventRepository";
 import { stripe } from "../../config/stripe";
 
 type EventRow = Tables<"Event">;
 type EventCreate = EventInsert;
 type EventInformation = EventRow & { registered: number };
+type EventMedia = { thumbnail: string | null; media: string[] | null };
 
 export const getEvents = async () => {
   const { data, error } = await EventRepository.getEvents();
@@ -50,6 +51,43 @@ export const getEventPriceId = async (eventId: string, isMember: boolean) => {
 export const addEvent = async (event: EventCreate) => {
   const { error } = await EventRepository.addEvent(event);
   if (error) throw error;
+};
+
+export const updateEvent = async (
+  eventId: string,
+  fields: EventUpdate
+): Promise<EventInformation | null> => {
+  const patch: TablesUpdate<"Event"> & { thumbnail?: string | null } = { ...fields };
+  // Keep the denormalized `date` column in sync with the start of the event.
+  if (fields.start_time) {
+    patch.date = fields.start_time.slice(0, 10);
+  }
+
+  const { data, error } = await EventRepository.updateEvent(eventId, patch);
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  return getEvent(eventId);
+};
+
+// The image this event currently points at, read before a replacement overwrites it.
+export const getEventMedia = async (eventId: string): Promise<EventMedia | null> => {
+  const { data, error } = await EventRepository.getEventMedia(eventId);
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+export const updateEventThumbnail = async (
+  eventId: string,
+  thumbnail: string
+): Promise<EventInformation | null> => {
+  const { data, error } = await EventRepository.updateEvent(eventId, {
+    thumbnail,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  return getEvent(eventId);
 };
 
 export const isFull = async (eventId: string) => {

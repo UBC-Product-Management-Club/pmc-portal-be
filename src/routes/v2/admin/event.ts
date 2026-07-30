@@ -1,9 +1,9 @@
 import { Request, Response, Router } from "express";
-import { uuidv4 } from "zod/v4";
+import { uuidv4, z } from "zod/v4";
 import { supabase } from "../../../config/supabase";
-import { EventSchema } from "../../../schema/v2/Event";
-import { addEvent, createEventTeam, getEvent } from "../../../services/Event/EventService";
-import { uploadSupabaseFiles, getDeliverable, getEventDeliverables } from "../../../storage/Storage";
+import { EventSchema, EventUpdateSchema } from "../../../schema/v2/Event";
+import { addEvent, createEventTeam, getEvent, getEventMedia, updateEvent, updateEventThumbnail } from "../../../services/Event/EventService";
+import { uploadSupabaseFiles, getDeliverable, getEventDeliverables, deleteSupabaseFile, storagePathFromPublicUrl } from "../../../storage/Storage";
 import multer from "multer";
 import { formatGenericCSV } from "../../../services/User/utils";
 
@@ -40,6 +40,107 @@ eventRouter.get("/:eventId", async (req: Request, res: Response) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+eventRouter.patch("/:eventId", async (req: Request, res: Response) => {
+    const eventId = req.params.eventId;
+
+    if (!eventId) {
+        return res.status(400).json({ error: "Event ID is required" });
+    }
+
+    const result = EventUpdateSchema.safeParse(req.body);
+    if (!result.success) {
+        const flattened = z.flattenError(result.error);
+        return res.status(400).json({
+            error: "Validation failed",
+            fieldErrors: flattened.fieldErrors,
+            formErrors: flattened.formErrors,
+        });
+    }
+
+    try {
+        const updated = await updateEvent(eventId, result.data);
+        if (!updated) {
+            return res.status(404).json({ error: "Event not found" });
+        }
+
+        return res.status(200).json(updated);
+    } catch (error: any) {
+        console.error("Failed to update event:", error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Best-effort removal of the image a new thumbnail replaced, so re-uploading doesn't
+// leave a copy behind. Deliberately never throws: the event already points at the new
+// image, so a failed delete is a stray file rather than a failed save.
+const deleteReplacedThumbnail = async (
+    previous: { thumbnail: string | null; media: string[] | null } | null,
+    replacement: string,
+    bucketName: string
+) => {
+    const old = previous?.thumbnail;
+    if (!old || old === replacement) return;
+    // Still on show in the event's gallery.
+    if (previous?.media?.includes(old)) return;
+
+    // Uploads live under `events/<eventId>/media/`, so a thumbnail in this bucket
+    // can only belong to the event being edited.
+    const path = storagePathFromPublicUrl(old, bucketName);
+    if (!path) return;
+
+    try {
+        await deleteSupabaseFile(path, bucketName);
+    } catch (error: any) {
+        console.error(`Failed to delete replaced thumbnail ${path}:`, error.message);
+    }
+};
+
+eventRouter.patch(
+    "/:eventId/thumbnail",
+    upload.single("thumbnail"),
+    async (req: Request, res: Response) => {
+        const eventId = req.params.eventId;
+
+        if (!eventId) {
+            return res.status(400).json({ error: "Event ID is required" });
+        }
+
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: "Thumbnail file is required" });
+        }
+
+        try {
+            const bucketName = process.env.SUPABASE_BUCKET_NAME!;
+            const parentPath = `events/${eventId}/media/`;
+            // Read the outgoing image before the row starts pointing at the new one.
+            const previous = await getEventMedia(eventId);
+
+            // Timestamp prefix keeps each upload at a unique path so the public URL
+            // changes on every save and the CDN never serves a stale thumbnail.
+            file.originalname = `${Date.now()}-${file.originalname}`;
+            const uploaded = await uploadSupabaseFiles([file], {
+                parentPath,
+                bucketName,
+                isPublic: true,
+            });
+            const thumbnailUrl = uploaded[file.fieldname];
+
+            const updated = await updateEventThumbnail(eventId, thumbnailUrl);
+            if (!updated) {
+                return res.status(404).json({ error: "Event not found" });
+            }
+
+            await deleteReplacedThumbnail(previous, thumbnailUrl, bucketName);
+
+            return res.status(200).json(updated);
+        } catch (error: any) {
+            console.error("Failed to update thumbnail:", error);
+            return res.status(500).json({ error: error.message });
+        }
+    }
+);
 
 //[WIP Needs to be retested]
 eventRouter.post(

@@ -39,6 +39,36 @@ export const uploadSupabaseFiles = async (files: Express.Multer.File[], { parent
     return result;
 };
 
+// Public object URLs are built as `<project>/storage/v1/object/public/<bucket>/<path>`.
+// Deriving the prefix from getPublicUrl means it always matches however the stored
+// URLs were encoded.
+const publicUrlPrefix = (bucketName: string) => supabase.storage.from(bucketName).getPublicUrl("").data.publicUrl;
+
+export const storagePathFromPublicUrl = (url: string, bucketName: string): string | null => {
+    const prefix = publicUrlPrefix(bucketName);
+    if (!url.startsWith(prefix)) {
+        return null;
+    }
+
+    const path = url.slice(prefix.length);
+    if (!path) {
+        return null;
+    }
+
+    try {
+        return decodeURIComponent(path);
+    } catch {
+        return null;
+    }
+};
+
+export const deleteSupabaseFile = async (path: string, bucketName: string) => {
+    const { error } = await supabase.storage.from(bucketName).remove([path]);
+    if (error) {
+        throw error;
+    }
+};
+
 export const uploadDeliverableFiles = async (files: Express.Multer.File[], userId: string, eventId: string, phaseId: string, formData: unknown) => {
     const { data: attendee, error: attendeeError } = await AttendeeRepository.getAttendee(eventId, userId);
 

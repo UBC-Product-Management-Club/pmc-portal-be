@@ -1,5 +1,5 @@
 import { supabase } from "../config/supabase";
-import { Tables } from "../schema/v2/database.types";
+import { Tables, TablesUpdate } from "../schema/v2/database.types";
 import { EventInsert } from "../schema/v2/Event";
 
 type EventRow = Tables<"Event">;
@@ -10,7 +10,7 @@ export const EventRepository = {
     supabase
       .from("Event")
       .select(
-        "event_id, name, blurb, date, start_time, end_time, location, member_price, non_member_price, is_disabled"
+        "event_id, name, blurb, date, start_time, end_time, location, member_price, non_member_price, is_disabled, thumbnail"
       )
       .order("date", { ascending: false }),
   getEvent: (eventId: string) =>
@@ -36,7 +36,8 @@ export const EventRepository = {
           member_price,
           non_member_price,
           is_disabled,
-          external_page
+          external_page,
+          thumbnail
         )
       `
       )
@@ -50,6 +51,22 @@ export const EventRepository = {
   ) =>
     supabase.from("Event").select(selectField).eq("event_id", eventId).single(),
   addEvent: (event: EventCreate) => supabase.from("Event").insert(event),
+  updateEvent: (
+    eventId: string,
+    fields: TablesUpdate<"Event"> & { thumbnail?: string | null }
+  ) =>
+    supabase
+      .from("Event")
+      .update(fields)
+      .eq("event_id", eventId)
+      .select("event_id")
+      .maybeSingle(),
+  getEventMedia: (eventId: string) =>
+    supabase
+      .from("Event")
+      .select("thumbnail, media")
+      .eq("event_id", eventId)
+      .maybeSingle<{ thumbnail: string | null; media: string[] | null }>(),
   getCapacityStatus: (eventId: string) =>
     supabase
       .from("Event")
