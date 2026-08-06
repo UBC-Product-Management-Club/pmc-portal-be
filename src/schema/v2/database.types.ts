@@ -781,7 +781,6 @@ export type Database = {
         | "COMMUNITY"
         | "FINANCE"
         | "LEADERSHIP"
-        | "PROGRAMS"
         | "EXDEV"
     }
     CompositeTypes: {
@@ -942,7 +941,6 @@ export const Constants = {
         "COMMUNITY",
         "FINANCE",
         "LEADERSHIP",
-        "PROGRAMS",
         "EXDEV",
       ],
     },

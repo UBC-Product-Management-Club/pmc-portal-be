@@ -47,11 +47,9 @@ drop type if exists "QUESTION_TYPE";
 -- Enums ----------------------------------------------------------------------
 
 -- Which team a role belongs to, so the applicant viewer can filter by team.
--- NOTE: PROGRAMS and EXDEV were added late -- confirm this list is right before
--- running, since adding values later is far more painful than editing it now.
 create type "RECRUITING_TEAM" as enum (
   'TECH', 'MARKETING_MEDIA', 'MARKETING_DESIGN', 'EVENTS', 'PARTNERSHIPS',
-  'COMMUNITY', 'FINANCE', 'LEADERSHIP', 'PROGRAMS', 'EXDEV'
+  'COMMUNITY', 'FINANCE', 'LEADERSHIP', 'EXDEV'
 );
 
 -- Any exec on the allowlist may view every application and edit referral notes.
@@ -251,38 +249,6 @@ insert into "Recruiting_Cycle" (name, is_active, general_questions) values (
   ]'::jsonb
 );
 
--- The 14 positions, attached to the seeded cycle. Team assignments are a best
--- guess from the role names -- adjust before opening applications.
-insert into "Recruiting_Role" (cycle_id, name, team)
-select c.cycle_id, r.name, r.team::"RECRUITING_TEAM"
-from "Recruiting_Cycle" c
-cross join (values
-  ('VP Events',                   'EVENTS'),
-  ('Events Director',             'EVENTS'),
-  ('VP Community',                'COMMUNITY'),
-  ('Community Director',          'COMMUNITY'),
-  ('Design Director',             'MARKETING_DESIGN'),
-  ('Marketing Director',          'MARKETING_MEDIA'),
-  ('Media Director',              'MARKETING_MEDIA'),
-  ('Finance Director',            'FINANCE'),
-  ('Product Designer',            'TECH'),
-  ('Developer',                   'TECH'),
-  ('Corporate Outreach Director', 'PARTNERSHIPS'),
-  ('Mentor Outreach Director',    'PARTNERSHIPS'),
-  ('Program Director',            'PROGRAMS'),
-  ('Program Outreach Director',   'PROGRAMS')
-) as r(name, team)
-where c.name = 'Fall 2026 Exec Hiring';
-
--- Developer's role-specific questions, seeded as a worked example of the
--- question shape the form builder should produce. Every other role starts with
--- an empty array.
-update "Recruiting_Role"
-set questions = '[
-  {"key":"technical_project","label":"Tell us about a technical project where you chose a new technology -- the goal, why that tech, and the biggest hurdles.","type":"LONG_TEXT","options":null,"required":true,"max_words":150,"display_order":1},
-  {"key":"tech_to_learn","label":"Is there a specific technology you are eager to learn more about? What excites you about it?","type":"LONG_TEXT","options":null,"required":true,"max_words":150,"display_order":2},
-  {"key":"cpsc_courses","label":"Share some of the CPSC courses (or equivalent) you have taken at UBC.","type":"SHORT_TEXT","options":null,"required":false,"max_words":null,"display_order":3},
-  {"key":"if_language","label":"If you could be a coding language, which one would it be and why?","type":"LONG_TEXT","options":null,"required":false,"max_words":null,"display_order":4},
-  {"key":"portfolio_link","label":"Link to your work (Portfolio, Website, GitHub, etc.)","type":"URL","options":null,"required":true,"max_words":null,"display_order":5}
-]'::jsonb
-where name = 'Developer';
+-- No roles are seeded. Execs create each position from the admin portal, which
+-- is also where its role-specific questions get written. A role's `questions`
+-- takes the same shape as the general questions above.
