@@ -249,6 +249,39 @@ insert into "Recruiting_Cycle" (name, is_active, general_questions) values (
   ]'::jsonb
 );
 
--- No roles are seeded. Execs create each position from the admin portal, which
--- is also where its role-specific questions get written. A role's `questions`
--- takes the same shape as the general questions above.
+-- Last year's positions, as a starting point so there is something to build
+-- against before the admin portal's form builder exists. Execs add, rename and
+-- remove roles from there; nothing here is fixed. Team assignments are inferred
+-- from the role names -- worth a check before opening applications.
+insert into "Recruiting_Role" (cycle_id, name, team)
+select c.cycle_id, r.name, r.team::"RECRUITING_TEAM"
+from "Recruiting_Cycle" c
+cross join (values
+  ('VP Events',                   'EVENTS'),
+  ('Events Director',             'EVENTS'),
+  ('VP Community',                'COMMUNITY'),
+  ('Community Director',          'COMMUNITY'),
+  ('Design Director',             'MARKETING_DESIGN'),
+  ('Marketing Director',          'MARKETING_MEDIA'),
+  ('Media Director',              'MARKETING_MEDIA'),
+  ('Finance Director',            'FINANCE'),
+  ('Product Designer',            'TECH'),
+  ('Developer',                   'TECH'),
+  ('Corporate Outreach Director', 'PARTNERSHIPS'),
+  ('Mentor Outreach Director',    'PARTNERSHIPS')
+) as r(name, team)
+where c.name = 'Fall 2026 Exec Hiring';
+
+-- Developer's role-specific questions, from the real form. Doubles as a worked
+-- example of the shape the form builder should produce -- note each question
+-- carries a stable `key`, which is what answers are stored against. Every other
+-- role starts with an empty array.
+update "Recruiting_Role"
+set questions = '[
+  {"key":"technical_project","label":"Tell us about a technical project where you chose a new technology -- the goal, why that tech, and the biggest hurdles.","type":"LONG_TEXT","options":null,"required":true,"max_words":150,"display_order":1},
+  {"key":"tech_to_learn","label":"Is there a specific technology you are eager to learn more about? What excites you about it?","type":"LONG_TEXT","options":null,"required":true,"max_words":150,"display_order":2},
+  {"key":"cpsc_courses","label":"Share some of the CPSC courses (or equivalent) you have taken at UBC.","type":"SHORT_TEXT","options":null,"required":false,"max_words":null,"display_order":3},
+  {"key":"if_language","label":"If you could be a coding language, which one would it be and why?","type":"LONG_TEXT","options":null,"required":false,"max_words":null,"display_order":4},
+  {"key":"portfolio_link","label":"Link to your work (Portfolio, Website, GitHub, etc.)","type":"URL","options":null,"required":true,"max_words":null,"display_order":5}
+]'::jsonb
+where name = 'Developer';
