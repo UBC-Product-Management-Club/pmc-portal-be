@@ -106,6 +106,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "Application_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Cycle"
+            referencedColumns: ["cycle_id"]
+          },
+          {
             foreignKeyName: "Application_cycle_id_role_id_fkey"
             columns: ["cycle_id", "role_id"]
             isOneToOne: false
@@ -691,6 +698,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "Application_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Cycle"
+            referencedColumns: ["cycle_id"]
+          },
+          {
             foreignKeyName: "Application_cycle_id_role_id_fkey"
             columns: ["cycle_id", "role_id"]
             isOneToOne: false
@@ -740,6 +754,7 @@ export type Database = {
       ADMIN_ROLE: "PRESIDENT" | "VP" | "EXEC"
       APPLICATION_CHOICE_RANK: "FIRST" | "SECOND" | "THIRD_PLUS" | "ONLY"
       APPLICATION_STATUS:
+        | "DRAFT"
         | "SUBMITTED"
         | "REVIEWED"
         | "WILL_REJECT"
@@ -898,6 +913,7 @@ export const Constants = {
       ADMIN_ROLE: ["PRESIDENT", "VP", "EXEC"],
       APPLICATION_CHOICE_RANK: ["FIRST", "SECOND", "THIRD_PLUS", "ONLY"],
       APPLICATION_STATUS: [
+        "DRAFT",
         "SUBMITTED",
         "REVIEWED",
         "WILL_REJECT",

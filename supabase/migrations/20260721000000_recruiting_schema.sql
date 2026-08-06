@@ -58,7 +58,11 @@ create type "RECRUITING_TEAM" as enum (
 -- Only VP (and PRESIDENT) may change an application's status.
 create type "ADMIN_ROLE" as enum ('PRESIDENT', 'VP', 'EXEC');
 
+-- DRAFT is the state before an applicant submits. It exists so a half-finished
+-- row reads correctly in the table editor rather than sitting at 'SUBMITTED';
+-- a check constraint below keeps it in step with is_submitted.
 create type "APPLICATION_STATUS" as enum (
+  'DRAFT',
   'SUBMITTED', 'REVIEWED', 'WILL_REJECT', 'REJECTED_EMAIL_SENT',
   'INTERVIEW_INVITED', 'INTERVIEW_SCHEDULED', 'INTERVIEWED',
   'OFFER_SENT', 'OFFER_ACCEPTED', 'OFFER_DECLINED'
@@ -98,6 +102,8 @@ alter table "Recruiting_Cycle" enable row level security;
 
 create table "Recruiting_Role" (
   role_id    uuid primary key default gen_random_uuid(),
+  -- cascade so deleting a cycle created by mistake cleans up its roles. Note
+  -- Application restricts, so this only succeeds while no one has applied.
   cycle_id   uuid not null references "Recruiting_Cycle"(cycle_id) on delete cascade,
   name       text not null,
   team       "RECRUITING_TEAM" not null,
@@ -143,8 +149,7 @@ create table "Application" (
   general_notes  text,
 
   is_submitted   boolean not null default false,
-  -- Only meaningful once is_submitted; drafts sit at the default.
-  status         "APPLICATION_STATUS" not null default 'SUBMITTED',
+  status         "APPLICATION_STATUS" not null default 'DRAFT',
   submitted_at   timestamptz,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
@@ -153,13 +158,31 @@ create table "Application" (
   -- re-applying to the same role in a later cycle is a different row.
   unique (user_id, role_id),
 
+  -- restrict, so a submitted application is never destroyed as a side effect.
+  -- Combined with the cascade from Recruiting_Cycle to Recruiting_Role this
+  -- means: deleting an empty cycle cleans up its roles, but deleting a cycle
+  -- that has applications fails loudly instead of taking them with it.
   foreign key (cycle_id, role_id)
-    references "Recruiting_Role" (cycle_id, role_id),
+    references "Recruiting_Role" (cycle_id, role_id)
+    on delete restrict,
+
+  -- Redundant for integrity -- the composite key above already guarantees the
+  -- cycle matches the role's. Declared anyway so the application-to-cycle
+  -- relationship is visible to tooling, which lets PostgREST embed the cycle
+  -- directly instead of forcing every query to hop through the role.
+  foreign key (cycle_id) references "Recruiting_Cycle" (cycle_id)
+    on delete restrict,
 
   -- Keeps the draft flag and its timestamp from drifting apart.
   constraint "Application_submitted_at_matches_flag"
     check ((is_submitted and submitted_at is not null)
-        or (not is_submitted and submitted_at is null))
+        or (not is_submitted and submitted_at is null)),
+
+  -- ...and keeps the flag in step with the status, so the two can never
+  -- disagree about whether this row has been submitted.
+  constraint "Application_status_matches_flag"
+    check ((is_submitted and status <> 'DRAFT')
+        or (not is_submitted and status = 'DRAFT'))
 );
 
 create index "Application_status_idx"       on "Application" (status);
