@@ -46,7 +46,7 @@ export type Database = {
           },
         ]
       }
-      Application: {
+      Recruiting_Application: {
         Row: {
           answers: Json
           application_id: string
@@ -106,21 +106,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "Application_cycle_id_fkey"
+            foreignKeyName: "Recruiting_Application_cycle_id_fkey"
             columns: ["cycle_id"]
             isOneToOne: false
             referencedRelation: "Recruiting_Cycle"
             referencedColumns: ["cycle_id"]
           },
           {
-            foreignKeyName: "Application_cycle_id_role_id_fkey"
+            foreignKeyName: "Recruiting_Application_cycle_id_role_id_fkey"
             columns: ["cycle_id", "role_id"]
             isOneToOne: false
             referencedRelation: "Recruiting_Role"
             referencedColumns: ["cycle_id", "role_id"]
           },
           {
-            foreignKeyName: "Application_user_id_fkey"
+            foreignKeyName: "Recruiting_Application_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "User"
@@ -698,21 +698,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "Application_cycle_id_fkey"
+            foreignKeyName: "Recruiting_Application_cycle_id_fkey"
             columns: ["cycle_id"]
             isOneToOne: false
             referencedRelation: "Recruiting_Cycle"
             referencedColumns: ["cycle_id"]
           },
           {
-            foreignKeyName: "Application_cycle_id_role_id_fkey"
+            foreignKeyName: "Recruiting_Application_cycle_id_role_id_fkey"
             columns: ["cycle_id", "role_id"]
             isOneToOne: false
             referencedRelation: "Recruiting_Role"
             referencedColumns: ["cycle_id", "role_id"]
           },
           {
-            foreignKeyName: "Application_user_id_fkey"
+            foreignKeyName: "Recruiting_Application_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "User"

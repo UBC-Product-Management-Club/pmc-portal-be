@@ -25,6 +25,8 @@
 -- parents. Also clears the two abandoned drafts from closed PRs (#181, #183/4).
 
 drop view  if exists "Current_Cycle_Application";
+drop table if exists "Recruiting_Application";
+-- The table was called Application in an earlier revision of this migration.
 drop table if exists "Application";
 drop table if exists "Recruiting_Role_Form_Question";
 drop table if exists "Recruiting_Role_Form";
@@ -125,7 +127,7 @@ alter table "Recruiting_Role" enable row level security;
 -- but the composite foreign key to (cycle_id, role_id) makes it impossible for
 -- it to disagree with the role's own cycle.
 
-create table "Application" (
+create table "Recruiting_Application" (
   application_id uuid primary key default gen_random_uuid(),
   user_id        text not null references "User"(user_id),
   cycle_id       uuid not null,
@@ -172,23 +174,23 @@ create table "Application" (
     on delete restrict,
 
   -- Keeps the draft flag and its timestamp from drifting apart.
-  constraint "Application_submitted_at_matches_flag"
+  constraint "Recruiting_Application_submitted_at_matches_flag"
     check ((is_submitted and submitted_at is not null)
         or (not is_submitted and submitted_at is null)),
 
   -- ...and keeps the flag in step with the status, so the two can never
   -- disagree about whether this row has been submitted.
-  constraint "Application_status_matches_flag"
+  constraint "Recruiting_Application_status_matches_flag"
     check ((is_submitted and status <> 'DRAFT')
         or (not is_submitted and status = 'DRAFT'))
 );
 
-create index "Application_status_idx"       on "Application" (status);
-create index "Application_role_idx"         on "Application" (role_id);
-create index "Application_cycle_idx"        on "Application" (cycle_id);
-create index "Application_is_submitted_idx" on "Application" (is_submitted);
+create index "Recruiting_Application_status_idx"       on "Recruiting_Application" (status);
+create index "Recruiting_Application_role_idx"         on "Recruiting_Application" (role_id);
+create index "Recruiting_Application_cycle_idx"        on "Recruiting_Application" (cycle_id);
+create index "Recruiting_Application_is_submitted_idx" on "Recruiting_Application" (is_submitted);
 
-alter table "Application" enable row level security;
+alter table "Recruiting_Application" enable row level security;
 
 -- Admin_Allowlist ------------------------------------------------------------
 -- Who may reach the admin portal at all, and what they may do there. Execs
@@ -219,7 +221,7 @@ alter table "Admin_Allowlist" enable row level security;
 
 create view "Current_Cycle_Application" as
   select a.*
-  from "Application" a
+  from "Recruiting_Application" a
   join "Recruiting_Cycle" c on c.cycle_id = a.cycle_id
   where c.is_active;
 
