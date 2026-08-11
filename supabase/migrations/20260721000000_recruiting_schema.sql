@@ -205,7 +205,11 @@ alter table "Recruiting_Application" enable row level security;
 -- need a migration later.
 
 create table "Admin_Allowlist" (
-  email      text primary key,
+  -- Stored lowercase so the middleware can look an email up with an exact
+  -- match. It cannot use ilike instead: `_` is a single-character wildcard in
+  -- LIKE and is common in addresses, so an allowlisted ege_t@x.com would also
+  -- let egeXt@x.com in.
+  email      text primary key check (email = lower(email)),
   role       "ADMIN_ROLE" not null default 'EXEC',
   team       "RECRUITING_TEAM",
   added_by   text references "User"(user_id),
@@ -224,6 +228,10 @@ create view "Current_Cycle_Application" as
   from "Recruiting_Application" a
   join "Recruiting_Cycle" c on c.cycle_id = a.cycle_id
   where c.is_active;
+
+-- Without this a view runs as its owner, so anyone able to select from it reads
+-- straight past the row level security on Recruiting_Application.
+alter view "Current_Cycle_Application" set (security_invoker = on);
 
 -- Seed data ------------------------------------------------------------------
 -- A starting cycle, left INACTIVE so it cannot accept applications by accident.
