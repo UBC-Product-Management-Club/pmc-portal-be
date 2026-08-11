@@ -6,11 +6,14 @@ import { profileRouter } from "./profile";
 import { paymentRouter } from "./payments";
 import { adminRouter } from "./admin";
 import { applicationRouter } from "./application";
-import { authenticated, supabaseJwtCheck } from "../../middleware/Session";
+import { authenticated, requireAdmin, supabaseJwtCheck } from "../../middleware/Session";
 
 export const v2ApiRouter = Router();
 
-v2ApiRouter.use("/v2/admin", supabaseJwtCheck, adminRouter);
+// A valid Supabase token only proves who the caller is; requireAdmin is what
+// keeps non-execs out of the portal. It covers the whole subtree deliberately
+// -- /admin/users returns every user record.
+v2ApiRouter.use("/v2/admin", supabaseJwtCheck, requireAdmin, adminRouter);
 v2ApiRouter.use("/v2/payments", paymentRouter);
 v2ApiRouter.use("/v2/events", eventRouter);
 v2ApiRouter.use("/v2/auth", authenticated, authRouter);

@@ -6,6 +6,10 @@ export const supabase = {
       delete: jest.fn(),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
-    })
+    }),
+    // supabaseJwtCheck verifies bearer tokens through this, so the middleware
+    // tests drive it directly.
+    auth: {
+      getUser: jest.fn(),
+    },
   };
-  
