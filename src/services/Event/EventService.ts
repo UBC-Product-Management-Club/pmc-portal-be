@@ -28,10 +28,10 @@ export const getEvent = async (
     : 0;
   data.non_member_price = data.non_member_price_id
     ? (await stripe.prices.retrieve(data.non_member_price_id)).unit_amount! /
-      100
+    100
     : 0;
 
-  return { ..._.omit(data, "Attendee"), registered: data.Attendee[0].count };
+  return { ..._.omit(data, "Attendee"), registered: data.Attendee[0]?.count ?? 0 };
 };
 
 export const getRegisteredEvents = async (userId: string) => {

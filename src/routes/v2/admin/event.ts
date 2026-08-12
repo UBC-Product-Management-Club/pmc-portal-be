@@ -1,9 +1,10 @@
 import { Request, Response, Router } from "express";
-import { uuidv4, z } from "zod/v4";
+import { randomUUID } from "crypto";
+import { z } from "zod/v4";
 import { supabase } from "../../../config/supabase";
-import { EventSchema, EventUpdateSchema } from "../../../schema/v2/Event";
+import { EventCreateSchema, EventUpdateSchema } from "../../../schema/v2/Event";
 import { addEvent, createEventTeam, getEvent, getEventMedia, updateEvent, updateEventThumbnail } from "../../../services/Event/EventService";
-import { uploadSupabaseFiles, getDeliverable, getEventDeliverables, deleteSupabaseFile, storagePathFromPublicUrl } from "../../../storage/Storage";
+import { uploadSupabaseFileList, getDeliverable, getEventDeliverables, deleteSupabaseFile, storagePathFromPublicUrl } from "../../../storage/Storage";
 import multer from "multer";
 import { formatGenericCSV } from "../../../services/User/utils";
 
@@ -117,15 +118,13 @@ eventRouter.patch(
             // Read the outgoing image before the row starts pointing at the new one.
             const previous = await getEventMedia(eventId);
 
-            // Timestamp prefix keeps each upload at a unique path so the public URL
+            // uploadSupabaseFileList gives each upload a unique path, so the public URL
             // changes on every save and the CDN never serves a stale thumbnail.
-            file.originalname = `${Date.now()}-${file.originalname}`;
-            const uploaded = await uploadSupabaseFiles([file], {
+            const [thumbnailUrl] = await uploadSupabaseFileList([file], {
                 parentPath,
                 bucketName,
                 isPublic: true,
             });
-            const thumbnailUrl = uploaded[file.fieldname];
 
             const updated = await updateEventThumbnail(eventId, thumbnailUrl);
             if (!updated) {
@@ -142,96 +141,68 @@ eventRouter.patch(
     }
 );
 
-//[WIP Needs to be retested]
 eventRouter.post(
     "/add",
     upload.fields([
         { name: "mediaFiles", maxCount: 5 },
         { name: "thumbnail", maxCount: 1 },
     ]),
-    async (req, res) => {
-        const event_Id = uuidv4();
+    async (req: Request, res: Response) => {
+        const result = EventCreateSchema.safeParse(req.body);
+        if (!result.success) {
+            const flattened = z.flattenError(result.error);
+            return res.status(400).json({
+                error: "Validation failed",
+                fieldErrors: flattened.fieldErrors,
+                formErrors: flattened.formErrors,
+            });
+        }
 
-        // Unpacking request body
-        try {
-            const { name, date, start_time, end_time, description, location, member_price, non_member_price, member_only, max_attendees, event_form_questions, needs_review } = req.body;
-
-            const files = req.files as {
+        const files = req.files as
+            | {
                 mediaFiles?: Express.Multer.File[];
                 thumbnail?: Express.Multer.File[];
-            };
-
-            // Extracting files from FormData
-            const mediaFiles = files.mediaFiles ?? [];
-            const thumbnailFile = files.thumbnail ?? [];
-
-            // Checking presence of required files
-            const requiredFields = [name, date, location, description, mediaFiles, thumbnailFile, member_price, non_member_price, max_attendees, event_form_questions, needs_review];
-            for (const field of requiredFields) {
-                if (!field || (field === mediaFiles && mediaFiles.length === 0)) {
-                    return res.status(400).json({
-                        message: "Invalid Event. Required fields are missing",
-                    });
-                }
             }
+            | undefined;
+        const mediaFiles = files?.mediaFiles ?? [];
+        const thumbnailFile = files?.thumbnail ?? [];
 
-            // Checking if member_only is undefined
-            if (member_only === undefined) {
-                return res.status(400).json({ message: "member_only is required" });
-            }
+        const eventId = randomUUID();
 
-            // Constructing proper time fields
-            const startTimestamp = `${date}T${start_time}`;
-            const endTimestamp = `${date}T${end_time}`;
-
-            // Upload files to get download url
+        try {
             const bucketName = process.env.SUPABASE_BUCKET_NAME!;
-            const parentPath = `events/${event_Id}/media/`;
-            const mediaData = await uploadSupabaseFiles(mediaFiles, {
+            const parentPath = `events/${eventId}/media/`;
+
+            const media = await uploadSupabaseFileList(mediaFiles, {
                 parentPath,
                 bucketName,
                 isPublic: true,
             });
-            const thumbnailData = await uploadSupabaseFiles(thumbnailFile, {
+            const [thumbnail = null] = await uploadSupabaseFileList(thumbnailFile, {
                 parentPath,
                 bucketName,
                 isPublic: true,
             });
 
-            // Convert object into expected type
-            const media = Object.values(mediaData);
-            const thumbnail = Object.values(thumbnailData)[0]; // Guaranteed to have one element
-
-            // Creates event object for insertion
-            const event = {
-                event_id: event_Id,
-                name: name,
-                date: date,
-                start_time: startTimestamp,
-                end_time: endTimestamp,
-                description: description,
-                location: location,
-                member_price: member_price,
-                non_member_price: non_member_price,
-                max_attendees: max_attendees,
-                event_form_questions: event_form_questions,
+            await addEvent({
+                ...result.data,
+                event_id: eventId,
+                // Keep the denormalized `date` column on the event's start, as updateEvent does.
+                date: result.data.start_time.slice(0, 10),
+                media,
+                thumbnail,
                 is_disabled: false,
-                media: media,
-                thumbnail: thumbnail[0],
-                needs_review: needs_review,
-            };
-
-            const result = EventSchema.safeParse(event);
-            if (!result.success) {
-                throw new Error(result.error.message);
-            }
-
-            await addEvent(result.data);
-            res.status(201).json({
-                message: `Supabase Event with ID ${event_Id} has been added successfully.`,
             });
+
+            // NOTE: the numeric member_price/non_member_price columns are written, but
+            // member_price_id/non_member_price_id are left null because nothing here talks
+            // to Stripe yet. getEvent resolves display prices from those ids, so a new event
+            // reads back as $0 and can't be checked out until the Stripe create path lands.
+            const created = await getEvent(eventId);
+            return res.status(201).json(created);
         } catch (error: any) {
-            res.status(500).json({ error: error.message });
+            console.error("Failed to create event:", error);
+            return res.status(500).json({ error: error.message });
         }
     }
 );
