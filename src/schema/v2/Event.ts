@@ -1,24 +1,80 @@
 import { z } from "zod/v4";
 
-export const EventSchema = z.object({
-    event_id: z.string(),
-    name: z.string(),
-    date: z.string(),
-    start_time: z.string(),
-    end_time: z.string(),
-    description: z.string(),
-    location: z.string(),
-    member_price: z.string().transform(Number),
-    non_member_price: z.string().transform(Number),
-    max_attendees: z.string().transform(Number),
-    event_form_questions: z.json(),
-    is_disabled: z.boolean().default(false),
-    media: z.array(z.string()),
-    needs_review: z.boolean(),
-    thumbnail: z.string().nullable().optional(),
-});
+const numericField = (label: string) =>
+    z
+        .string(`${label} is required`)
+        .trim()
+        .min(1, `${label} is required`)
+        .refine((value) => Number.isFinite(Number(value)), `${label} must be a number`)
+        .transform(Number);
 
-export type EventInsert = z.infer<typeof EventSchema>;
+const jsonField = (label: string) =>
+    z
+        .string()
+        .optional()
+        .transform((value, ctx) => {
+            if (value === undefined || value.trim() === "") return [];
+            try {
+                return JSON.parse(value);
+            } catch {
+                ctx.addIssue({ code: "custom", message: `${label} must be valid JSON` });
+                return z.NEVER;
+            }
+        });
+
+export const EventCreateSchema = z
+    .object({
+        name: z.string("Name is required").trim().min(1, "Name can't be empty"),
+        blurb: z.string().default(""),
+        description: z.string().default(""),
+        location: z.string("Location is required").trim().min(1, "Location can't be empty"),
+        max_attendees: numericField("Max attendees").pipe(
+            z
+                .number()
+                .int("Max attendees must be a whole number")
+                .positive("Max attendees must be positive")
+        ),
+        member_price: numericField("Member price").pipe(
+            z.number().nonnegative("Member price can't be negative")
+        ),
+        non_member_price: numericField("Non-member price").pipe(
+            z.number().nonnegative("Non-member price can't be negative")
+        ),
+        start_time: z.iso.datetime({ offset: true, message: "Start time must be a valid date/time" }),
+        end_time: z.iso.datetime({ offset: true, message: "End time must be a valid date/time" }),
+        registration_opens: z.iso.datetime({
+            offset: true,
+            message: "Registration opens must be a valid date/time",
+        }),
+        registration_closes: z.iso.datetime({
+            offset: true,
+            message: "Registration closes must be a valid date/time",
+        }),
+        // Not in the admin form yet — these default until the create UI grows them.
+        needs_review: z.stringbool().default(false),
+        event_form_questions: jsonField("Event form questions"),
+    })
+    .refine((fields) => new Date(fields.end_time) >= new Date(fields.start_time), {
+        message: "end_time must not be before start_time",
+        path: ["end_time"],
+    })
+    .refine(
+        (fields) => new Date(fields.registration_closes) >= new Date(fields.registration_opens),
+        {
+            message: "registration_closes must not be before registration_opens",
+            path: ["registration_closes"],
+        }
+    );
+
+export type EventCreate = z.infer<typeof EventCreateSchema>;
+
+export type EventInsert = EventCreate & {
+    event_id: string;
+    date: string;
+    media: string[];
+    thumbnail: string | null;
+    is_disabled: boolean;
+};
 
 export const EventUpdateSchema = z
     .strictObject({

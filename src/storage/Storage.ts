@@ -13,12 +13,17 @@ const sanitizeFileName = (name: string) =>
         .replace(/[^\w.-]+/g, "_")
         .replace(/_+/g, "_");
 
-export const uploadSupabaseFiles = async (files: Express.Multer.File[], { parentPath, bucketName, isPublic }: UploadOptions): Promise<Record<string, string>> => {
-    const result: Record<string, string> = {};
+// Uploads every file and returns their public URLs (or storage paths, when private)
+// in the same order as `files`. Each upload gets a unique name, so two files sharing
+// an original filename can't overwrite each other, and a replaced image always gets a
+// fresh URL rather than one the CDN may still be serving stale.
+export const uploadSupabaseFileList = async (files: Express.Multer.File[], { parentPath, bucketName, isPublic }: UploadOptions): Promise<string[]> => {
+    const result: string[] = [];
+    const stamp = Date.now();
 
-    for (const file of files) {
+    for (const [index, file] of files.entries()) {
         const safeName = sanitizeFileName(file.originalname);
-        const filePath = `${parentPath}${safeName}`;
+        const filePath = `${parentPath}${stamp}-${index}-${safeName}`;
 
         // upload file to Supabase bucket
         const { data: uploadData, error: uploadError } = await supabase.storage.from(bucketName).upload(filePath, file.buffer, {
@@ -31,11 +36,25 @@ export const uploadSupabaseFiles = async (files: Express.Multer.File[], { parent
 
         if (isPublic) {
             const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(uploadData.path);
-            result[file.fieldname] = publicUrlData.publicUrl;
+            result.push(publicUrlData.publicUrl);
         } else {
-            result[file.fieldname] = filePath;
+            result.push(filePath);
         }
     }
+    return result;
+};
+
+// The same uploads, keyed by the form field each file arrived in. Only meaningful when
+// every file has its own field name — an attendee form, where each question carries one
+// upload. Files sharing a field name collapse onto a single key, so anything with a
+// multi-file field must use `uploadSupabaseFileList` instead.
+export const uploadSupabaseFiles = async (files: Express.Multer.File[], options: UploadOptions): Promise<Record<string, string>> => {
+    const uploaded = await uploadSupabaseFileList(files, options);
+
+    const result: Record<string, string> = {};
+    files.forEach((file, index) => {
+        result[file.fieldname] = uploaded[index];
+    });
     return result;
 };
 
@@ -93,12 +112,11 @@ export const uploadDeliverableFiles = async (files: Express.Multer.File[], userI
     if (files.length > 0) {
         const bucketName = process.env.SUPABASE_DELIVERABLES_BUCKET!;
         const parentPath = `events/${eventId}/teams/${teamId}/${phaseId}/`;
-        const uploadedFiles = await uploadSupabaseFiles(files, {
+        filePaths = await uploadSupabaseFileList(files, {
             parentPath,
             bucketName,
             isPublic: true,
         });
-        filePaths = Object.values(uploadedFiles);
     }
 
     const submission = {
