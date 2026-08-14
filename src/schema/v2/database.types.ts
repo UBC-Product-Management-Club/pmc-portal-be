@@ -14,6 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
+      Admin_Allowlist: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          email: string
+          role: Database["public"]["Enums"]["ADMIN_ROLE"]
+          team: Database["public"]["Enums"]["RECRUITING_TEAM"] | null
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          email: string
+          role?: Database["public"]["Enums"]["ADMIN_ROLE"]
+          team?: Database["public"]["Enums"]["RECRUITING_TEAM"] | null
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          email?: string
+          role?: Database["public"]["Enums"]["ADMIN_ROLE"]
+          team?: Database["public"]["Enums"]["RECRUITING_TEAM"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Admin_Allowlist_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      Recruiting_Application: {
+        Row: {
+          answers: Json
+          application_id: string
+          choice_rank:
+            | Database["public"]["Enums"]["APPLICATION_CHOICE_RANK"]
+            | null
+          created_at: string
+          cycle_id: string
+          general_notes: string | null
+          is_submitted: boolean
+          referral_notes: string | null
+          referred_by: string | null
+          resume_url: string | null
+          role_id: string
+          status: Database["public"]["Enums"]["APPLICATION_STATUS"]
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          application_id?: string
+          choice_rank?:
+            | Database["public"]["Enums"]["APPLICATION_CHOICE_RANK"]
+            | null
+          created_at?: string
+          cycle_id: string
+          general_notes?: string | null
+          is_submitted?: boolean
+          referral_notes?: string | null
+          referred_by?: string | null
+          resume_url?: string | null
+          role_id: string
+          status?: Database["public"]["Enums"]["APPLICATION_STATUS"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          application_id?: string
+          choice_rank?:
+            | Database["public"]["Enums"]["APPLICATION_CHOICE_RANK"]
+            | null
+          created_at?: string
+          cycle_id?: string
+          general_notes?: string | null
+          is_submitted?: boolean
+          referral_notes?: string | null
+          referred_by?: string | null
+          resume_url?: string | null
+          role_id?: string
+          status?: Database["public"]["Enums"]["APPLICATION_STATUS"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Recruiting_Application_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Cycle"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "Recruiting_Application_cycle_id_role_id_fkey"
+            columns: ["cycle_id", "role_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Role"
+            referencedColumns: ["cycle_id", "role_id"]
+          },
+          {
+            foreignKeyName: "Recruiting_Application_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       Attendee: {
         Row: {
           attendee_id: string
@@ -364,6 +478,74 @@ export type Database = {
         }
         Relationships: []
       }
+      Recruiting_Cycle: {
+        Row: {
+          closes_at: string | null
+          created_at: string
+          cycle_id: string
+          general_questions: Json
+          is_active: boolean
+          name: string
+          opens_at: string | null
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string
+          cycle_id?: string
+          general_questions?: Json
+          is_active?: boolean
+          name: string
+          opens_at?: string | null
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string
+          cycle_id?: string
+          general_questions?: Json
+          is_active?: boolean
+          name?: string
+          opens_at?: string | null
+        }
+        Relationships: []
+      }
+      Recruiting_Role: {
+        Row: {
+          created_at: string
+          cycle_id: string
+          is_active: boolean
+          name: string
+          questions: Json
+          role_id: string
+          team: Database["public"]["Enums"]["RECRUITING_TEAM"]
+        }
+        Insert: {
+          created_at?: string
+          cycle_id: string
+          is_active?: boolean
+          name: string
+          questions?: Json
+          role_id?: string
+          team: Database["public"]["Enums"]["RECRUITING_TEAM"]
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string
+          is_active?: boolean
+          name?: string
+          questions?: Json
+          role_id?: string
+          team?: Database["public"]["Enums"]["RECRUITING_TEAM"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Recruiting_Role_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Cycle"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       roles: {
         Row: {
           id: number
@@ -494,7 +676,50 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      Current_Cycle_Application: {
+        Row: {
+          answers: Json | null
+          application_id: string | null
+          choice_rank:
+            | Database["public"]["Enums"]["APPLICATION_CHOICE_RANK"]
+            | null
+          created_at: string | null
+          cycle_id: string | null
+          general_notes: string | null
+          is_submitted: boolean | null
+          referral_notes: string | null
+          referred_by: string | null
+          resume_url: string | null
+          role_id: string | null
+          status: Database["public"]["Enums"]["APPLICATION_STATUS"] | null
+          submitted_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Recruiting_Application_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Cycle"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "Recruiting_Application_cycle_id_role_id_fkey"
+            columns: ["cycle_id", "role_id"]
+            isOneToOne: false
+            referencedRelation: "Recruiting_Role"
+            referencedColumns: ["cycle_id", "role_id"]
+          },
+          {
+            foreignKeyName: "Recruiting_Application_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Functions: {
       create_team_with_members: {
@@ -526,6 +751,20 @@ export type Database = {
       }
     }
     Enums: {
+      ADMIN_ROLE: "PRESIDENT" | "VP" | "EXEC"
+      APPLICATION_CHOICE_RANK: "FIRST" | "SECOND" | "THIRD_PLUS" | "ONLY"
+      APPLICATION_STATUS:
+        | "DRAFT"
+        | "SUBMITTED"
+        | "REVIEWED"
+        | "WILL_REJECT"
+        | "REJECTED_EMAIL_SENT"
+        | "INTERVIEW_INVITED"
+        | "INTERVIEW_SCHEDULED"
+        | "INTERVIEWED"
+        | "OFFER_SENT"
+        | "OFFER_ACCEPTED"
+        | "OFFER_DECLINED"
       ATTENDEE_STATUS:
         | "FAILED"
         | "PROCESSING"
@@ -533,6 +772,16 @@ export type Database = {
         | "REGISTERED"
         | "ACCEPTED"
       PAYMENT_STATUS: "PROCESSING" | "VERIFIED"
+      RECRUITING_TEAM:
+        | "TECH"
+        | "MARKETING_MEDIA"
+        | "MARKETING_DESIGN"
+        | "EVENTS"
+        | "PARTNERSHIPS"
+        | "COMMUNITY"
+        | "FINANCE"
+        | "LEADERSHIP"
+        | "EXDEV"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -660,6 +909,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ADMIN_ROLE: ["PRESIDENT", "VP", "EXEC"],
+      APPLICATION_CHOICE_RANK: ["FIRST", "SECOND", "THIRD_PLUS", "ONLY"],
+      APPLICATION_STATUS: [
+        "DRAFT",
+        "SUBMITTED",
+        "REVIEWED",
+        "WILL_REJECT",
+        "REJECTED_EMAIL_SENT",
+        "INTERVIEW_INVITED",
+        "INTERVIEW_SCHEDULED",
+        "INTERVIEWED",
+        "OFFER_SENT",
+        "OFFER_ACCEPTED",
+        "OFFER_DECLINED",
+      ],
       ATTENDEE_STATUS: [
         "FAILED",
         "PROCESSING",
@@ -668,6 +932,17 @@ export const Constants = {
         "ACCEPTED",
       ],
       PAYMENT_STATUS: ["PROCESSING", "VERIFIED"],
+      RECRUITING_TEAM: [
+        "TECH",
+        "MARKETING_MEDIA",
+        "MARKETING_DESIGN",
+        "EVENTS",
+        "PARTNERSHIPS",
+        "COMMUNITY",
+        "FINANCE",
+        "LEADERSHIP",
+        "EXDEV",
+      ],
     },
   },
 } as const
