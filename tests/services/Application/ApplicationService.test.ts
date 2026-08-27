@@ -7,6 +7,7 @@ import {
   getApplicationForm,
   getApplicationsByUser,
   getOpenRoles,
+  saveDraft,
   submitApplication,
 } from "../../../src/services/Application/ApplicationService";
 import { ApplicationRepository } from "../../../src/storage/ApplicationRepository";
@@ -175,6 +176,53 @@ describe("ApplicationService", () => {
     it("returns null when applications are closed", async () => {
       mockNoCycle();
       expect(await getApplicationForm("role-1")).toBeNull();
+    });
+  });
+
+  describe("saveDraft", () => {
+    it("saves a partial draft without enforcing required answers", async () => {
+      mockActiveCycle();
+      mockRoleLookup();
+      mockExisting(null);
+      (
+        ApplicationRepository.upsertApplication as jest.Mock
+      ).mockResolvedValueOnce({ data: mockApplication, error: null });
+
+      // No answers at all -- would fail validation on submit, fine as a draft.
+      await saveDraft("user-1", { role_id: "role-1" });
+
+      const saved = (ApplicationRepository.upsertApplication as jest.Mock).mock
+        .calls[0][0];
+      expect(saved).toMatchObject({
+        user_id: "user-1",
+        cycle_id: "cycle-1",
+        role_id: "role-1",
+        answers: {},
+        is_submitted: false,
+        submitted_at: null,
+      });
+      // The DB has a check constraint tying is_submitted to status, so a draft
+      // must never carry a submitted status. Leaving it unset lets the column
+      // default ('DRAFT') apply.
+      expect(saved.status).toBeUndefined();
+    });
+
+    it("refuses to overwrite an application that was already submitted", async () => {
+      mockActiveCycle();
+      mockRoleLookup();
+      mockExisting({ ...mockApplication, is_submitted: true });
+
+      await expect(saveDraft("user-1", { role_id: "role-1" })).rejects.toThrow(
+        AlreadySubmittedError
+      );
+      expect(ApplicationRepository.upsertApplication).not.toHaveBeenCalled();
+    });
+
+    it("rejects when applications are closed", async () => {
+      mockNoCycle();
+      await expect(saveDraft("user-1", { role_id: "role-1" })).rejects.toThrow(
+        ApplicationsClosedError
+      );
     });
   });
 
