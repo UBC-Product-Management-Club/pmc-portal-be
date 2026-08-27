@@ -1,9 +1,15 @@
 import { Tables } from "../../../src/schema/v2/database.types";
 import {
+  AlreadySubmittedError,
+  AnswerValidationError,
+  ApplicationsClosedError,
   getActiveCycle,
   getApplicationForm,
+  getApplicationsByUser,
   getOpenRoles,
+  submitApplication,
 } from "../../../src/services/Application/ApplicationService";
+import { ApplicationRepository } from "../../../src/storage/ApplicationRepository";
 import { RecruitingRepository } from "../../../src/storage/RecruitingRepository";
 
 const generalQuestion = {
@@ -63,6 +69,36 @@ const mockRoleLookup = (role: unknown = mockRole) =>
     data: role,
     error: null,
   });
+
+const submission = {
+  role_id: "role-1",
+  choice_rank: "FIRST" as const,
+  answers: { why_pm: "Because I love building things." },
+};
+
+const mockApplication = {
+  application_id: "app-1",
+  user_id: "user-1",
+  cycle_id: "cycle-1",
+  role_id: "role-1",
+  choice_rank: "FIRST",
+  answers: submission.answers,
+  resume_url: null,
+  referred_by: null,
+  referral_notes: null,
+  general_notes: null,
+  is_submitted: true,
+  status: "SUBMITTED",
+  submitted_at: "2026-07-21T00:00:00.000Z",
+  created_at: "2026-07-21T00:00:00.000Z",
+  updated_at: "2026-07-21T00:00:00.000Z",
+} as unknown as Tables<"Recruiting_Application">;
+
+// The "have they already submitted?" guard that runs before submit.
+const mockExisting = (existing: unknown = null) =>
+  (
+    ApplicationRepository.getApplicationForRole as jest.Mock
+  ).mockResolvedValueOnce({ data: existing, error: null });
 
 describe("ApplicationService", () => {
   beforeEach(() => {
@@ -139,6 +175,106 @@ describe("ApplicationService", () => {
     it("returns null when applications are closed", async () => {
       mockNoCycle();
       expect(await getApplicationForm("role-1")).toBeNull();
+    });
+  });
+
+  describe("submitApplication", () => {
+    it("submits, stamps submitted_at and returns the role name", async () => {
+      mockActiveCycle();
+      mockRoleLookup();
+      mockExisting(null);
+      (
+        ApplicationRepository.upsertApplication as jest.Mock
+      ).mockResolvedValueOnce({ data: mockApplication, error: null });
+
+      const result = await submitApplication("user-1", submission);
+
+      expect(result).toEqual({
+        application: mockApplication,
+        role_name: "Developer",
+      });
+
+      const saved = (ApplicationRepository.upsertApplication as jest.Mock).mock
+        .calls[0][0];
+      expect(saved).toMatchObject({
+        user_id: "user-1",
+        cycle_id: "cycle-1",
+        role_id: "role-1",
+        choice_rank: "FIRST",
+        is_submitted: true,
+        status: "SUBMITTED",
+      });
+      expect(saved.submitted_at).not.toBeNull();
+    });
+
+    it("rejects when applications are closed", async () => {
+      mockNoCycle();
+
+      await expect(submitApplication("user-1", submission)).rejects.toThrow(
+        ApplicationsClosedError
+      );
+      expect(ApplicationRepository.upsertApplication).not.toHaveBeenCalled();
+    });
+
+    it("rejects a role belonging to a previous cycle", async () => {
+      mockActiveCycle();
+      mockRoleLookup({ ...mockRole, cycle_id: "an-older-cycle" });
+
+      await expect(submitApplication("user-1", submission)).rejects.toThrow(
+        "This role is not part of the current hiring cycle"
+      );
+      expect(ApplicationRepository.upsertApplication).not.toHaveBeenCalled();
+    });
+
+    it("rejects a second submission for the same role", async () => {
+      mockActiveCycle();
+      mockRoleLookup();
+      mockExisting({ ...mockApplication, is_submitted: true });
+
+      await expect(submitApplication("user-1", submission)).rejects.toThrow(
+        AlreadySubmittedError
+      );
+      expect(ApplicationRepository.upsertApplication).not.toHaveBeenCalled();
+    });
+
+    it("validates answers against the cycle's and role's questions", async () => {
+      mockActiveCycle();
+      mockRoleLookup();
+      mockExisting(null);
+
+      // why_pm is a required general question, so empty answers must fail.
+      await expect(
+        submitApplication("user-1", { ...submission, answers: {} })
+      ).rejects.toThrow(AnswerValidationError);
+      expect(ApplicationRepository.upsertApplication).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getApplicationsByUser", () => {
+    it("returns the user's applications", async () => {
+      (
+        ApplicationRepository.getApplicationsByUser as jest.Mock
+      ).mockResolvedValueOnce({ data: [mockApplication], error: null });
+
+      expect(await getApplicationsByUser("user-1")).toEqual([mockApplication]);
+    });
+
+    it("returns an empty array when there are none", async () => {
+      (
+        ApplicationRepository.getApplicationsByUser as jest.Mock
+      ).mockResolvedValueOnce({ data: null, error: null });
+
+      expect(await getApplicationsByUser("user-1")).toEqual([]);
+    });
+
+    it("throws on error", async () => {
+      (
+        ApplicationRepository.getApplicationsByUser as jest.Mock
+      ).mockResolvedValueOnce({ data: null, error: { message: "fail" } });
+
+      await expect(getApplicationsByUser("user-1")).rejects.toThrow(
+        "Failed to get applications for user user-1: fail"
+      );
     });
   });
 });

@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { Constants } from "./database.types";
 
 // Question types are no longer a Postgres enum -- questions live in jsonb on
 // the cycle and role rows, so this schema is the single source of truth for
@@ -53,3 +54,19 @@ export interface FormQuestion {
     // Only used when a form is assembled; irrelevant once answers are checked.
     display_order?: number;
 }
+
+// Answers are keyed by question key. Values stay loose here; they are checked
+// against the form's own questions in services/Application/answerValidation.
+const answersSchema = z.record(z.string(), z.json());
+
+// Submitting: the applicant commits, so choice_rank and answers are required
+// and the answers get validated against the form.
+export const ApplicationSubmitSchema = z.strictObject({
+    role_id: z.string().min(1, { message: "role_id is required" }),
+    answers: answersSchema,
+    choice_rank: z.enum(Constants.public.Enums.APPLICATION_CHOICE_RANK),
+    resume_url: z.string().optional(),
+    referred_by: z.string().optional(),
+});
+
+export type ApplicationSubmission = z.infer<typeof ApplicationSubmitSchema>;
