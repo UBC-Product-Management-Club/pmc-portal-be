@@ -44,4 +44,17 @@ export const supabaseJwtCheck = async (req: Request, res: Response, next: NextFu
   next();
 };
 
+// sessionFilter calls next() even when no User row matches the token, which
+// happens for an account that never finished onboarding. Routes that actually
+// need a profile use `withProfile` instead of repeating this check themselves.
+export const requireProfile = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user?.user_id) {
+        return res
+            .status(401)
+            .json({ error: "No user profile found for this account" });
+    }
+    next();
+};
+
 export const authenticated = [jwtCheck, sessionFilter];
+export const withProfile = [jwtCheck, sessionFilter, requireProfile];

@@ -7,7 +7,10 @@ import { User } from "../../schema/v1/User";
 enum LoopsEvent {
   MembershipPayment = "membership_payment",
   EventPayment = "event_payment",
+  // Event registration -- not recruiting. See RecruitingApplicationReceived.
   ApplicationReceived = "application_received",
+  // Exec hiring: confirmation that a recruiting application was submitted.
+  RecruitingApplicationReceived = "recruiting_application_received",
 }
 
 const addContact = async (user: User) => {
