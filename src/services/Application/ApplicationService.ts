@@ -1,5 +1,6 @@
 import { Enums, Json, Tables } from "../../schema/v2/database.types";
 import {
+    ApplicationDraft,
     ApplicationSubmission,
     FormQuestion,
 } from "../../schema/v2/Application";
@@ -189,8 +190,39 @@ const assertNotAlreadySubmitted = async (
     return existing;
 };
 
+// Saves work in progress. Deliberately does NOT enforce required answers or
+// answer validity -- a half-filled draft is the normal case.
+export const saveDraft = async (
+    userId: string,
+    draft: ApplicationDraft
+): Promise<Application> => {
+    const { cycle, role } = await getRoleInActiveCycle(draft.role_id);
+    await assertNotAlreadySubmitted(userId, draft.role_id);
+
+    const { data, error } = await ApplicationRepository.upsertApplication({
+        user_id: userId,
+        cycle_id: cycle.cycle_id,
+        role_id: role.role_id,
+        answers: draft.answers ?? {},
+        choice_rank: draft.choice_rank ?? null,
+        resume_url: draft.resume_url ?? null,
+        referred_by: draft.referred_by ?? null,
+        is_submitted: false,
+        submitted_at: null,
+        // status is left unset so the column default ('DRAFT') applies. A check
+        // constraint ties it to is_submitted, so naming it here risks the two
+        // disagreeing.
+        updated_at: new Date().toISOString(),
+    });
+    if (error) {
+        throw new Error(`Failed to save draft: ${error.message}`);
+    }
+    return data;
+};
+
 // Commits an application. Validates the answers against the form first, then
-// writes the row as submitted.
+// flips the row to submitted in place -- a draft becomes the submission rather
+// than being copied somewhere else.
 export const submitApplication = async (
     userId: string,
     submission: ApplicationSubmission

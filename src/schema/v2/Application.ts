@@ -59,6 +59,16 @@ export interface FormQuestion {
 // against the form's own questions in services/Application/answerValidation.
 const answersSchema = z.record(z.string(), z.json());
 
+// Saving a draft: everything except the role is optional, because a draft is by
+// definition incomplete. Required-answer rules are deliberately NOT applied.
+export const ApplicationDraftSchema = z.strictObject({
+    role_id: z.string().min(1, { message: "role_id is required" }),
+    answers: answersSchema.optional(),
+    choice_rank: z.enum(Constants.public.Enums.APPLICATION_CHOICE_RANK).optional(),
+    resume_url: z.string().optional(),
+    referred_by: z.string().optional(),
+});
+
 // Submitting: the applicant commits, so choice_rank and answers are required
 // and the answers get validated against the form.
 export const ApplicationSubmitSchema = z.strictObject({
@@ -69,4 +79,5 @@ export const ApplicationSubmitSchema = z.strictObject({
     referred_by: z.string().optional(),
 });
 
+export type ApplicationDraft = z.infer<typeof ApplicationDraftSchema>;
 export type ApplicationSubmission = z.infer<typeof ApplicationSubmitSchema>;

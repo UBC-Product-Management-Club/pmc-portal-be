@@ -1,4 +1,5 @@
 import {
+  ApplicationDraftSchema,
   ApplicationSubmitSchema,
   QuestionSchema,
 } from "../../src/schema/v2/Application";
@@ -66,6 +67,31 @@ describe("ApplicationSubmitSchema", () => {
   it("rejects unknown top-level fields", () => {
     expect(
       ApplicationSubmitSchema.safeParse({ ...validSubmission, is_submitted: true })
+        .success
+    ).toBe(false);
+  });
+});
+
+describe("ApplicationDraftSchema", () => {
+  it("accepts a role_id on its own -- a draft may be empty", () => {
+    expect(ApplicationDraftSchema.safeParse({ role_id: "role-1" }).success).toBe(true);
+  });
+
+  it("accepts a partially filled draft", () => {
+    const result = ApplicationDraftSchema.safeParse({
+      role_id: "role-1",
+      answers: { why_pm: "half an answer" },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("still requires a role_id", () => {
+    expect(ApplicationDraftSchema.safeParse({ answers: {} }).success).toBe(false);
+  });
+
+  it("rejects a bad choice_rank even in a draft", () => {
+    expect(
+      ApplicationDraftSchema.safeParse({ role_id: "role-1", choice_rank: "NOPE" })
         .success
     ).toBe(false);
   });

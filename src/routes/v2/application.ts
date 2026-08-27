@@ -2,15 +2,20 @@ import { NextFunction, Request, Response, Router } from "express";
 import multer from "multer";
 import { z } from "zod/v4";
 import { withProfile } from "../../middleware/Session";
-import { ApplicationSubmitSchema } from "../../schema/v2/Application";
+import {
+    ApplicationDraftSchema,
+    ApplicationSubmitSchema,
+} from "../../schema/v2/Application";
 import {
     AlreadySubmittedError,
     AnswerValidationError,
     ApplicationsClosedError,
     getActiveCycle,
     getApplicationForm,
+    getApplicationForRole,
     getApplicationsByUser,
     getRolesForCycle,
+    saveDraft,
     submitApplication,
 } from "../../services/Application/ApplicationService";
 import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
@@ -165,7 +170,44 @@ applicationRouter.post("/", ...withProfile, async (req: Request, res: Response) 
     }
 });
 
-// The applicant's own applications, so the UI can show what they've submitted.
+// Saves work in progress without validating completeness, so an applicant can
+// come back to a half-filled form.
+applicationRouter.put("/draft", ...withProfile, async (req: Request, res: Response) => {
+    const result = ApplicationDraftSchema.safeParse(req.body);
+    if (!result.success) {
+        return validationFailed(res, result.error);
+    }
+
+    try {
+        return res.status(200).json(await saveDraft(userId(req), result.data));
+    } catch (error) {
+        return handleApplicationError(error, res);
+    }
+});
+
+// Loads the applicant's draft (or submission) for one role, so the frontend can
+// reopen a part-finished form.
+applicationRouter.get(
+    "/draft/:roleId",
+    ...withProfile,
+    async (req: Request, res: Response) => {
+        try {
+            const application = await getApplicationForRole(
+                userId(req),
+                req.params.roleId
+            );
+            if (!application) {
+                return res.status(404).json({ error: "No application started" });
+            }
+            return res.status(200).json(application);
+        } catch (error) {
+            return handleApplicationError(error, res);
+        }
+    }
+);
+
+// The applicant's own applications, so the UI can show what they've started or
+// submitted.
 applicationRouter.get("/me", ...withProfile, async (req: Request, res: Response) => {
     try {
         return res.status(200).json(await getApplicationsByUser(userId(req)));
