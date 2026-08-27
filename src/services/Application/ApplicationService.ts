@@ -1,7 +1,13 @@
 import { Enums, Json, Tables } from "../../schema/v2/database.types";
-import { FormQuestion } from "../../schema/v2/Application";
+import {
+    ApplicationSubmission,
+    FormQuestion,
+} from "../../schema/v2/Application";
+import { ApplicationRepository } from "../../storage/ApplicationRepository";
 import { RecruitingRepository } from "../../storage/RecruitingRepository";
+import { AnswerError, validateAnswers } from "./answerValidation";
 
+type Application = Tables<"Recruiting_Application">;
 type RecruitingCycle = Tables<"Recruiting_Cycle">;
 
 export interface OpenRole {
@@ -18,12 +24,30 @@ export interface ApplicationForm {
     questions: FormQuestion[];
 }
 
+// Raised when submitted answers fail the form's own rules; the route turns
+// this into a 400 listing every offending field.
+export class AnswerValidationError extends Error {
+    constructor(public readonly errors: AnswerError[]) {
+        super("Submitted answers are invalid");
+        this.name = "AnswerValidationError";
+    }
+}
+
 // Raised when there is no open cycle, or the role belongs to a different one.
 // The route turns this into a 403.
 export class ApplicationsClosedError extends Error {
     constructor(message: string) {
         super(message);
         this.name = "ApplicationsClosedError";
+    }
+}
+
+// Raised when an applicant tries to change an application they already
+// submitted. The route turns this into a 409.
+export class AlreadySubmittedError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "AlreadySubmittedError";
     }
 }
 
@@ -118,4 +142,88 @@ export const getApplicationForm = async (
             ...byDisplayOrder(toQuestions(role.questions)),
         ],
     };
+};
+
+export const getApplicationsByUser = async (
+    userId: string
+): Promise<Application[]> => {
+    const { data, error } = await ApplicationRepository.getApplicationsByUser(
+        userId
+    );
+    if (error) {
+        throw new Error(
+            `Failed to get applications for user ${userId}: ${error.message}`
+        );
+    }
+    return (data ?? []) as unknown as Application[];
+};
+
+// The applicant's existing row for a role, or null if they haven't started.
+export const getApplicationForRole = async (
+    userId: string,
+    roleId: string
+): Promise<Application | null> => {
+    const { data, error } = await ApplicationRepository.getApplicationForRole(
+        userId,
+        roleId
+    );
+    if (error) {
+        throw new Error(
+            `Failed to load application for role ${roleId}: ${error.message}`
+        );
+    }
+    return data;
+};
+
+// Guards against editing something already submitted.
+const assertNotAlreadySubmitted = async (
+    userId: string,
+    roleId: string
+) => {
+    const existing = await getApplicationForRole(userId, roleId);
+    if (existing?.is_submitted) {
+        throw new AlreadySubmittedError(
+            "You have already submitted an application for this role"
+        );
+    }
+    return existing;
+};
+
+// Commits an application. Validates the answers against the form first, then
+// writes the row as submitted.
+export const submitApplication = async (
+    userId: string,
+    submission: ApplicationSubmission
+): Promise<{ application: Application; role_name: string }> => {
+    const { cycle, role } = await getRoleInActiveCycle(submission.role_id);
+    await assertNotAlreadySubmitted(userId, submission.role_id);
+
+    const questions = [
+        ...toQuestions(cycle.general_questions),
+        ...toQuestions(role.questions),
+    ];
+    const errors = validateAnswers(questions, submission.answers);
+    if (errors.length > 0) {
+        throw new AnswerValidationError(errors);
+    }
+
+    const now = new Date().toISOString();
+    const { data, error } = await ApplicationRepository.upsertApplication({
+        user_id: userId,
+        cycle_id: cycle.cycle_id,
+        role_id: role.role_id,
+        answers: submission.answers,
+        choice_rank: submission.choice_rank,
+        resume_url: submission.resume_url ?? null,
+        referred_by: submission.referred_by ?? null,
+        is_submitted: true,
+        status: "SUBMITTED",
+        submitted_at: now,
+        updated_at: now,
+    });
+    if (error) {
+        throw new Error(`Failed to submit application: ${error.message}`);
+    }
+
+    return { application: data, role_name: role.name };
 };

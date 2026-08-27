@@ -9,4 +9,5 @@ jest.mock('../src/storage/EventRepository');
 jest.mock('../src/storage/PaymentRepository');
 jest.mock('../src/storage/ProductRepository');
 jest.mock('../src/storage/CheckoutSessionRepository');
+jest.mock('../src/storage/ApplicationRepository');
 jest.mock('../src/storage/RecruitingRepository');

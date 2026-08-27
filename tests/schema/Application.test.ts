@@ -1,4 +1,75 @@
-import { QuestionSchema } from "../../src/schema/v2/Application";
+import {
+  ApplicationSubmitSchema,
+  QuestionSchema,
+} from "../../src/schema/v2/Application";
+
+const validSubmission = {
+  role_id: "role-1",
+  choice_rank: "FIRST",
+  answers: { why_pm: "Because I like building things.", how_found: ["Instagram"] },
+};
+
+describe("ApplicationSubmitSchema", () => {
+  it("accepts a well-formed submission", () => {
+    expect(ApplicationSubmitSchema.safeParse(validSubmission).success).toBe(true);
+  });
+
+  it("accepts the optional resume and referral fields", () => {
+    const result = ApplicationSubmitSchema.safeParse({
+      ...validSubmission,
+      resume_url: "recruiting/cycle-1/user-1/resume.pdf",
+      referred_by: "exec@ubcpmc.com",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it.each(["FIRST", "SECOND", "THIRD_PLUS", "ONLY"])(
+    "accepts choice_rank %s",
+    (choice_rank) => {
+      expect(
+        ApplicationSubmitSchema.safeParse({ ...validSubmission, choice_rank }).success
+      ).toBe(true);
+    }
+  );
+
+  it("rejects an unknown choice_rank", () => {
+    expect(
+      ApplicationSubmitSchema.safeParse({ ...validSubmission, choice_rank: "FOURTH" })
+        .success
+    ).toBe(false);
+  });
+
+  it("requires choice_rank and answers on submit", () => {
+    const { choice_rank, ...noRank } = validSubmission;
+    expect(ApplicationSubmitSchema.safeParse(noRank).success).toBe(false);
+
+    const { answers, ...noAnswers } = validSubmission;
+    expect(ApplicationSubmitSchema.safeParse(noAnswers).success).toBe(false);
+  });
+
+  it("rejects a missing or empty role_id", () => {
+    expect(
+      ApplicationSubmitSchema.safeParse({ ...validSubmission, role_id: "" }).success
+    ).toBe(false);
+    const { role_id, ...withoutId } = validSubmission;
+    expect(ApplicationSubmitSchema.safeParse(withoutId).success).toBe(false);
+  });
+
+  it("rejects answers that are not a keyed object", () => {
+    for (const answers of [null, ["a"], "a"]) {
+      expect(
+        ApplicationSubmitSchema.safeParse({ ...validSubmission, answers }).success
+      ).toBe(false);
+    }
+  });
+
+  it("rejects unknown top-level fields", () => {
+    expect(
+      ApplicationSubmitSchema.safeParse({ ...validSubmission, is_submitted: true })
+        .success
+    ).toBe(false);
+  });
+});
 
 describe("QuestionSchema", () => {
   const question = {
