@@ -107,6 +107,16 @@ export const getCheckoutSession = async (attendeeId: string) => {
   return data ? stripe.checkout.sessions.retrieve(data.checkout_id) : null;
 };
 
+// True when this is the attendee's current checkout, Stripe has taken the
+// payment, and the webhook hasn't handled it yet
+export const isCheckoutAwaitingFulfillment = async (attendeeId: string, sessionId: string) => {
+  const { data, error } = await CheckoutSessionRepository.getCheckoutSession(attendeeId);
+  if (error) throw error;
+  if (!data || data.checkout_id !== sessionId || data.fulfilled_at) return false;
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  return session.status === "complete" && session.payment_status === "paid";
+};
+
 export const deleteCheckoutSession = async (attendeeId: string) => {
   const { error } = await CheckoutSessionRepository.deleteCheckoutSession(
     attendeeId

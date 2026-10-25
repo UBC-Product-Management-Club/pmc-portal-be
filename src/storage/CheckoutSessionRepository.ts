@@ -2,7 +2,7 @@ import { supabase } from "../config/supabase";
 
 export const CheckoutSessionRepository = {
     addCheckoutSession: (attendeeId: string, checkoutId: string) => supabase.from("Checkout_Session").insert({ attendee_id: attendeeId, checkout_id: checkoutId}),
-    getCheckoutSession: (attendeeId: string) => supabase.from("Checkout_Session").select("checkout_id").eq("attendee_id", attendeeId).maybeSingle(),
+    getCheckoutSession: (attendeeId: string) => supabase.from("Checkout_Session").select("checkout_id, acceptance_version, fulfilled_at, attention_reason, attention_resolved_at").eq("attendee_id", attendeeId).maybeSingle(),
     deleteCheckoutSession: (attendeeId: string) => supabase.from("Checkout_Session").delete().eq("attendee_id", attendeeId)
 
 }

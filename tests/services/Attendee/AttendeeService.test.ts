@@ -5,6 +5,7 @@ jest.mock("../../../src/services/Event/EventService", () => ({
 import { Tables, TablesInsert } from "../../../src/schema/v2/database.types";
 import {
   getAttendee,
+  getAttendeeStatus,
   registerIfSeatAvailable,
   submitApplication,
 } from "../../../src/services/Attendee/AttendeeService";
@@ -120,6 +121,49 @@ describe("AttendeeService", () => {
       (AttendeeRepository.registerIfSeatAvailable as jest.Mock).mockResolvedValueOnce({ data: null, error: { message: "boom" } });
 
       await expect(registerIfSeatAvailable("att-1")).rejects.toThrow("boom");
+    });
+  });
+
+  describe("getAttendeeStatus", () => {
+    const now = new Date("2026-11-02T20:00:00Z");
+    const row = (status: string, isMember: boolean) => ({
+      attendee_id: "att-1",
+      status,
+      payment_due_at: "2026-11-04T20:00:00Z",
+      acceptance_version: 1,
+      Event: { member_price: 8.55, non_member_price: 12 },
+      User: { is_payment_verified: isMember },
+    });
+
+    it("adds the workflow state, today's price and the server time", async () => {
+      (AttendeeRepository.getAttendeeForStatus as jest.Mock).mockResolvedValueOnce({ data: row("ACCEPTED", true), error: null });
+
+      await expect(getAttendeeStatus("event-456", "user-123", now)).resolves.toEqual({
+        attendee_id: "att-1",
+        status: "ACCEPTED",
+        payment_due_at: "2026-11-04T20:00:00Z",
+        acceptance_version: 1,
+        workflow_state: "PAYMENT_WINDOW_OPEN",
+        amount_due: 8.55,
+        server_time: "2026-11-02T20:00:00.000Z",
+      });
+    });
+
+    it("uses the non-member price for non-members", async () => {
+      (AttendeeRepository.getAttendeeForStatus as jest.Mock).mockResolvedValueOnce({ data: row("ACCEPTED", false), error: null });
+      expect((await getAttendeeStatus("event-456", "user-123", now))?.amount_due).toBe(12);
+    });
+
+    it("only has an amount due while Accepted", async () => {
+      (AttendeeRepository.getAttendeeForStatus as jest.Mock).mockResolvedValueOnce({ data: row("REGISTERED", true), error: null });
+      const status = await getAttendeeStatus("event-456", "user-123", now);
+      expect(status?.amount_due).toBeNull();
+      expect(status?.workflow_state).toBe("REGISTERED");
+    });
+
+    it("returns null when the student hasn't applied", async () => {
+      (AttendeeRepository.getAttendeeForStatus as jest.Mock).mockResolvedValueOnce({ data: null, error: null });
+      await expect(getAttendeeStatus("event-456", "user-123", now)).resolves.toBeNull();
     });
   });
 });
