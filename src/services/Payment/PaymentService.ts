@@ -12,6 +12,7 @@ import {
   updateAttendee,
 } from "../Attendee/AttendeeService";
 import { ApiError } from "../ApiError";
+import { logEvent } from "../logEvent";
 
 export enum Status {
   PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
@@ -404,7 +405,7 @@ const fulfillEventCheckout = async (
   }
 
   // An attention reason: refund it (free checkouts have nothing to refund)
-  logEvent(outcome, { attendeeId, checkoutId });
+  logEvent("PAYMENT_REFUND_REQUIRED", { reason: outcome as string, attendeeId, checkoutId });
   if (!paymentIntentId || !checkoutSession.amount_total) return;
   const refund = await stripe.refunds.create(
     { payment_intent: paymentIntentId },
@@ -413,10 +414,6 @@ const fulfillEventCheckout = async (
   const { error: refundError } = await CheckoutSessionRepository.recordRefund(checkoutId, refund.id);
   if (refundError) throw new Error(`Refunded ${checkoutId} but couldn't record ${refund.id}: ${refundError.message}`);
 };
-
-// One JSON line per notable event, so Cloud Run log alerts can match on it
-const logEvent = (event: string, details: Record<string, string>) =>
-  console.error(JSON.stringify({ event, ...details }));
 
 // helper functions
 const mapTransactionStatus = (
