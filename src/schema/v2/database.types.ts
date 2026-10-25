@@ -130,35 +130,47 @@ export type Database = {
       }
       Attendee: {
         Row: {
+          acceptance_version: number
           attendee_id: string
           created_at: string
           event_form_answers: Json | null
           event_id: string
           is_payment_verified: boolean
           last_updated: string
+          payment_due_at: string | null
           payment_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
           user_id: string
         }
         Insert: {
+          acceptance_version?: number
           attendee_id?: string
           created_at?: string
           event_form_answers?: Json | null
           event_id: string
           is_payment_verified?: boolean
           last_updated?: string
+          payment_due_at?: string | null
           payment_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
           user_id: string
         }
         Update: {
+          acceptance_version?: number
           attendee_id?: string
           created_at?: string
           event_form_answers?: Json | null
           event_id?: string
           is_payment_verified?: boolean
           last_updated?: string
+          payment_due_at?: string | null
           payment_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
           user_id?: string
         }
@@ -209,19 +221,37 @@ export type Database = {
       }
       Checkout_Session: {
         Row: {
+          acceptance_version: number | null
           attendee_id: string
+          attention_reason: string | null
+          attention_resolved_at: string | null
           checkout_id: string
           expires_at: string
+          fulfilled_at: string | null
+          fulfilled_event_id: string | null
+          refund_id: string | null
         }
         Insert: {
+          acceptance_version?: number | null
           attendee_id?: string
+          attention_reason?: string | null
+          attention_resolved_at?: string | null
           checkout_id: string
           expires_at?: string
+          fulfilled_at?: string | null
+          fulfilled_event_id?: string | null
+          refund_id?: string | null
         }
         Update: {
+          acceptance_version?: number | null
           attendee_id?: string
+          attention_reason?: string | null
+          attention_resolved_at?: string | null
           checkout_id?: string
           expires_at?: string
+          fulfilled_at?: string | null
+          fulfilled_event_id?: string | null
+          refund_id?: string | null
         }
         Relationships: [
           {
@@ -325,16 +355,19 @@ export type Database = {
           draft_data: Json | null
           event_id: string
           user_id: string
+          version: number
         }
         Insert: {
           draft_data?: Json | null
           event_id?: string
           user_id?: string
+          version?: number
         }
         Update: {
           draft_data?: Json | null
           event_id?: string
           user_id?: string
+          version?: number
         }
         Relationships: [
           {
@@ -373,9 +406,12 @@ export type Database = {
           needs_review: boolean
           non_member_price: number | null
           non_member_price_id: string | null
+          payment_hold_hours: number
           registration_closes: string | null
           registration_opens: string | null
+          schedule: Json | null
           start_time: string | null
+          timezone: string
           waitlist_form: string | null
         }
         Insert: {
@@ -397,9 +433,12 @@ export type Database = {
           needs_review?: boolean
           non_member_price?: number | null
           non_member_price_id?: string | null
+          payment_hold_hours?: number
           registration_closes?: string | null
           registration_opens?: string | null
+          schedule?: Json | null
           start_time?: string | null
+          timezone?: string
           waitlist_form?: string | null
         }
         Update: {
@@ -421,12 +460,81 @@ export type Database = {
           needs_review?: boolean
           non_member_price?: number | null
           non_member_price_id?: string | null
+          payment_hold_hours?: number
           registration_closes?: string | null
           registration_opens?: string | null
+          schedule?: Json | null
           start_time?: string | null
+          timezone?: string
           waitlist_form?: string | null
         }
         Relationships: []
+      }
+      Notification_Hook: {
+        Row: {
+          acceptance_version: number
+          attendee_id: string
+          cancel_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          eligible_at: string
+          event_id: string
+          notification_id: string
+          payload: Json
+          provider: string | null
+          provider_message_id: string | null
+          sent_at: string | null
+          sent_by: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          acceptance_version?: number
+          attendee_id: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          eligible_at: string
+          event_id: string
+          notification_id?: string
+          payload: Json
+          provider?: string | null
+          provider_message_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          acceptance_version?: number
+          attendee_id?: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          eligible_at?: string
+          event_id?: string
+          notification_id?: string
+          payload?: Json
+          provider?: string | null
+          provider_message_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Notification_Hook_attendee_id_fkey"
+            columns: ["attendee_id"]
+            isOneToOne: false
+            referencedRelation: "Attendee"
+            referencedColumns: ["attendee_id"]
+          },
+          {
+            foreignKeyName: "Notification_Hook_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Event"
+            referencedColumns: ["event_id"]
+          },
+        ]
       }
       Payment: {
         Row: {
@@ -733,10 +841,43 @@ export type Database = {
           team_name: string
         }[]
       }
+      accept_applicants: {
+        Args: { p_attendee_ids: string[]; p_event_id: string; p_reviewer: string }
+        Returns: number
+      }
+      cancel_pending_hooks: {
+        Args: { p_attendee_id: string; p_reason: string }
+        Returns: undefined
+      }
+      fulfill_event_checkout: {
+        Args: {
+          p_checkout_id: string
+          p_completed_at: string
+          p_paid: boolean
+          p_payment_id?: string
+          p_stripe_event_id: string
+        }
+        Returns: string
+      }
       get_deliverable_submissions: { Args: { event_id: string }; Returns: Json }
+      record_hook: {
+        Args: {
+          p_attendee_id: string
+          p_type: Database["public"]["Enums"]["notification_type"]
+        }
+        Returns: undefined
+      }
       register_if_seat_available: {
         Args: { p_attendee_id: string; p_payment_id?: string }
         Returns: boolean
+      }
+      reject_applicants: {
+        Args: { p_attendee_ids: string[]; p_event_id: string; p_reviewer: string }
+        Returns: number
+      }
+      reopen_payment_window: {
+        Args: { p_attendee_ids: string[]; p_event_id: string; p_reviewer: string }
+        Returns: number
       }
       seats_taken: { Args: { p_event_id: string }; Returns: number }
       submit_application: {
@@ -780,6 +921,12 @@ export type Database = {
         | "APPLIED"
         | "REGISTERED"
         | "ACCEPTED"
+        | "REJECTED"
+      notification_type:
+        | "application_received"
+        | "accepted"
+        | "rejected"
+        | "reminder"
       PAYMENT_STATUS: "PROCESSING" | "VERIFIED"
       RECRUITING_TEAM:
         | "TECH"
@@ -939,7 +1086,9 @@ export const Constants = {
         "APPLIED",
         "REGISTERED",
         "ACCEPTED",
+        "REJECTED",
       ],
+      notification_type: ["application_received", "accepted", "rejected", "reminder"],
       PAYMENT_STATUS: ["PROCESSING", "VERIFIED"],
       RECRUITING_TEAM: [
         "TECH",
