@@ -7,7 +7,7 @@ export const CheckoutSessionRepository = {
     // One row per attendee: a new checkout replaces the last one and clears how it was handled
     saveCheckoutSession: (row: CheckoutSessionInsert) =>
         supabase.from("Checkout_Session").upsert(
-            { ...row, fulfilled_at: null, fulfilled_event_id: null, refund_id: null, attention_reason: null, attention_resolved_at: null },
+            { ...row, fulfilled_at: null, fulfilled_event_id: null, payment_id: null, refund_id: null, attention_reason: null, attention_resolved_at: null },
             { onConflict: "attendee_id" }
         ),
     getCheckoutSession: (attendeeId: string) => supabase.from("Checkout_Session").select("checkout_id, acceptance_version, fulfilled_at, attention_reason, attention_resolved_at, refund_id").eq("attendee_id", attendeeId).maybeSingle(),

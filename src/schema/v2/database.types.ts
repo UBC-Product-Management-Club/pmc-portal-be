@@ -229,6 +229,7 @@ export type Database = {
           expires_at: string
           fulfilled_at: string | null
           fulfilled_event_id: string | null
+          payment_id: string | null
           refund_id: string | null
         }
         Insert: {
@@ -240,6 +241,7 @@ export type Database = {
           expires_at?: string
           fulfilled_at?: string | null
           fulfilled_event_id?: string | null
+          payment_id?: string | null
           refund_id?: string | null
         }
         Update: {
@@ -251,6 +253,7 @@ export type Database = {
           expires_at?: string
           fulfilled_at?: string | null
           fulfilled_event_id?: string | null
+          payment_id?: string | null
           refund_id?: string | null
         }
         Relationships: [

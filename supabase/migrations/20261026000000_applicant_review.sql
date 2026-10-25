@@ -38,6 +38,9 @@ alter table "Checkout_Session"
   add column if not exists fulfilled_at timestamptz,
   -- The Stripe event that registered the student
   add column if not exists fulfilled_event_id text,
+  -- The payment the checkout was paid with (a payment intent, or the checkout
+  -- id for a free one), so a refund can be found or retried
+  add column if not exists payment_id text,
   add column if not exists refund_id text,
   add column if not exists attention_reason text,
   add column if not exists attention_resolved_at timestamptz;
@@ -413,7 +416,7 @@ begin
   end if;
 
   if v_reason is not null then
-    update "Checkout_Session" set fulfilled_at = now(), attention_reason = v_reason
+    update "Checkout_Session" set fulfilled_at = now(), attention_reason = v_reason, payment_id = p_payment_id
     where checkout_id = p_checkout_id;
     if v_reason = 'NO_REVIEW_FULL' then
       update "Attendee" set status = 'FAILED' where attendee_id = v_attendee_id;
@@ -422,7 +425,7 @@ begin
   end if;
 
   if v_attendee.status = 'REGISTERED' then
-    update "Checkout_Session" set fulfilled_at = now() where checkout_id = p_checkout_id;
+    update "Checkout_Session" set fulfilled_at = now(), payment_id = p_payment_id where checkout_id = p_checkout_id;
     return 'ALREADY_FULFILLED';
   end if;
 
@@ -433,7 +436,8 @@ begin
   where attendee_id = v_attendee_id;
   perform cancel_pending_hooks(v_attendee_id, 'registered');
 
-  update "Checkout_Session" set fulfilled_at = now(), fulfilled_event_id = p_stripe_event_id
+  update "Checkout_Session"
+  set fulfilled_at = now(), fulfilled_event_id = p_stripe_event_id, payment_id = p_payment_id
   where checkout_id = p_checkout_id;
   return 'REGISTERED';
 end $$;
