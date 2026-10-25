@@ -9,6 +9,7 @@ import { createUserTeam, getUserTeam, joinTeamWithCode, leaveUserTeam } from "..
 import multer from "multer";
 import { DraftService } from "../../services/Drafts/DraftService";
 import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
+import { deliverApplicationReceipt } from "../../services/Email/EventEmailService";
 import { deleteSupabaseFile, getDeliverable, uploadDeliverableFiles, uploadSupabaseFiles } from "../../storage/Storage";
 
 export const eventRouter = Router();
@@ -104,9 +105,15 @@ eventRouter.post("/:eventId/register", ...authenticated, (req: Request, res: Res
         uploaded = Object.values(fileRefs);
 
         const attendee = await submitApplication(eventId, userId, { ...answers, ...fileRefs });
-        sendEmail(userId, LoopsEvent.ApplicationReceived, {
-            event_name: event.name!,
-        });
+        // Reviewed events send their receipt from the application_received hook, so
+        // it's never sent twice; events without review keep the old Loops event
+        if (event.needs_review) {
+            deliverApplicationReceipt(attendee.attendee_id);
+        } else {
+            sendEmail(userId, LoopsEvent.ApplicationReceived, {
+                event_name: event.name!,
+            });
+        }
         return res.status(201).json({
             message: "Registration successful",
             attendee,
