@@ -863,6 +863,34 @@ export type Database = {
         Returns: string
       }
       get_deliverable_submissions: { Args: { event_id: string }; Returns: Json }
+      messages_due: {
+        Args: { p_event_id: string }
+        Returns: {
+          acceptance_version: number
+          amount_due: string | null
+          attendee_id: string
+          eligible_at: string
+          email: string | null
+          name: string | null
+          notification_id: string
+          payment_due_at: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+        }[]
+      }
+      payment_issues: {
+        Args: { p_event_id: string }
+        Returns: {
+          amount_cents: number | null
+          attendee_id: string
+          attention_reason: string
+          checkout_id: string
+          email: string | null
+          handled_at: string | null
+          name: string | null
+          payment_id: string | null
+          refund_id: string | null
+        }[]
+      }
       record_hook: {
         Args: {
           p_attendee_id: string
@@ -873,6 +901,28 @@ export type Database = {
       register_if_seat_available: {
         Args: { p_attendee_id: string; p_payment_id?: string }
         Returns: boolean
+      }
+      review_sheet_rows: {
+        Args: { p_event_id: string }
+        Returns: {
+          acceptance_sent_at: string | null
+          attendee_id: string
+          email: string | null
+          experience: string | null
+          is_member: boolean
+          name: string | null
+          payment_due_at: string | null
+          phone: string | null
+          rejection_sent_at: string | null
+          reminder_due: boolean
+          reminder_sent_at: string | null
+          reopen_from: string | null
+          resume_path: string | null
+          status: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
+          submitted_at: string
+          why_event: string | null
+          why_pm: string | null
+        }[]
       }
       reject_applicants: {
         Args: { p_attendee_ids: string[]; p_event_id: string; p_reviewer: string }
