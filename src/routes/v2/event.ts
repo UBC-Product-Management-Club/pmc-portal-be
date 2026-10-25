@@ -142,19 +142,23 @@ eventRouter.get("/drafts/:eventId", ...authenticated, async (req, res) => {
 eventRouter.post("/drafts/:eventId", ...authenticated, async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { draft } = req.body;
+        const { draft, version } = req.body;
 
         const userId = req.user?.user_id;
 
         if (!userId || !draft) {
             return res.status(400).json({ error: "userId and draft are required" });
         }
+        if (version !== undefined && !(Number.isInteger(version) && version >= 0)) {
+            return sendApiError(res, new ApiError(400, "VALIDATION_ERROR", "version must be a whole number."));
+        }
 
         const draftService = new DraftService();
-        const savedDraft = await draftService.saveDraft(eventId, userId, draft);
+        const savedDraft = await draftService.saveDraft(eventId, userId, draft, version);
 
         res.status(200).json(savedDraft);
     } catch (error: any) {
+        if (error instanceof ApiError) return sendApiError(res, error);
         console.error("Error saving draft:", error);
         res.status(500).json({ error: error.message });
     }
