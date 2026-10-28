@@ -34,7 +34,7 @@ const hook = (overrides: Record<string, unknown> = {}) =>
       event_name: "Product Jackpot",
       event_path: "/events/event-456",
       payment_due_at: "2026-11-04T20:00:00Z",
-      amount_due: 8.55,
+      amount_due: 15,
     },
     cancelled_at: null,
     cancel_reason: null,
@@ -148,7 +148,7 @@ describe("templateVars", () => {
       recipientName: "Simoon Song",
       eventName: "Product Jackpot",
       eventUrl: "https://portal.example/events/event-456",
-      amountDue: "$8.55",
+      amountDue: "$15.00",
       paymentDue: "Wednesday, November 4 at 12:00 PM PT",
     });
   });
