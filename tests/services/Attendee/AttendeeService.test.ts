@@ -131,7 +131,7 @@ describe("AttendeeService", () => {
       status,
       payment_due_at: "2026-11-04T20:00:00Z",
       acceptance_version: 1,
-      Event: { member_price: 8.55, non_member_price: 12 },
+      Event: { member_price: 9, non_member_price: 15 },
       User: { is_payment_verified: isMember },
     });
 
@@ -144,14 +144,14 @@ describe("AttendeeService", () => {
         payment_due_at: "2026-11-04T20:00:00Z",
         acceptance_version: 1,
         workflow_state: "PAYMENT_WINDOW_OPEN",
-        amount_due: 8.55,
+        amount_due: 9,
         server_time: "2026-11-02T20:00:00.000Z",
       });
     });
 
     it("uses the non-member price for non-members", async () => {
       (AttendeeRepository.getAttendeeForStatus as jest.Mock).mockResolvedValueOnce({ data: row("ACCEPTED", false), error: null });
-      expect((await getAttendeeStatus("event-456", "user-123", now))?.amount_due).toBe(12);
+      expect((await getAttendeeStatus("event-456", "user-123", now))?.amount_due).toBe(15);
     });
 
     it("only has an amount due while Accepted", async () => {
