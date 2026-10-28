@@ -122,20 +122,20 @@ describe("syncPaymentIssues", () => {
   it("lists open issues and counts the unfinished refunds", async () => {
     (repo.paymentIssues as jest.Mock).mockResolvedValueOnce({
       data: [
-        { checkout_id: "cs_1", attendee_id: "a-1", name: "A", email: "a@example.com", amount_cents: 1200, payment_id: "pi_1", refund_id: "re_1", attention_reason: "LATE_PAYMENT", handled_at: "2026-11-05T18:00:00Z" },
-        { checkout_id: "cs_2", attendee_id: "a-2", name: "B", email: "b@example.com", amount_cents: 855, payment_id: "pi_2", refund_id: null, attention_reason: "REJECTED", handled_at: null },
+        { checkout_id: "cs_1", attendee_id: "a-1", name: "A", email: "a@example.com", amount_cents: 1500, payment_id: "pi_1", refund_id: "re_1", attention_reason: "LATE_PAYMENT", handled_at: "2026-11-05T18:00:00Z" },
+        { checkout_id: "cs_2", attendee_id: "a-2", name: "B", email: "b@example.com", amount_cents: 900, payment_id: "pi_2", refund_id: null, attention_reason: "REJECTED", handled_at: null },
       ],
       error: null,
     });
     const sheet = new MemorySheet();
 
     await expect(syncPaymentIssues(sheet, "e-1")).resolves.toEqual({ issues: 2, missingRefunds: 1 });
-    expect(sheet.tabs[TABS.paymentIssues][1]).toEqual(["cs_1", "a-1", "A", "a@example.com", "$12.00", "pi_1", "re_1", "LATE_PAYMENT", "2026-11-05 10:00 PT"]);
+    expect(sheet.tabs[TABS.paymentIssues][1]).toEqual(["cs_1", "a-1", "A", "a@example.com", "$15.00", "pi_1", "re_1", "LATE_PAYMENT", "2026-11-05 10:00 PT"]);
   });
 });
 
 describe("syncMessages", () => {
-  const due = { notification_id: "n-1", attendee_id: "a-1", type: "accepted", acceptance_version: 1, name: "A", email: "a@example.com", payment_due_at: "2026-11-05T17:00:00Z", amount_due: "8.55", eligible_at: "2026-11-02T17:00:00Z" };
+  const due = { notification_id: "n-1", attendee_id: "a-1", type: "accepted", acceptance_version: 1, name: "A", email: "a@example.com", payment_due_at: "2026-11-05T17:00:00Z", amount_due: "15", eligible_at: "2026-11-02T17:00:00Z" };
 
   it("rebuilds the tab with a Sent checkbox per message", async () => {
     (repo.messagesDue as jest.Mock).mockResolvedValueOnce({ data: [due], error: null });
@@ -145,7 +145,7 @@ describe("syncMessages", () => {
 
     expect(sheet.tabs[TABS.messages]).toEqual([
       MESSAGES_HEADER,
-      ["n-1", "Accepted", "A", "a@example.com", "2026-11-05 09:00 PT", "$8.55", "2026-11-02 09:00 PT", "FALSE"],
+      ["n-1", "Accepted", "A", "a@example.com", "2026-11-05 09:00 PT", "$15.00", "2026-11-02 09:00 PT", "FALSE"],
     ]);
   });
 

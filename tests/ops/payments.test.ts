@@ -17,7 +17,7 @@ const issue = (overrides: Record<string, unknown> = {}) => ({
   attendee_id: "a-1",
   name: "A",
   email: "a@example.com",
-  amount_cents: 1200,
+  amount_cents: 1500,
   payment_id: "pi_1",
   refund_id: null,
   attention_reason: "LATE_PAYMENT",

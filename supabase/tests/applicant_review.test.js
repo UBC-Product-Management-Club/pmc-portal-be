@@ -51,7 +51,7 @@ const E = '11111111-1111-1111-1111-111111111111';
 const addEvent = (db, f = {}) => {
     f = { cap: 2, review: true, hold: 72, ...f };
     return db.exec(`insert into "Event" (event_id, name, max_attendees, needs_review, registration_opens, registration_closes, member_price, non_member_price, payment_hold_hours)
-                    values ('${E}', 'PJ', ${f.cap ?? 'null'}, ${f.review}, now() - interval '1 day', now() + interval '1 day', 8.55, 12, ${f.hold})`);
+                    values ('${E}', 'PJ', ${f.cap ?? 'null'}, ${f.review}, now() - interval '1 day', now() + interval '1 day', 9, 15, ${f.hold})`);
 };
 const apply = async (db, user, member = false) => {
     await db.query(`insert into "User" values ($1, $2, $1 || '@x.com') on conflict do nothing`, [user, member]);
@@ -107,13 +107,13 @@ const tests = {
         assert.equal(h.due, true);
         assert.equal(h.payload.event_path, `/events/${E}`);
         assert.equal(h.payload.recipient_email, 'u1@x.com');
-        assert.equal(Number(h.payload.amount_due), 8.55);
+        assert.equal(Number(h.payload.amount_due), 9);
     },
     async 'a non-member hook carries the non-member price'() {
         const db = await fresh(); await addEvent(db);
         const a = await apply(db, 'u1', false);
         await accept(db, [a]);
-        assert.equal(Number((await one(db, `select payload from "Notification_Hook" where type = 'accepted'`)).payload.amount_due), 12);
+        assert.equal(Number((await one(db, `select payload from "Notification_Hook" where type = 'accepted'`)).payload.amount_due), 15);
     },
     async 'accepting into the last seat works and the next accept is refused'() {
         const db = await fresh(); await addEvent(db, { cap: 1 });
@@ -324,12 +324,12 @@ const tests = {
         await accept(db, [a]);
         await checkout(db, a, 'cs_1');
         await reject(db, [a]);
-        await db.exec(`insert into "Payment" values ('pi_cs_1', 1200)`);
+        await db.exec(`insert into "Payment" values ('pi_cs_1', 1500)`);
         await fulfill(db, 'cs_1');
         await db.exec(`update "Checkout_Session" set refund_id = 're_1'`);
         let { rows } = await db.query(query('payment_issues.sql'));
         assert.deepEqual(rows.map((r) => [r.email, r.amount_cents, r.payment_id, r.refund_id, r.attention_reason]), [
-            ['u1@x.com', 1200, 'pi_cs_1', 're_1', 'REJECTED'],
+            ['u1@x.com', 1500, 'pi_cs_1', 're_1', 'REJECTED'],
         ]);
         await db.exec(`update "Checkout_Session" set attention_resolved_at = now()`);
         assert.equal((await db.query(query('payment_issues.sql'))).rows.length, 0);
