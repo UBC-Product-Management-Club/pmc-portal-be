@@ -3,7 +3,7 @@ import { authenticated } from "../../middleware/Session";
 import { getAttendee, submitApplication } from "../../services/Attendee/AttendeeService";
 import { checkApplication, summarizeErrors } from "../../services/Attendee/applicationRules";
 import { ApiError, sendApiError } from "../../services/ApiError";
-import { getEvent, getEventDeliverableFlags, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
+import { getEvent, getEventDeliverableFlags, getEvents, getPublicEvent, getRegisteredContent, getRegisteredEvents } from "../../services/Event/EventService";
 import { createUserTeam, getUserTeam, joinTeamWithCode, leaveUserTeam } from "../../services/Team/TeamService";
 
 import multer from "multer";
@@ -19,6 +19,20 @@ const upload = multer({ storage: memStorage });
 // Applications: a few files at most, none bigger than the largest allowed upload
 const applicationUpload = multer({ storage: memStorage, limits: { files: 5, fileSize: 25_000_000 } });
 
+// The signed-in student's id; a login that hasn't finished onboarding has no User row
+const userIdOf = (req: Request) => {
+    const userId = req.user?.user_id;
+    if (!userId) throw new ApiError(401, "UNAUTHENTICATED", "Sign in to continue.");
+    return userId;
+};
+
+// ApiErrors go back as they are; anything else is logged and hidden behind a 500
+const sendError = (res: Response, error: unknown, context: string) => {
+    if (error instanceof ApiError) return sendApiError(res, error);
+    console.error(`${context}:`, error);
+    return res.status(500).json({ error: { code: "SERVER_ERROR", message: "Something went wrong. Please try again." } });
+};
+
 eventRouter.get("/", ...authenticated, async (req, res) => {
     try {
         const events = await getEvents();
@@ -30,7 +44,7 @@ eventRouter.get("/", ...authenticated, async (req, res) => {
 
 eventRouter.get("/:id", async (req, res) => {
     try {
-        const eventByID = await getEvent(req.params.id);
+        const eventByID = await getPublicEvent(req.params.id);
         res.status(200).json(eventByID);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -58,6 +72,15 @@ eventRouter.get("/:eventId/attendee", ...authenticated, async (req: Request, res
         return res.status(200).json(attendee);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
+    }
+});
+
+eventRouter.get("/:eventId/registered-content", ...authenticated, async (req: Request, res: Response) => {
+    try {
+        const content = await getRegisteredContent(req.params.eventId, userIdOf(req));
+        return res.status(200).json(content);
+    } catch (error) {
+        return sendError(res, error, "Registered content error");
     }
 });
 
