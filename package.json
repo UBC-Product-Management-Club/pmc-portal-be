@@ -8,7 +8,7 @@
     "test": "jest",
     "build": "tsc --project tsconfig.prod.json",
     "ops": "ts-node --project tsconfig.prod.json src/ops/cli.ts",
-    "test:sql": "node supabase/tests/register_checks.test.js && node supabase/tests/applicant_review.test.js"
+    "test:sql": "node supabase/tests/register_checks.test.js && node supabase/tests/applicant_review.test.js && node supabase/tests/event_day.test.js"
   },
   "keywords": [],
   "author": "",
