@@ -5,7 +5,7 @@ const path = require('path');
 const assert = require('assert');
 const { PGlite } = require('@electric-sql/pglite');
 
-const MIGRATIONS = ['20261028000000_event_day_schema.sql', '20261029000000_team_rules.sql', '20261030000000_submissions.sql'].map((f) => path.join(__dirname, '../migrations', f));
+const MIGRATIONS = ['20261028000000_event_day_schema.sql', '20261029000000_team_rules.sql', '20261030000000_submissions.sql', '20261031000000_event_day_ops.sql'].map((f) => path.join(__dirname, '../migrations', f));
 
 // A minimal copy of the tables as they are on staging before these migrations
 async function fresh() {
@@ -320,10 +320,77 @@ const tests = {
         assert.ok(Math.abs(new Date(p.server_time) - Date.now()) < 5000);
         assert.deepEqual(p.fields, []);
     },
-    async 'students cannot call the team functions directly'() {
+    // Event day ops
+    async 'once the window has opened, a phase extension only moves the deadline later'() {
+        const db = await fresh(); await eventWith(db, 0);
+        const phase = await addPhase(db, "'2026-11-22T20:00:00Z'");
+        const extend = (until) => db.query(`select extend_phase_deadline($1, $2) d`, [phase, until]).then((r) => r.rows[0].d.toISOString());
+        assert.equal(await extend('2026-11-22T20:30:00Z'), '2026-11-22T20:30:00.000Z');
+        assert.equal(await extend('2026-11-22T20:10:00Z'), '2026-11-22T20:30:00.000Z');
+    },
+    async 'before the window opens, the deadline can be set freely'() {
+        const db = await fresh(); await eventWith(db, 0);
+        const phase = await addPhase(db, "now() + interval '2 days'", "now() + interval '1 day'");
+        const d = (await db.query(`select extend_phase_deadline($1, now() + interval '30 hours') d`, [phase])).rows[0].d;
+        assert.ok(d < new Date(Date.now() + 31 * 3600e3));
+    },
+    async 'a team extension only moves later, and the team is found by code'() {
+        const db = await fresh(); await eventWith(db, 1);
+        const { Team: { team_code } } = await createTeam(db, 'u1');
+        const extend = (code, until) => db.query(`select extend_team($1, $2, $3) d`, [E, code, until]).then((r) => r.rows[0].d.toISOString());
+        assert.equal(await extend(` ${team_code.toLowerCase()} `, '2026-11-22T20:30:00Z'), '2026-11-22T20:30:00.000Z');
+        assert.equal(await extend(team_code, '2026-11-22T20:15:00Z'), '2026-11-22T20:30:00.000Z');
+        await fails(extend('Z9999', '2026-11-22T21:00:00Z'), 'UNKNOWN_TEAM');
+    },
+    async 'finalists are marked all or nothing'() {
+        const db = await fresh(); await eventWith(db, 2);
+        const a = (await createTeam(db, 'u1', 'A')).Team.team_code;
+        const b = (await createTeam(db, 'u2', 'B')).Team.team_code;
+        await fails(db.query(`select set_finalists($1, $2, true)`, [E, [a, 'Z9999']]), 'UNKNOWN_TEAM: Z9999');
+        assert.equal((await db.query(`select count(*)::int n from "Team" where is_finalist`)).rows[0].n, 0);
+        assert.equal((await db.query(`select set_finalists($1, $2, true) n`, [E, [a, b, a]])).rows[0].n, 2);
+        assert.equal((await db.query(`select set_finalists($1, $2, false) n`, [E, [b]])).rows[0].n, 1);
+    },
+    async 'publishing needs the exact list the events team OK\'d'() {
+        const db = await fresh(); await eventWith(db, 2);
+        const a = (await createTeam(db, 'u1', 'A')).Team.team_code;
+        const b = (await createTeam(db, 'u2', 'B')).Team.team_code;
+        await db.query(`select set_finalists($1, $2, true)`, [E, [a]]);
+        await fails(db.query(`select publish_finalists($1, $2)`, [E, [a, b]]), 'FINALISTS_CHANGED');
+        await db.query(`select publish_finalists($1, $2)`, [E, [a.toLowerCase()]]);
+        assert.ok((await db.query(`select finalists_published_at from "Event"`)).rows[0].finalists_published_at);
+        await fails(db.query(`select publish_finalists($1, $2)`, [E, [a]]), 'FINALISTS_PUBLISHED');
+    },
+    async 'after publishing, finalists change only as an explicit correction'() {
+        const db = await fresh(); await eventWith(db, 1);
+        const a = (await createTeam(db, 'u1')).Team.team_code;
+        await db.query(`select publish_finalists($1, '{}')`, [E]);
+        await fails(db.query(`select set_finalists($1, $2, true)`, [E, [a]]), 'FINALISTS_PUBLISHED');
+        assert.equal((await db.query(`select set_finalists($1, $2, true, true) n`, [E, [a]])).rows[0].n, 1);
+    },
+    async 'the export has every team, submitted or not, with its effective deadline'() {
+        const db = await fresh(); await eventWith(db, 3);
+        const t = await createTeam(db, 'u1', 'Royal Flush'); await joinTeam(db, 'u2', t.Team.team_code);
+        await createTeam(db, 'u3', 'Aces');
+        const phase = await addPhase(db, "'2099-11-22T20:00:00Z'"); await withFields(db, phase);
+        await save(db, 'u2', phase);
+        await db.query(`select extend_team($1, $2, '2099-11-22T20:30:00Z')`, [E, t.Team.team_code]);
+        const rows = (await db.query(`select * from submission_export($1)`, [phase])).rows;
+        assert.deepEqual(rows.map((r) => r.team_name), ['Aces', 'Royal Flush']);
+        const [aces, flush] = rows;
+        assert.equal(aces.submitted_at, null);
+        assert.deepEqual(flush.member_names, ['Applied Name 1', 'Applied Name 2']);
+        assert.deepEqual(flush.member_emails, ['u1@applied.com', 'u2@applied.com']);
+        assert.equal(flush.team_size, 2);
+        assert.equal(flush.submitted_by, 'Applied Name 2');
+        assert.equal(flush.submission.deck, answers.deck);
+        assert.equal(flush.effective_deadline.toISOString(), '2099-11-22T20:30:00.000Z');
+    },
+    async 'students cannot call the team or event day functions'() {
         const db = await fresh(); await eventWith(db, 1);
         await db.exec('set role authenticated');
         await fails(createTeam(db, 'u1'), 'permission denied');
+        await fails(db.query(`select publish_finalists($1, '{}')`, [E]), 'permission denied');
     },
 };
 
