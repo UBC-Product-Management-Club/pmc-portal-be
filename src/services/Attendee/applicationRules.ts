@@ -1,9 +1,9 @@
 import { PDFDocument } from "pdf-lib";
 
-// Server-side checks for an application. The frontend runs the same rules so
-// students see errors early, but only these decide what gets saved.
+// Server-side checks for an application or a submission. The frontend runs the
+// same rules so students see errors early, but only these decide what gets saved.
 
-type QuestionType = "short-answer" | "long-answer" | "dropdown" | "file" | "checkbox" | "radio";
+type QuestionType = "short-answer" | "long-answer" | "dropdown" | "file" | "checkbox" | "radio" | "url";
 
 export type Question = {
   id: string;
@@ -28,6 +28,16 @@ export type ApplicationCheck = {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 // Ten-digit North American numbers, with or without +1, spaces, dashes or brackets
 const PHONE = /^(\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
+
+// https links of up to 2,048 characters, so javascript: and data: links never reach a judge
+const isHttpsLink = (value: string) => {
+  if (value.length > 2048 || /\s/.test(value) || !/^https:\/\//i.test(value)) return false;
+  try {
+    return new URL(value).hostname !== "";
+  } catch {
+    return false;
+  }
+};
 
 // Same as the frontend: trim, then split on runs of whitespace (an empty answer is 0 words)
 export const countWords = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
@@ -96,46 +106,37 @@ const checkText = (q: Question, value: string): FieldError | undefined => {
   if ((q.type === "dropdown" || q.type === "radio") && q.options && !q.options.includes(value)) {
     return { code: "VALIDATION_ERROR", message: "Pick one of the options." };
   }
+  if (q.type === "url" && !isHttpsLink(value)) {
+    return { code: "VALIDATION_ERROR", message: "Enter a link that starts with https://." };
+  }
   if (q.id === "phone" && !PHONE.test(value)) {
     return { code: "VALIDATION_ERROR", message: "Enter a phone number like 604-555-0123." };
   }
 };
 
-// Checks every answer and file against the event's questions. Only known
-// answers are kept, each trimmed; anything else in the request is dropped.
-export const checkApplication = async (
-  rawQuestions: unknown,
+// Reads one text answer: strings only, trimmed. undefined means it wasn't text.
+const readText = (body: Record<string, unknown>, key: string, errors: Record<string, FieldError>) => {
+  const value = body[key];
+  if (value === undefined) return "";
+  if (typeof value !== "string") {
+    errors[key] = { code: "VALIDATION_ERROR", message: "Answer with text." };
+    return undefined;
+  }
+  return value.trim();
+};
+
+// Checks every answer and file against the questions. Only known answers are
+// kept, each trimmed; anything else in the request is dropped. A required file
+// question listed in alreadyUploaded may be left without a new file.
+export const checkAnswers = async (
+  questions: Question[],
   body: Record<string, unknown>,
-  uploads: Express.Multer.File[]
+  uploads: Express.Multer.File[],
+  alreadyUploaded: Set<string> = new Set()
 ): Promise<ApplicationCheck> => {
-  const { questions, keyedById } = normalizeQuestions(rawQuestions);
   const answers: Record<string, string> = {};
   const files: Express.Multer.File[] = [];
   const errors: Record<string, FieldError> = {};
-
-  const readText = (key: string): string | undefined => {
-    const value = body[key];
-    if (value === undefined) return "";
-    if (typeof value !== "string") {
-      errors[key] = { code: "VALIDATION_ERROR", message: "Answer with text." };
-      return undefined;
-    }
-    return value.trim();
-  };
-
-  // Name and email are fixed fields on forms that use the current question format
-  if (keyedById) {
-    const name = readText("name");
-    if (name !== undefined) {
-      if (!name) errors.name = { code: "VALIDATION_ERROR", message: "Please enter your name." };
-      else answers.name = name;
-    }
-    const email = readText("email");
-    if (email !== undefined) {
-      if (!EMAIL.test(email)) errors.email = { code: "VALIDATION_ERROR", message: "Enter an email like you@example.com." };
-      else answers.email = email;
-    }
-  }
 
   for (const q of questions) {
     if (q.type === "file") {
@@ -146,7 +147,7 @@ export const checkApplication = async (
       }
       const [file] = matching;
       if (!file) {
-        if (q.required) errors[q.id] = { code: "VALIDATION_ERROR", message: "Please upload a file." };
+        if (q.required && !alreadyUploaded.has(q.id)) errors[q.id] = { code: "VALIDATION_ERROR", message: "Please upload a file." };
         continue;
       }
       const error = await checkFile(q, file);
@@ -155,7 +156,7 @@ export const checkApplication = async (
       continue;
     }
 
-    const value = readText(q.id);
+    const value = readText(body, q.id, errors);
     if (value === undefined) continue;
     const error = checkText(q, value);
     if (error) errors[q.id] = error;
@@ -163,6 +164,34 @@ export const checkApplication = async (
   }
 
   return { answers, files, errors };
+};
+
+// An application: the event's questions, plus name and email, which are fixed
+// fields on forms that use the current question format
+export const checkApplication = async (
+  rawQuestions: unknown,
+  body: Record<string, unknown>,
+  uploads: Express.Multer.File[]
+): Promise<ApplicationCheck> => {
+  const { questions, keyedById } = normalizeQuestions(rawQuestions);
+  const fixed: Record<string, string> = {};
+  const fixedErrors: Record<string, FieldError> = {};
+
+  if (keyedById) {
+    const name = readText(body, "name", fixedErrors);
+    if (name !== undefined) {
+      if (!name) fixedErrors.name = { code: "VALIDATION_ERROR", message: "Please enter your name." };
+      else fixed.name = name;
+    }
+    const email = readText(body, "email", fixedErrors);
+    if (email !== undefined) {
+      if (!EMAIL.test(email)) fixedErrors.email = { code: "VALIDATION_ERROR", message: "Enter an email like you@example.com." };
+      else fixed.email = email;
+    }
+  }
+
+  const { answers, files, errors } = await checkAnswers(questions, body, uploads);
+  return { answers: { ...fixed, ...answers }, files, errors: { ...fixedErrors, ...errors } };
 };
 
 // One code for the whole response: the specific one when every error shares it
