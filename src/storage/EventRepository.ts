@@ -97,9 +97,4 @@ export const EventRepository = {
       .select("page_content, discord_url, min_team_size, max_team_size")
       .eq("event_id", eventId)
       .maybeSingle(),
-  getEventDeliverableFlags: (eventId: string) =>
-    supabase
-      .from("Deliverable_Flags")
-      .select("*")
-      .eq("event_id", eventId)
 };

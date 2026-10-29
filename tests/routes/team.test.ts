@@ -12,8 +12,6 @@ jest.mock("../../src/services/Email/EventEmailService", () => ({ deliverApplicat
 jest.mock("../../src/storage/Storage", () => ({
   uploadSupabaseFiles: jest.fn(),
   deleteSupabaseFile: jest.fn(),
-  uploadDeliverableFiles: jest.fn(),
-  getDeliverable: jest.fn(),
 }));
 
 import express from "express";

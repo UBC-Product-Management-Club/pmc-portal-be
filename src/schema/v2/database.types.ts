@@ -897,6 +897,28 @@ export type Database = {
         Args: { p_event_id: string; p_team_name: string; p_user_id: string }
         Returns: Json
       }
+      save_submission: {
+        Args: {
+          p_event_id: string
+          p_expected_version: number
+          p_phase_id: string
+          p_submission: Json
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      submission_context: {
+        Args: { p_event_id: string; p_phase_id: string; p_user_id: string }
+        Returns: Json
+      }
+      submission_phases: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: Json
+      }
+      team_submission: {
+        Args: { p_event_id: string; p_phase_id: string; p_user_id: string }
+        Returns: Json
+      }
       accept_applicants: {
         Args: { p_attendee_ids: string[]; p_event_id: string; p_reviewer: string }
         Returns: number
