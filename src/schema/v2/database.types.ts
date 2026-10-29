@@ -128,6 +128,42 @@ export type Database = {
           },
         ]
       }
+      Announcement: {
+        Row: {
+          announcement_id: string
+          audience: string
+          body: string
+          created_at: string
+          display_order: number
+          ends_at: string | null
+          is_active: boolean
+          starts_at: string | null
+          title: string
+        }
+        Insert: {
+          announcement_id?: string
+          audience?: string
+          body: string
+          created_at?: string
+          display_order?: number
+          ends_at?: string | null
+          is_active?: boolean
+          starts_at?: string | null
+          title: string
+        }
+        Update: {
+          announcement_id?: string
+          audience?: string
+          body?: string
+          created_at?: string
+          display_order?: number
+          ends_at?: string | null
+          is_active?: boolean
+          starts_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       Attendee: {
         Row: {
           acceptance_version: number
@@ -956,6 +992,19 @@ export type Database = {
           team_name: string
           team_size: number
           version: number | null
+        }[]
+      }
+      active_announcements: {
+        Args: { p_is_member: boolean }
+        Returns: Database["public"]["Tables"]["Announcement"]["Row"][]
+      }
+      event_statuses: {
+        Args: { p_user_id: string }
+        Returns: {
+          event_id: string
+          has_draft: boolean
+          payment_due_at: string | null
+          status: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
         }[]
       }
       accept_applicants: {

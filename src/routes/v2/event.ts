@@ -6,6 +6,7 @@ import { ApiError, sendApiError } from "../../services/ApiError";
 import { getEvent, getEvents, getPublicEvent, getRegisteredContent, getRegisteredEvents } from "../../services/Event/EventService";
 import { createUserTeam, getUserTeam, joinTeamWithCode, leaveUserTeam, renameUserTeam } from "../../services/Team/TeamService";
 import { perUserRateLimit } from "../../middleware/rateLimit";
+import { HomeRepository } from "../../storage/HomeRepository";
 
 import multer from "multer";
 import { DraftService } from "../../services/Drafts/DraftService";
@@ -81,6 +82,17 @@ eventRouter.get("/events/registered", ...authenticated, async (req, res) => {
         return res.status(200).json(userCurrentEvents);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
+    }
+});
+
+// Home's status badges: one row per event with a draft or an application
+eventRouter.get("/events/statuses", ...authenticated, async (req: Request, res: Response) => {
+    try {
+        const { data, error } = await HomeRepository.eventStatuses(userIdOf(req));
+        if (error) throw new Error(error.message);
+        return res.status(200).json(data ?? []);
+    } catch (error) {
+        return sendError(res, error, "Event statuses error");
     }
 });
 
