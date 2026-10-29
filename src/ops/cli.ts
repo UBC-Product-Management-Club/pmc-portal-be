@@ -10,10 +10,31 @@
 //   npm run ops -- retry-refunds --event <id>              finish refunds that have no refund_id
 //   npm run ops -- resolve       --checkout <id>           after the events team contacted the student
 //
+// Event day (times need their offset, e.g. 2026-11-22T12:30:00-08:00):
+//   npm run ops -- extend        --event <id> --until <time> [--phase <id>]   every team
+//   npm run ops -- extend        --event <id> --until <time> --team <code>    one team
+//   npm run ops -- finalists     --event <id>                                 read the list back
+//   npm run ops -- finalists     --event <id> --mark <codes> | --unmark <codes> [--correction]
+//   npm run ops -- publish-finalists --event <id> --confirm <codes|none>      after the reveal
+//   npm run ops -- export-submissions --event <id> [--phase <id>] [--out <dir>]
+//
 // Needs the backend's .secret/.env plus REVIEW_SHEET_ID and
 // GOOGLE_APPLICATION_CREDENTIALS (a service account the sheet is shared with as
 // an editor). --event defaults to OPS_EVENT_ID.
+import { writeFileSync } from "fs";
+import { join } from "path";
 import { runDecisions } from "./decisions";
+import {
+  exportSubmissions,
+  extendPhase,
+  extendTeam,
+  listFinalists,
+  parseCodes,
+  publishFinalists,
+  resolvePhase,
+  setFinalists,
+} from "./eventDay";
+import { pacific } from "./cells";
 import { markSent, markSentFromSheet, resolveIssue, retryRefunds } from "./payments";
 import {
   locateColumns,
@@ -121,6 +142,49 @@ export const main = async (argv: string[]) => {
       await resolveIssue(required(flags.checkout, "--checkout"));
       console.log("Resolved.");
       break;
+    case "extend": {
+      const until = required(flags.until, "--until");
+      if (typeof flags.team === "string") {
+        console.log(`${flags.team.toUpperCase()} now closes ${pacific(await extendTeam(event(), flags.team, until))}.`);
+      } else {
+        const phase = await resolvePhase(event(), typeof flags.phase === "string" ? flags.phase : undefined);
+        console.log(`Every team now closes ${pacific(await extendPhase(phase, until))} (teams with a later extension keep theirs).`);
+      }
+      break;
+    }
+    case "finalists": {
+      const mark = typeof flags.mark === "string" ? flags.mark : undefined;
+      const unmark = typeof flags.unmark === "string" ? flags.unmark : undefined;
+      if (mark || unmark) {
+        const changed = await setFinalists(event(), parseCodes((mark ?? unmark)!), !!mark, flags.correction === true);
+        console.log(`${changed} team(s) changed.`);
+      }
+      const finalists = await listFinalists(event());
+      console.log(`Finalists (${finalists.length}), read these back to the events team:`);
+      for (const f of finalists) console.log(`  ${f.team_code}  ${f.team_name}`);
+      console.log(`Once they OK it, after the reveal: publish-finalists --confirm ${finalists.map((f) => f.team_code).join(",") || "none"}`);
+      break;
+    }
+    case "publish-finalists": {
+      const confirm = required(flags.confirm, "--confirm");
+      const at = await publishFinalists(event(), confirm === "none" ? [] : parseCodes(confirm));
+      console.log(`Published at ${pacific(at)}. Finalist teams see their card now.`);
+      break;
+    }
+    case "export-submissions": {
+      const phase = await resolvePhase(event(), typeof flags.phase === "string" ? flags.phase : undefined);
+      const out = typeof flags.out === "string" ? flags.out : ".";
+      const result = await exportSubmissions(phase);
+      const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
+      const fullPath = join(out, `submissions-${stamp}.csv`);
+      const judgesPath = join(out, `submissions-judges-${stamp}.csv`);
+      writeFileSync(fullPath, result.full);
+      writeFileSync(judgesPath, result.judges);
+      console.log(`${result.submitted} of ${result.teams} teams submitted.`);
+      console.log(`Wrote ${fullPath} (has emails: share with organizers only) and ${judgesPath} (for judges).`);
+      console.log("Deck links expire in 7 days.");
+      break;
+    }
     default:
       throw new Error(`Unknown command ${command ?? "(none)"}; see the top of src/ops/cli.ts`);
   }
