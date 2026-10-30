@@ -377,6 +377,9 @@ describe("PaymentService", () => {
             { idempotencyKey: "refund-cs_event_test" }
           );
           expect(mockRecordRefund).toHaveBeenCalledWith("cs_event_test", "re_1");
+          expect(console.error).toHaveBeenCalledWith(
+            JSON.stringify({ event: "PAYMENT_REFUND_REQUIRED", reason, attendeeId: "att-456", checkoutId: "cs_event_test" })
+          );
           expect(mockAddToMailingList).not.toHaveBeenCalled();
         }
       );

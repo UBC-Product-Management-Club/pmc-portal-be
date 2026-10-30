@@ -2,6 +2,7 @@ import { APIError, RateLimitExceededError } from "loops";
 import { loops } from "../../config/loops";
 import { Enums, Json, Tables } from "../../schema/v2/database.types";
 import { NotificationRepository } from "../../storage/NotificationRepository";
+import { logEvent } from "../logEvent";
 
 // Event emails (Product Jackpot): Notification_Hook → re-check now → Loops → sent_at.
 // Everything here sits behind EMAIL_DELIVERY_ENABLED, which stays false until the
@@ -150,6 +151,6 @@ export const deliverApplicationReceipt = async (attendeeId: string) => {
     if (error) throw error;
     if (data) await deliverNotification(data.notification_id);
   } catch (error) {
-    console.error(JSON.stringify({ event: "EMAIL_FAILED", attendeeId, type: "application_received", error: String(error) }));
+    logEvent("EMAIL_SEND_FAILED", { attendeeId, type: "application_received", error: String(error) });
   }
 };
