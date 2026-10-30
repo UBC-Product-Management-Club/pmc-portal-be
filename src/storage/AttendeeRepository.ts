@@ -10,6 +10,14 @@ export const AttendeeRepository = {
     // Registers only if a seat is free (free and no-review events)
     registerIfSeatAvailable: (attendeeId: string, paymentId?: string) =>
         supabase.rpc("register_if_seat_available", { p_attendee_id: attendeeId, ...(paymentId && { p_payment_id: paymentId }) }),
+    // The attendee plus what the status API needs: today's prices and membership
+    getAttendeeForStatus: (eventId: string, userId: string) =>
+        supabase
+            .from("Attendee")
+            .select("*, Event!inner ( member_price, non_member_price ), User!inner ( is_payment_verified )")
+            .eq("event_id", eventId)
+            .eq("user_id", userId)
+            .maybeSingle(),
     getAttendee: (eventId: string, userId: string) => supabase.from("Attendee").select("*").eq("event_id", eventId).eq("user_id", userId).maybeSingle(),
     deleteAttendee: (attendeeId: string) => supabase.from("Attendee").delete().eq("attendee_id", attendeeId),
     countByEvent: (eventId: string) => supabase.from("Attendee").select("*", { count: "exact", head: true }).eq("event_id", eventId),

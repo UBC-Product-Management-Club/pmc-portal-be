@@ -12,6 +12,9 @@ jest.mock("../../src/services/Email/EmailService", () => ({
   sendEmail: jest.fn(),
   LoopsEvent: { ApplicationReceived: "application_received" },
 }));
+jest.mock("../../src/services/Email/EventEmailService", () => ({
+  deliverApplicationReceipt: jest.fn(),
+}));
 jest.mock("../../src/storage/Storage", () => ({
   uploadSupabaseFiles: jest.fn(),
   deleteSupabaseFile: jest.fn(),
@@ -27,6 +30,8 @@ import { getEvent } from "../../src/services/Event/EventService";
 import { submitApplication } from "../../src/services/Attendee/AttendeeService";
 import { deleteSupabaseFile, uploadSupabaseFiles } from "../../src/storage/Storage";
 import { ApiError } from "../../src/services/ApiError";
+import { sendEmail } from "../../src/services/Email/EmailService";
+import { deliverApplicationReceipt } from "../../src/services/Email/EventEmailService";
 
 const app = express();
 app.use(express.json());
@@ -35,6 +40,7 @@ app.use("/events", eventRouter);
 const event = {
   event_id: "event-456",
   name: "Product Jackpot",
+  needs_review: true,
   event_form_questions: {
     questions: [
       { id: "why_event", type: "long-answer", label: "Why?", required: true, maxWords: 3 },
@@ -76,6 +82,25 @@ describe("POST /events/:eventId/register", () => {
       ...valid,
       resume: "attendee/event-456/user-123/resume.pdf",
     });
+  });
+
+  it("sends a reviewed event's receipt from its hook, not the old Loops event", async () => {
+    (submitApplication as jest.Mock).mockResolvedValueOnce({ attendee_id: "att-1", status: "APPLIED" });
+
+    await submit(valid, pdf);
+
+    expect(deliverApplicationReceipt).toHaveBeenCalledWith("att-1");
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("keeps the old Loops event for events without review", async () => {
+    (getEvent as jest.Mock).mockResolvedValueOnce({ ...event, needs_review: false });
+    (submitApplication as jest.Mock).mockResolvedValueOnce({ attendee_id: "att-1", status: "PROCESSING" });
+
+    await submit(valid, pdf);
+
+    expect(sendEmail).toHaveBeenCalledWith("user-123", "application_received", { event_name: "Product Jackpot" });
+    expect(deliverApplicationReceipt).not.toHaveBeenCalled();
   });
 
   it("rejects an over-limit answer with the field error and uploads nothing", async () => {

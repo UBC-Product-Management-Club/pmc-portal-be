@@ -2,6 +2,7 @@ import { Enums, Tables } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { TeamRepository } from "../../storage/TeamRepository";
 import { ApiError } from "../ApiError";
+import { workflowState, WorkflowState } from "./workflowState";
 
 export const getAttendee = async (
   eventId: string,
@@ -17,6 +18,35 @@ export const getAttendee = async (
     );
   }
   return attendee;
+};
+
+export type AttendeeStatus = Tables<"Attendee"> & {
+  workflow_state: WorkflowState | null;
+  // The student's price today, only while they're Accepted
+  amount_due: number | null;
+  server_time: string;
+};
+
+// The attendee as the event page reads it, or null when the student hasn't applied
+export const getAttendeeStatus = async (
+  eventId: string,
+  userId: string,
+  now = new Date()
+): Promise<AttendeeStatus | null> => {
+  const { data, error } = await AttendeeRepository.getAttendeeForStatus(eventId, userId);
+  if (error) {
+    throw new Error(`Failed to load attendee for ${userId} at event ${eventId}: ${error.message}`);
+  }
+  if (!data) return null;
+
+  const { Event: event, User: user, ...attendee } = data;
+  const price = user.is_payment_verified ? event.member_price : event.non_member_price;
+  return {
+    ...attendee,
+    workflow_state: workflowState(attendee, now),
+    amount_due: attendee.status === "ACCEPTED" ? price : null,
+    server_time: now.toISOString(),
+  };
 };
 
 export const updateAttendee = async (

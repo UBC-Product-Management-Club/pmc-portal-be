@@ -5,7 +5,6 @@ import {
   deleteCheckoutSession,
   MEMBERSHIP_FEE_NONUBC,
   MEMBERSHIP_FEE_UBC,
-  saveCheckoutSession,
 } from "../../services/Payment/PaymentService";
 import {
   createCheckoutSession,
@@ -17,7 +16,7 @@ import {
   registerIfSeatAvailable,
 } from "../../services/Attendee/AttendeeService";
 import { ApiError, sendApiError } from "../../services/ApiError";
-import { getEventPriceId } from "../../services/Event/EventService";
+import { getEvent, getEventPriceId } from "../../services/Event/EventService";
 import { getUser } from "../../services/User/UserService";
 import { addToMailingList } from "../../services/Email/EmailService";
 
@@ -87,17 +86,16 @@ paymentRouter.get(
         .json({ message: `No attendee found ${eventId}:${userId}` });
 
     try {
+      const event = await getEvent(eventId);
+      if (!event) return sendApiError(res, new ApiError(404, "NOT_FOUND", "This event doesn't exist."));
+      // The price follows the student's membership today, not when they applied
       const user = await getUser(userId);
       const isMember = user?.is_payment_verified;
       const priceId = await getEventPriceId(eventId, !!isMember);
-      const session = await getOrCreateEventCheckoutSession(
-        attendee.attendee_id,
-        eventId,
-        userId,
-        priceId
-      );
+      const session = await getOrCreateEventCheckoutSession(attendee, event, userId, priceId);
       return res.status(200).json(session);
     } catch (error) {
+      if (error instanceof ApiError) return sendApiError(res, error);
       console.log(error);
       return res.status(500).json(error);
     }

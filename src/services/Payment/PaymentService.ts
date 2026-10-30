@@ -5,16 +5,13 @@ import { PaymentRepository } from "../../storage/PaymentRepository";
 import { UserRepository } from "../../storage/UserRepository";
 import { CheckoutSessionRepository } from "../../storage/CheckoutSessionRepository";
 import { addToMailingList, LoopsEvent, sendEmail } from "../Email/EmailService";
-import { Enums, Tables } from "../../schema/v2/database.types";
-import moment from "moment";
+import { Tables } from "../../schema/v2/database.types";
 import {
   deleteAttendee,
-  getAttendee,
   getAttendeeWithEvent,
-  registerIfSeatAvailable,
   updateAttendee,
 } from "../Attendee/AttendeeService";
-import { getEvent } from "../Event/EventService";
+import { ApiError } from "../ApiError";
 
 export enum Status {
   PAYMENT_SUCCESS = "PAYMENT_SUCCESS",
@@ -84,14 +81,13 @@ export const createCheckoutSession = async (userId: string) => {
   return session;
 };
 
-export const saveCheckoutSession = async (
-  attendeeId: string,
-  checkoutId: string
-) => {
-  const { error } = await CheckoutSessionRepository.addCheckoutSession(
-    attendeeId,
-    checkoutId
-  );
+export const saveCheckoutSession = async (row: {
+  attendee_id: string;
+  checkout_id: string;
+  acceptance_version: number | null;
+  expires_at: string;
+}) => {
+  const { error } = await CheckoutSessionRepository.saveCheckoutSession(row);
   if (error) {
     throw error;
   }
@@ -107,6 +103,16 @@ export const getCheckoutSession = async (attendeeId: string) => {
   return data ? stripe.checkout.sessions.retrieve(data.checkout_id) : null;
 };
 
+// True when this is the attendee's current checkout, Stripe has taken the
+// payment, and the webhook hasn't handled it yet
+export const isCheckoutAwaitingFulfillment = async (attendeeId: string, sessionId: string) => {
+  const { data, error } = await CheckoutSessionRepository.getCheckoutSession(attendeeId);
+  if (error) throw error;
+  if (!data || data.checkout_id !== sessionId || data.fulfilled_at) return false;
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  return session.status === "complete" && session.payment_status === "paid";
+};
+
 export const deleteCheckoutSession = async (attendeeId: string) => {
   const { error } = await CheckoutSessionRepository.deleteCheckoutSession(
     attendeeId
@@ -116,18 +122,75 @@ export const deleteCheckoutSession = async (attendeeId: string) => {
   }
 };
 
+type CheckoutAttendee = Pick<Tables<"Attendee">, "attendee_id" | "status" | "payment_due_at" | "acceptance_version">;
+
+// When a checkout expires, in Unix seconds: the end of the payment hold, but at
+// most 24 hours away and never under Stripe's 30 minutes. Events without review
+// have no hold and get the minimum. Rounded to the minute so repeated clicks
+// within a minute send Stripe the same request and get the same session back.
+export const checkoutExpiry = (paymentDueAt: string | null, now = Date.now()) => {
+  const nowS = Math.floor(now / 1000);
+  const earliest = Math.ceil((nowS + 31 * 60) / 60) * 60;
+  const latest = Math.floor((nowS + 24 * 60 * 60) / 60) * 60;
+  if (!paymentDueAt) return earliest;
+  const due = Math.floor(new Date(paymentDueAt).getTime() / 1000);
+  return Math.max(earliest, Math.min(due, latest));
+};
+
+// Reviewed events: only Accepted students inside their payment window can pay.
+// An open checkout is reused only if it's for the same acceptance and price
+// (membership can change the price); otherwise it's expired and replaced.
 export const getOrCreateEventCheckoutSession = async (
-  attendeeId: string,
-  eventId: string,
+  attendee: CheckoutAttendee,
+  event: { event_id: string; needs_review: boolean },
   userId: string,
   priceId: string
 ) => {
-  try {
-    const existing = await getCheckoutSession(attendeeId);
-    if (existing) {
-      return existing;
+  const attendeeId = attendee.attendee_id;
+  if (attendee.status === "REGISTERED") {
+    throw new ApiError(409, "ALREADY_REGISTERED", "You're already registered.");
+  }
+  if (event.needs_review) {
+    if (attendee.status !== "ACCEPTED") {
+      throw new ApiError(409, "NOT_ACCEPTED", "There's nothing to pay for yet.");
     }
-    const session = await stripe.checkout.sessions.create({
+    if (!attendee.payment_due_at || new Date() >= new Date(attendee.payment_due_at)) {
+      throw new ApiError(409, "HOLD_EXPIRED", "Your payment window has closed.");
+    }
+  }
+  const version = event.needs_review ? String(attendee.acceptance_version) : "none";
+
+  const { data: existing, error } = await CheckoutSessionRepository.getCheckoutSession(attendeeId);
+  if (error) throw error;
+  if (existing && !existing.fulfilled_at) {
+    const current = await stripe.checkout.sessions.retrieve(existing.checkout_id);
+    if (current.status === "complete") {
+      throw new ApiError(409, "PAYMENT_PROCESSING", "Your payment is still processing.");
+    }
+    const sameTerms = current.metadata?.acceptance_version === version && current.metadata?.price_id === priceId;
+    if (current.status === "open" && sameTerms) return current;
+    if (current.status === "open") await stripe.checkout.sessions.expire(current.id);
+  }
+  if (existing?.attention_reason && !existing.attention_resolved_at) {
+    // The row is replaced below, so the unresolved payment issue goes to the logs too
+    logEvent("ATTENTION_REPLACED", {
+      attendeeId,
+      checkoutId: existing.checkout_id,
+      reason: existing.attention_reason,
+      refundId: existing.refund_id ?? "",
+    });
+  }
+
+  const expiresAt = checkoutExpiry(event.needs_review ? attendee.payment_due_at : null);
+  const metadata = {
+    user_id: userId,
+    payment_type: "event",
+    attendee_id: attendeeId,
+    event_id: event.event_id,
+    acceptance_version: version,
+  };
+  const session = await stripe.checkout.sessions.create(
+    {
       line_items: [
         {
           price: priceId,
@@ -136,28 +199,21 @@ export const getOrCreateEventCheckoutSession = async (
       ],
       mode: "payment",
       payment_method_configuration: process.env.CARD_PAYMENT_METHOD_ID,
-      success_url: `${process.env.ORIGIN}/events/${eventId}/register?success=true`,
-      cancel_url: `${process.env.ORIGIN}/events/${eventId}/register`, // you cant actually cancel a checkout session.
-      expires_at: moment().unix() + 1900, // 30 minutes
-      metadata: {
-        user_id: userId,
-        payment_type: "event",
-        attendee_id: attendeeId,
-      },
-      payment_intent_data: {
-        metadata: {
-          user_id: userId,
-          payment_type: "event",
-          attendee_id: attendeeId,
-        },
-      },
-    });
-    saveCheckoutSession(attendeeId, session.id);
-    return session;
-  } catch (error: any) {
-    console.error(error);
-    throw error;
-  }
+      success_url: `${process.env.ORIGIN}/events/${event.event_id}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.ORIGIN}/events/${event.event_id}`, // you cant actually cancel a checkout session.
+      expires_at: expiresAt,
+      metadata: { ...metadata, price_id: priceId },
+      payment_intent_data: { metadata },
+    },
+    { idempotencyKey: `event-checkout-${attendeeId}-v${version}-${priceId}-${expiresAt}` }
+  );
+  await saveCheckoutSession({
+    attendee_id: attendeeId,
+    checkout_id: session.id,
+    acceptance_version: event.needs_review ? attendee.acceptance_version : null,
+    expires_at: new Date(expiresAt * 1000).toISOString(),
+  });
+  return session;
 };
 
 export const getOrCreateRSVPCheckoutSession = async (
@@ -195,7 +251,12 @@ export const getOrCreateRSVPCheckoutSession = async (
         },
       },
     });
-    saveCheckoutSession(attendeeId, session.id);
+    await saveCheckoutSession({
+      attendee_id: attendeeId,
+      checkout_id: session.id,
+      acceptance_version: null,
+      expires_at: new Date(session.expires_at * 1000).toISOString(),
+    });
     return session;
   } catch (error: any) {
     console.error(error);
@@ -231,7 +292,8 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
   const paymentType = paymentIntent.metadata?.payment_type;
   const paymentId = paymentIntent.id;
   switch (stripeEvent.type) {
-    case "payment_intent.succeeded": {
+    case "payment_intent.succeeded":
+      // Event payments register through checkout.session.completed
       if (paymentType === "membership" && userId) {
         const { error } = await UserRepository.updateUser(userId, {
           is_payment_verified: true,
@@ -244,32 +306,16 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
           `Membership PaymentIntent for ${userId} succeeded: ${paymentIntent.id}`
         );
         sendEmail(userId, LoopsEvent.MembershipPayment);
-      } else if (paymentType === "event" && attendeeId) {
-        await registerPaidAttendee(attendeeId, paymentId);
-      }
-      break;
-    }
-    case "payment_intent.payment_failed":
-      if (paymentType === "event") {
-        const attendee = await getAttendee(attendeeId, userId);
-        if (!attendee) return;
-        const event = await getEvent(attendee.event_id);
-        if (event?.needs_review) {
-          updateAttendee(attendeeId, {
-            is_payment_verified: false,
-            payment_id: paymentId,
-            status: "ACCEPTED",
-          });
-        }
       }
       break;
     case "payment_intent.processing":
-      if (paymentType === "event") {
-        await updateAttendee(attendeeId, {
-          is_payment_verified: false,
-          payment_id: paymentId,
-          status: "PROCESSING",
-        });
+      // Only events without review track a pending payment on the attendee;
+      // reviewed students stay Accepted and the page reads the checkout instead
+      if (paymentType === "event" && attendeeId) {
+        const attendee = await getAttendeeWithEvent(attendeeId);
+        if (attendee && !attendee.Event.needs_review && attendee.status === "PROCESSING") {
+          await updateAttendee(attendeeId, { is_payment_verified: false, payment_id: paymentId });
+        }
       }
       break;
   }
@@ -277,75 +323,95 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
 
 const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
   const checkoutSession = stripeEvent.data.object as Stripe.Checkout.Session;
-  const paymentId = checkoutSession.id;
+  const checkoutId = checkoutSession.id;
   const userId = checkoutSession.metadata?.user_id;
   const attendeeId = checkoutSession.metadata?.attendee_id;
   const paymentType = checkoutSession.metadata?.payment_type;
   if (paymentType === "membership") return;
 
   if (!userId || !attendeeId || !paymentType) {
-    console.error("Missing required info! " + paymentId);
+    console.error("Missing required info! " + checkoutId);
     return;
   }
   switch (stripeEvent.type) {
     case "checkout.session.completed":
-      // work around for free events: a $0 checkout claims a seat the same way
-      if (checkoutSession.amount_total === 0) {
-        await upsertPaymentTransaction(checkoutSession);
-        if (!(await registerIfSeatAvailable(attendeeId, paymentId))) {
-          logEvent("FREE_EVENT_FULL", { attendeeId, checkoutId: paymentId });
-          await deleteCheckoutSession(attendeeId);
-          await deleteAttendee(attendeeId);
-          return;
-        }
-      }
-
-      try {
-        deleteCheckoutSession(attendeeId);
-        addToMailingList(attendeeId);
-        console.log(
-          `Added user ${userId} to mailing list for event attendee ${attendeeId}`
-        );
-      } catch (error) {
-        console.error("Failed to add to mailing list: ", error);
+      await fulfillEventCheckout(stripeEvent, checkoutSession, attendeeId, userId);
+      break;
+    case "checkout.session.expired": {
+      // Only the attendee's current checkout counts; an older one was replaced on purpose
+      const { data: current } = await CheckoutSessionRepository.getCheckoutSession(attendeeId);
+      if (current?.checkout_id !== checkoutId || current.fulfilled_at) return;
+      // Events without review drop the unpaid application; reviewed students keep
+      // their acceptance and can start a new checkout inside their window
+      const attendee = await getAttendeeWithEvent(attendeeId);
+      if (attendee && !attendee.Event.needs_review && attendee.status === "PROCESSING") {
+        await deleteCheckoutSession(attendeeId);
+        await deleteAttendee(attendeeId);
       }
       break;
-    case "checkout.session.expired":
-      deleteAttendee(attendeeId);
-      deleteCheckoutSession(attendeeId);
-      break;
+    }
   }
 };
 
-// Events without review don't hold a seat while a payment is pending, so the seat
-// is claimed when the payment succeeds. If the event filled up meanwhile, the
-// payment is refunded once (the idempotency key makes a retried webhook a no-op)
-// and the application is removed so the student sees the event as full.
-// Reviewed events keep their seat from acceptance; the applicant review PR adds
-// their payment-hold checks.
-const registerPaidAttendee = async (attendeeId: string, paymentIntentId: string) => {
-  const attendee = await getAttendeeWithEvent(attendeeId);
-  if (!attendee) {
-    console.error(`Paid attendee ${attendeeId} not found`);
-    return;
-  }
-  if (attendee.Event.needs_review) {
-    await updateAttendee(attendeeId, {
-      is_payment_verified: true,
-      payment_id: paymentIntentId,
-      status: "REGISTERED",
-    });
-    return;
-  }
-  if (await registerIfSeatAvailable(attendeeId, paymentIntentId)) return;
+// The database decides, under the event lock, whether this checkout registers
+// the student (fulfill_event_checkout). When it can't, the reason is recorded
+// first, then the payment is refunded once: the idempotency key makes a retried
+// webhook reuse the same refund, and refund_id is recorded once Stripe has it.
+const fulfillEventCheckout = async (
+  stripeEvent: Stripe.Event,
+  checkoutSession: Stripe.Checkout.Session,
+  attendeeId: string,
+  userId: string
+) => {
+  const checkoutId = checkoutSession.id;
+  const paid = checkoutSession.payment_status === "paid" || checkoutSession.payment_status === "no_payment_required";
+  const paymentIntentId =
+    typeof checkoutSession.payment_intent === "string" ? checkoutSession.payment_intent : checkoutSession.payment_intent?.id;
+  // Free checkouts have no payment intent; the checkout id stands in, as before
+  const paymentId = paymentIntentId ?? checkoutId;
 
-  await stripe.refunds.create(
-    { payment_intent: paymentIntentId },
-    { idempotencyKey: `refund-event-full-${paymentIntentId}` }
+  // Attendee.payment_id points at Payment, so the row has to exist first
+  if (paid) {
+    await logTransaction({
+      payment_id: paymentId,
+      user_id: userId,
+      type: "event",
+      amount: checkoutSession.amount_total || 0,
+      status: Status.PAYMENT_SUCCESS,
+      payment_date: new Date().toISOString(),
+    });
+  }
+
+  const { data: outcome, error } = await CheckoutSessionRepository.fulfill(
+    checkoutId,
+    stripeEvent.id,
+    paid,
+    new Date(stripeEvent.created * 1000).toISOString(),
+    paymentId
   );
-  logEvent("NO_REVIEW_FULL", { attendeeId, paymentIntentId });
-  await deleteCheckoutSession(attendeeId);
-  await deleteAttendee(attendeeId);
+  if (error) throw new Error(`Failed to fulfill checkout ${checkoutId}: ${error.message}`);
+
+  switch (outcome) {
+    case "REGISTERED":
+      addToMailingList(attendeeId);
+      return;
+    case "ALREADY_FULFILLED":
+    case "UNPAID":
+      return;
+    case "NOT_FOUND":
+      if (paid) logEvent("UNKNOWN_CHECKOUT", { attendeeId, checkoutId });
+      return;
+  }
+
+  // An attention reason: refund it (free checkouts have nothing to refund)
+  logEvent(outcome, { attendeeId, checkoutId });
+  if (!paymentIntentId || !checkoutSession.amount_total) return;
+  const refund = await stripe.refunds.create(
+    { payment_intent: paymentIntentId },
+    { idempotencyKey: `refund-${checkoutId}` }
+  );
+  const { error: refundError } = await CheckoutSessionRepository.recordRefund(checkoutId, refund.id);
+  if (refundError) throw new Error(`Refunded ${checkoutId} but couldn't record ${refund.id}: ${refundError.message}`);
 };
 
 // One JSON line per notable event, so Cloud Run log alerts can match on it
