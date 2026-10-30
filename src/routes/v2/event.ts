@@ -4,7 +4,8 @@ import { getAttendee, submitApplication } from "../../services/Attendee/Attendee
 import { checkApplication, summarizeErrors } from "../../services/Attendee/applicationRules";
 import { ApiError, sendApiError } from "../../services/ApiError";
 import { getEvent, getEventDeliverableFlags, getEvents, getPublicEvent, getRegisteredContent, getRegisteredEvents } from "../../services/Event/EventService";
-import { createUserTeam, getUserTeam, joinTeamWithCode, leaveUserTeam } from "../../services/Team/TeamService";
+import { createUserTeam, getUserTeam, joinTeamWithCode, leaveUserTeam, renameUserTeam } from "../../services/Team/TeamService";
+import { perUserRateLimit } from "../../middleware/rateLimit";
 
 import multer from "multer";
 import { DraftService } from "../../services/Drafts/DraftService";
@@ -24,6 +25,12 @@ const userIdOf = (req: Request) => {
     const userId = req.user?.user_id;
     if (!userId) throw new ApiError(401, "UNAUTHENTICATED", "Sign in to continue.");
     return userId;
+};
+
+// A JSON body field that must be a string; type is checked before anything else
+const textField = (value: unknown, field: string) => {
+    if (typeof value !== "string") throw new ApiError(400, "VALIDATION_ERROR", `${field} is required.`, { [field]: "Required." });
+    return value;
 };
 
 // ApiErrors go back as they are; anything else is logged and hidden behind a 500
@@ -261,95 +268,49 @@ eventRouter.get("/:eventId/deliverable/:phaseId", ...authenticated, async (req: 
     }
 });
 
+// Team routes. The rules live in the database functions; these only read the request.
 eventRouter.get("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
     try {
-        const team = await getUserTeam(eventId, userId);
-        return res.status(200).json(team);
-    } catch (error: any) {
-        console.error("Fetch team error:", error);
-        return res.status(500).json({ error: error.message });
+        return res.status(200).json(await getUserTeam(req.params.eventId, userIdOf(req)));
+    } catch (error) {
+        return sendError(res, error, "Fetch team error");
     }
 });
 
 eventRouter.post("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-    const { team_name } = req.body;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
-    if (!team_name || typeof team_name !== "string") {
-        return res.status(400).json({ error: "team_name is required" });
-    }
-
     try {
-        const team = await createUserTeam(eventId, userId, team_name);
-        return res.status(201).json(team);
-    } catch (error: any) {
-        if (error.code === "23505") {
-            const msg = error.message || "";
-
-            if (msg.includes("Team_event_id_team_name_idx")) {
-                return res.status(409).json({
-                    error: "A team with that name already exists in this event.",
-                });
-            }
-
-            if (msg.includes("Team_Member_pkey")) {
-                return res.status(409).json({ error: "User is already in a team for this event." });
-            }
-
-            return res.status(409).json({ error: "Duplicate value violates a unique rule." });
-        }
-        return res.status(500).json({ error: error.message });
+        const teamName = textField(req.body?.team_name, "team_name");
+        return res.status(201).json(await createUserTeam(req.params.eventId, userIdOf(req), teamName));
+    } catch (error) {
+        return sendError(res, error, "Create team error");
     }
 });
 
-eventRouter.post("/:eventId/team/join", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-    const { team_code } = req.body;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
-    if (!team_code || typeof team_code !== "string") {
-        return res.status(400).json({ error: "team_code is required" });
-    }
-
+// 10 tries a minute per student, so codes can't be guessed
+eventRouter.post("/:eventId/team/join", ...authenticated, perUserRateLimit(10, 60_000), async (req: Request, res: Response) => {
     try {
-        const team = await joinTeamWithCode(eventId, userId, team_code);
-        return res.status(200).json(team);
-    } catch (error: any) {
-        console.error("Join team error:", error);
-        return res.status(500).json({ error: error.message });
+        const teamCode = textField(req.body?.team_code, "team_code");
+        return res.status(200).json(await joinTeamWithCode(req.params.eventId, userIdOf(req), teamCode));
+    } catch (error) {
+        return sendError(res, error, "Join team error");
+    }
+});
+
+eventRouter.patch("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
+    try {
+        const teamName = textField(req.body?.team_name, "team_name");
+        return res.status(200).json(await renameUserTeam(req.params.eventId, userIdOf(req), teamName));
+    } catch (error) {
+        return sendError(res, error, "Rename team error");
     }
 });
 
 eventRouter.delete("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
     try {
-        await leaveUserTeam(eventId, userId);
+        await leaveUserTeam(req.params.eventId, userIdOf(req));
         return res.status(200).json({ message: "Left team successfully" });
-    } catch (error: any) {
-        console.error("Leave team error:", error);
-        return res.status(500).json({ error: error.message });
+    } catch (error) {
+        return sendError(res, error, "Leave team error");
     }
 });
 

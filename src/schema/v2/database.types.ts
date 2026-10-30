@@ -877,6 +877,26 @@ export type Database = {
           team_name: string
         }[]
       }
+      create_team: {
+        Args: { p_event_id: string; p_team_name: string; p_user_id: string }
+        Returns: Json
+      }
+      join_team: {
+        Args: { p_event_id: string; p_team_code: string; p_user_id: string }
+        Returns: Json
+      }
+      leave_team: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      my_team: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: Json
+      }
+      rename_team: {
+        Args: { p_event_id: string; p_team_name: string; p_user_id: string }
+        Returns: Json
+      }
       accept_applicants: {
         Args: { p_attendee_ids: string[]; p_event_id: string; p_reviewer: string }
         Returns: number

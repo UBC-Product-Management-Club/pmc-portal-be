@@ -1,181 +1,30 @@
-import { Tables } from "../../schema/v2/database.types";
+import { Json } from "../../schema/v2/database.types";
 import { TeamRepository } from "../../storage/TeamRepository";
-import { getAttendee } from "../Attendee/AttendeeService";
+import { DatabaseErrors, rpcResult } from "../ApiError";
 
-const generateTeamCode = (length: number): string => {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from(
-    { length },
-    () => chars[Math.floor(Math.random() * chars.length)]
-  ).join("");
+const TEAM_ERRORS: DatabaseErrors = {
+  NOT_REGISTERED: [403, "Only registered students can join teams."],
+  NOT_ON_TEAM: [404, "You're not on a team for this event."],
+  ALREADY_ON_TEAM: [409, "You're already on a team."],
+  NOT_FOUND: [404, "No team has that code."],
+  TEAM_FULL: [409, "That team is already full."],
+  ROSTER_LOCKED: [409, "This team has already submitted, so its members can't change."],
+  CLOSED: [403, "The deadline has passed, so this team can no longer change."],
+  TEAM_NAME_TAKEN: [409, "Another team already has that name.", undefined, { team_name: "That name is taken." }],
+  INVALID_TEAM_NAME: [400, "Team names must be 1 to 80 characters.", "VALIDATION_ERROR", { team_name: "Use 1 to 80 characters." }],
 };
 
-export const getUserTeam = async (
-  eventId: string,
-  userId: string
-): Promise<any> => {
-  const attendeeData = await getAttendee(eventId, userId);
-  if (!attendeeData) {
-    throw new Error("Attendee not found for this event and user.");
-  }
+export const getUserTeam = (eventId: string, userId: string) => rpcResult<Json>(TeamRepository.myTeam(eventId, userId), TEAM_ERRORS);
 
-  const { data: teamData, error: teamError } =
-    await TeamRepository.getTeamByAttendee(attendeeData.attendee_id);
+export const createUserTeam = (eventId: string, userId: string, teamName: string) =>
+  rpcResult<Json>(TeamRepository.createTeam(eventId, userId, teamName), TEAM_ERRORS);
 
-  if (teamError || !teamData) {
-    throw new Error("User is not in a team for this event.");
-  }
+export const joinTeamWithCode = (eventId: string, userId: string, teamCode: string) =>
+  rpcResult<Json>(TeamRepository.joinTeam(eventId, userId, teamCode), TEAM_ERRORS);
 
-  return teamData;
-};
+export const renameUserTeam = (eventId: string, userId: string, teamName: string) =>
+  rpcResult<Json>(TeamRepository.renameTeam(eventId, userId, teamName), TEAM_ERRORS);
 
-export const createUserTeam = async (
-  eventId: string,
-  userId: string,
-  teamName: string
-) => {
-  const attendee = await getAttendee(eventId, userId);
-  if (!attendee) {
-    throw new Error("Attendee not found for this event and user.");
-  }
-
-  let team: Tables<"Team"> | null = null;
-
-  while (true) {
-    const team_code = generateTeamCode(5);
-
-    const { data, error } = await TeamRepository.createTeam({
-      event_id: eventId,
-      team_name: teamName,
-      team_code,
-    });
-
-    if (error) {
-      if (error.code === "23505") {
-        if (error.message.includes("Team_event_id_team_name_idx")) {
-          throw error;
-        }
-        if (error.message.includes("Team_team_code_key")) {
-          // retry only for duplicate team_code
-          continue;
-        }
-
-        throw error;
-      }
-      throw error;
-    }
-
-    team = data;
-    break;
-  }
-
-  // Insert member into that team
-  const { error: memberError } = await TeamRepository.addMember({
-    team_id: team!.team_id,
-    attendee_id: attendee.attendee_id,
-  });
-
-  if (memberError) {
-    if (memberError.code === "23505") {
-      // Attendee is already assigned to a team
-      //   throw new Error("User is already in a team for this event.");
-      console.log(memberError);
-      throw memberError;
-    }
-    throw new Error(`Failed to add attendee to team: ${memberError.message}`);
-  }
-
-  // Fetch full team
-  const { data: fullTeam } = await TeamRepository.getTeamByAttendee(
-    attendee.attendee_id
-  );
-  return fullTeam;
-};
-
-export const joinTeamWithCode = async (
-  eventId: string,
-  userId: string,
-  teamCode: string
-): Promise<any> => {
-  const attendeeData = await getAttendee(eventId, userId);
-  if (!attendeeData) {
-    throw new Error("Attendee not found for this event and user.");
-  }
-
-  const existingTeam = await TeamRepository.getTeamByAttendee(
-    attendeeData.attendee_id
-  );
-  if (existingTeam.data) {
-    throw new Error("User is already in a team for this event.");
-  }
-
-  const { data: teamData, error: teamError } =
-    await TeamRepository.getTeamByCode(eventId, teamCode);
-
-  if (teamError || !teamData) {
-    throw new Error("Team with the provided code not found.");
-  }
-
-  if (teamData.Team_Member && teamData.Team_Member.length >= 4) {
-    throw new Error("This team is already full.");
-  }
-
-  const { error: memberError } = await TeamRepository.addMember({
-    team_id: teamData.team_id,
-    attendee_id: attendeeData.attendee_id,
-  });
-
-  if (memberError) {
-    throw new Error(`Failed to add attendee to team: ${memberError.message}`);
-  }
-
-  const { data: fullTeam, error: fullError } =
-    await TeamRepository.getTeamByAttendee(attendeeData.attendee_id);
-
-  if (fullError || !fullTeam) {
-    throw new Error(
-      `Failed to fetch full team after joining: ${
-        fullError?.message ?? "unknown error"
-      }`
-    );
-  }
-
-  return fullTeam;
-};
-
-export const leaveUserTeam = async (
-  eventId: string,
-  userId: string
-): Promise<{ message: string }> => {
-  const attendeeData = await getAttendee(eventId, userId);
-  if (!attendeeData) {
-    throw new Error("Attendee not found for this event and user.");
-  }
-
-  const { data: teamData, error: teamError } =
-    await TeamRepository.getTeamByAttendee(attendeeData.attendee_id);
-
-  if (teamError || !teamData) {
-    throw new Error("User is not in a team for this event.");
-  }
-
-  const teamId = teamData.team_id;
-
-  const { error: removeError } = await TeamRepository.removeMember(
-    teamId,
-    attendeeData.attendee_id,
-  );
-
-  if (removeError) {
-    throw new Error(
-      `Failed to remove attendee from team: ${removeError.message}`
-    );
-  }
-
-  const { data: remainingTeam } = await TeamRepository.getTeamWithMembers(teamId);
-  if (remainingTeam && remainingTeam.Team_Member.length === 0) {
-    await TeamRepository.deleteTeam(teamId);
-  }
-
-  return { message: "Successfully left the team." };
+export const leaveUserTeam = async (eventId: string, userId: string) => {
+  await rpcResult(TeamRepository.leaveTeam(eventId, userId), TEAM_ERRORS);
 };
