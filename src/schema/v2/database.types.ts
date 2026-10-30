@@ -919,6 +919,45 @@ export type Database = {
         Args: { p_event_id: string; p_phase_id: string; p_user_id: string }
         Returns: Json
       }
+      extend_phase_deadline: {
+        Args: { p_phase_id: string; p_until: string }
+        Returns: string
+      }
+      extend_team: {
+        Args: { p_event_id: string; p_team_code: string; p_until: string }
+        Returns: string
+      }
+      publish_finalists: {
+        Args: { p_event_id: string; p_team_codes: string[] }
+        Returns: string
+      }
+      set_finalists: {
+        Args: {
+          p_correction?: boolean
+          p_event_id: string
+          p_is_finalist: boolean
+          p_team_codes: string[]
+        }
+        Returns: number
+      }
+      submission_export: {
+        Args: { p_phase_id: string }
+        Returns: {
+          effective_deadline: string
+          fields: Json
+          is_finalist: boolean
+          member_emails: string[]
+          member_names: string[]
+          submission: Json | null
+          submitted_at: string | null
+          submitted_by: string | null
+          team_code: string
+          team_id: string
+          team_name: string
+          team_size: number
+          version: number | null
+        }[]
+      }
       accept_applicants: {
         Args: { p_attendee_ids: string[]; p_event_id: string; p_reviewer: string }
         Returns: number

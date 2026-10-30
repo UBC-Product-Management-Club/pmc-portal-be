@@ -47,6 +47,23 @@ export const OpsRepository = {
             .is("attention_resolved_at", null)
             .select("checkout_id"),
 
+    // Event day (20261031000000_event_day_ops.sql)
+    extendPhase: (phaseId: string, until: string) => supabase.rpc("extend_phase_deadline", { p_phase_id: phaseId, p_until: until }),
+    extendTeam: (eventId: string, teamCode: string, until: string) =>
+        supabase.rpc("extend_team", { p_event_id: eventId, p_team_code: teamCode, p_until: until }),
+    setFinalists: (eventId: string, teamCodes: string[], isFinalist: boolean, correction: boolean) =>
+        supabase.rpc("set_finalists", { p_event_id: eventId, p_team_codes: teamCodes, p_is_finalist: isFinalist, p_correction: correction }),
+    publishFinalists: (eventId: string, teamCodes: string[]) =>
+        supabase.rpc("publish_finalists", { p_event_id: eventId, p_team_codes: teamCodes }),
+    getFinalists: (eventId: string) =>
+        supabase.from("Team").select("team_code, team_name").eq("event_id", eventId).eq("is_finalist", true).order("team_name"),
+    getPhases: (eventId: string) =>
+        supabase.from("Deliverable_Flags").select("id").eq("event_id", eventId),
+    submissionExport: (phaseId: string) => supabase.rpc("submission_export", { p_phase_id: phaseId }),
+    // A 7-day link to a private deck
+    signDeliverable: (path: string) =>
+        supabase.storage.from(process.env.SUPABASE_DELIVERABLES_BUCKET!).createSignedUrl(path, 7 * 24 * 60 * 60),
+
     // A 7-day link to a private resume
     signResume: (path: string) =>
         supabase.storage.from(process.env.SUPABASE_ATTENDEE_BUCKET_NAME!).createSignedUrl(path, 7 * 24 * 60 * 60),
