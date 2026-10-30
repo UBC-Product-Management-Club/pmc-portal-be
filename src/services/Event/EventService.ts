@@ -1,9 +1,11 @@
 import _ from "lodash";
 import { supabase } from "../../config/supabase";
-import { Tables, TablesUpdate } from "../../schema/v2/database.types";
+import { Json, Tables, TablesUpdate } from "../../schema/v2/database.types";
 import { EventInsert, EventUpdate } from "../../schema/v2/Event";
 import { EventRepository } from "../../storage/EventRepository";
 import { stripe } from "../../config/stripe";
+import { AttendeeRepository } from "../../storage/AttendeeRepository";
+import { ApiError } from "../ApiError";
 
 type EventRow = Tables<"Event">;
 type EventCreate = EventInsert;
@@ -32,6 +34,38 @@ export const getEvent = async (
     : 0;
 
   return { ..._.omit(data, "Attendee"), registered: data.Attendee[0].count };
+};
+
+// Registered students only, so these never go in the public event response
+const REGISTERED_ONLY_FIELDS = ["page_content", "discord_url"] as const;
+
+export const getPublicEvent = async (id: string) => {
+  const event = await getEvent(id);
+  return event && _.omit(event, REGISTERED_ONLY_FIELDS);
+};
+
+type RegisteredContent = {
+  page_content: Json;
+  discord_url: string | null;
+  min_team_size: number;
+  max_team_size: number;
+};
+
+const EMPTY_PAGE_CONTENT = { mentors: [], prep: [], faq: [] };
+
+// Getting Ready content and the Discord link, only for Registered attendees
+export const getRegisteredContent = async (eventId: string, userId: string): Promise<RegisteredContent> => {
+  const { data: attendee, error: attendeeError } = await AttendeeRepository.getAttendee(eventId, userId);
+  if (attendeeError) throw new Error(attendeeError.message);
+  if (attendee?.status !== "REGISTERED") {
+    throw new ApiError(403, "NOT_REGISTERED", "This is only for registered students.");
+  }
+
+  const { data, error } = await EventRepository.getRegisteredContent(eventId);
+  if (error) throw new Error(error.message);
+  if (!data) throw new ApiError(404, "NOT_FOUND", "This event doesn't exist.");
+  // Not seeded yet: the page shows "Coming soon"
+  return { ...data, page_content: data.page_content ?? EMPTY_PAGE_CONTENT };
 };
 
 export const getRegisteredEvents = async (userId: string) => {

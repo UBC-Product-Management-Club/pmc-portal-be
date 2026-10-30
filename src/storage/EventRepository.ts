@@ -10,7 +10,7 @@ export const EventRepository = {
     supabase
       .from("Event")
       .select(
-        "event_id, name, blurb, date, start_time, end_time, location, member_price, non_member_price, is_disabled, thumbnail"
+        "event_id, name, blurb, date, start_time, end_time, location, member_price, non_member_price, is_disabled, thumbnail, icon"
       )
       .order("date", { ascending: false }),
   getEvent: (eventId: string) =>
@@ -90,6 +90,13 @@ export const EventRepository = {
       .select("mailing_list")
       .eq("event_id", eventId)
       .single(),
+  // Registered-only: never select these for the public event response
+  getRegisteredContent: (eventId: string) =>
+    supabase
+      .from("Event")
+      .select("page_content, discord_url, min_team_size, max_team_size")
+      .eq("event_id", eventId)
+      .maybeSingle(),
   getEventDeliverableFlags: (eventId: string) =>
     supabase
       .from("Deliverable_Flags")

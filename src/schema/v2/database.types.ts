@@ -271,31 +271,37 @@ export type Database = {
           created_at: string | null
           deliverable_id: string
           event_id: string
+          phase_id: string
           submission: Json | null
           submitted_at: string | null
           submitted_by: string | null
           team_id: string
           title: string | null
+          version: number
         }
         Insert: {
           created_at?: string | null
           deliverable_id?: string
           event_id: string
+          phase_id?: string
           submission?: Json | null
           submitted_at?: string | null
           submitted_by?: string | null
           team_id: string
           title?: string | null
+          version?: number
         }
         Update: {
           created_at?: string | null
           deliverable_id?: string
           event_id?: string
+          phase_id?: string
           submission?: Json | null
           submitted_at?: string | null
           submitted_by?: string | null
           team_id?: string
           title?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -325,6 +331,7 @@ export type Database = {
         Row: {
           deadline: string
           event_id: string
+          fields: Json
           id: string
           is_enabled: boolean
           starttime: string | null
@@ -332,6 +339,7 @@ export type Database = {
         Insert: {
           deadline: string
           event_id: string
+          fields?: Json
           id?: string
           is_enabled: boolean
           starttime?: string | null
@@ -339,6 +347,7 @@ export type Database = {
         Update: {
           deadline?: string
           event_id?: string
+          fields?: Json
           id?: string
           is_enabled?: boolean
           starttime?: string | null
@@ -394,21 +403,27 @@ export type Database = {
           blurb: string
           date: string | null
           description: string | null
+          discord_url: string | null
           end_time: string | null
           event_form_questions: Json
           event_id: string
           external_page: string | null
+          finalists_published_at: string | null
+          icon: string | null
           is_disabled: boolean | null
           location: string | null
           mailing_list: string | null
           max_attendees: number | null
+          max_team_size: number
           media: string[] | null
           member_price: number | null
           member_price_id: string | null
+          min_team_size: number
           name: string
           needs_review: boolean
           non_member_price: number | null
           non_member_price_id: string | null
+          page_content: Json | null
           payment_hold_hours: number
           registration_closes: string | null
           registration_opens: string | null
@@ -421,21 +436,27 @@ export type Database = {
           blurb?: string
           date?: string | null
           description?: string | null
+          discord_url?: string | null
           end_time?: string | null
           event_form_questions: Json
           event_id?: string
           external_page?: string | null
+          finalists_published_at?: string | null
+          icon?: string | null
           is_disabled?: boolean | null
           location?: string | null
           mailing_list?: string | null
           max_attendees?: number | null
+          max_team_size?: number
           media?: string[] | null
           member_price?: number | null
           member_price_id?: string | null
+          min_team_size?: number
           name: string
           needs_review?: boolean
           non_member_price?: number | null
           non_member_price_id?: string | null
+          page_content?: Json | null
           payment_hold_hours?: number
           registration_closes?: string | null
           registration_opens?: string | null
@@ -448,21 +469,27 @@ export type Database = {
           blurb?: string
           date?: string | null
           description?: string | null
+          discord_url?: string | null
           end_time?: string | null
           event_form_questions?: Json
           event_id?: string
           external_page?: string | null
+          finalists_published_at?: string | null
+          icon?: string | null
           is_disabled?: boolean | null
           location?: string | null
           mailing_list?: string | null
           max_attendees?: number | null
+          max_team_size?: number
           media?: string[] | null
           member_price?: number | null
           member_price_id?: string | null
+          min_team_size?: number
           name?: string
           needs_review?: boolean
           non_member_price?: number | null
           non_member_price_id?: string | null
+          page_content?: Json | null
           payment_hold_hours?: number
           registration_closes?: string | null
           registration_opens?: string | null
@@ -678,18 +705,24 @@ export type Database = {
       Team: {
         Row: {
           event_id: string
+          extended_until: string | null
+          is_finalist: boolean
           team_code: string | null
           team_id: string
           team_name: string
         }
         Insert: {
           event_id?: string
+          extended_until?: string | null
+          is_finalist?: boolean
           team_code?: string | null
           team_id?: string
           team_name: string
         }
         Update: {
           event_id?: string
+          extended_until?: string | null
+          is_finalist?: boolean
           team_code?: string | null
           team_id?: string
           team_name?: string
