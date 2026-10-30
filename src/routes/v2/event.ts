@@ -1,9 +1,9 @@
-import { Request, Response, Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import { authenticated } from "../../middleware/Session";
 import { getAttendee, submitApplication } from "../../services/Attendee/AttendeeService";
 import { checkApplication, summarizeErrors } from "../../services/Attendee/applicationRules";
 import { ApiError, sendApiError } from "../../services/ApiError";
-import { getEvent, getEventDeliverableFlags, getEvents, getPublicEvent, getRegisteredContent, getRegisteredEvents } from "../../services/Event/EventService";
+import { getEvent, getEvents, getPublicEvent, getRegisteredContent, getRegisteredEvents } from "../../services/Event/EventService";
 import { createUserTeam, getUserTeam, joinTeamWithCode, leaveUserTeam, renameUserTeam } from "../../services/Team/TeamService";
 import { perUserRateLimit } from "../../middleware/rateLimit";
 
@@ -11,14 +11,28 @@ import multer from "multer";
 import { DraftService } from "../../services/Drafts/DraftService";
 import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
 import { deliverApplicationReceipt } from "../../services/Email/EventEmailService";
-import { deleteSupabaseFile, getDeliverable, uploadDeliverableFiles, uploadSupabaseFiles } from "../../storage/Storage";
+import { deleteSupabaseFile, uploadSupabaseFiles } from "../../storage/Storage";
+import { getPhases, getSubmission, saveSubmission } from "../../services/Submission/SubmissionService";
 
 export const eventRouter = Router();
 
-const memStorage = multer.memoryStorage();
-const upload = multer({ storage: memStorage });
-// Applications: a few files at most, none bigger than the largest allowed upload
-const applicationUpload = multer({ storage: memStorage, limits: { files: 5, fileSize: 25_000_000 } });
+// Applications and submissions: a few files at most, none bigger than the largest
+// allowed upload (a 25 MB deck). Each question's own limit is checked afterwards.
+const formUpload = multer({ storage: multer.memoryStorage(), limits: { files: 5, fileSize: 25_000_000 } });
+
+const acceptFiles = (req: Request, res: Response, next: NextFunction) => {
+    formUpload.any()(req, res, (err: unknown) => {
+        if (err instanceof multer.MulterError) {
+            const tooLarge = err.code === "LIMIT_FILE_SIZE";
+            return sendApiError(
+                res,
+                new ApiError(400, tooLarge ? "FILE_TOO_LARGE" : "VALIDATION_ERROR", tooLarge ? "That file is too large." : "Too many files.")
+            );
+        }
+        if (err) return next(err);
+        next();
+    });
+};
 
 // The signed-in student's id; a login that hasn't finished onboarding has no User row
 const userIdOf = (req: Request) => {
@@ -93,19 +107,7 @@ eventRouter.get("/:eventId/registered-content", ...authenticated, async (req: Re
 
 // Submits an application. Answers and files are checked here, then the database
 // checks the window, duplicates and the cap while it saves (submit_application).
-eventRouter.post("/:eventId/register", ...authenticated, (req: Request, res: Response, next) => {
-    applicationUpload.any()(req, res, (err: unknown) => {
-        if (err instanceof multer.MulterError) {
-            const tooLarge = err.code === "LIMIT_FILE_SIZE";
-            return sendApiError(
-                res,
-                new ApiError(400, tooLarge ? "FILE_TOO_LARGE" : "VALIDATION_ERROR", tooLarge ? "That file is too large." : "Too many files.")
-            );
-        }
-        if (err) return next(err);
-        next();
-    });
-}, async (req: Request, res: Response) => {
+eventRouter.post("/:eventId/register", ...authenticated, acceptFiles, async (req: Request, res: Response) => {
     const userId = req.user?.user_id;
     const eventId = req.params.eventId;
     if (!userId) return res.status(401).json({ error: "User not authenticated" });
@@ -220,51 +222,22 @@ eventRouter.delete("/drafts/:eventId", ...authenticated, async (req, res) => {
     }
 });
 
-// submit deliverables for team member
-eventRouter.post("/:eventId/deliverable/:phaseId", ...authenticated, upload.any(), async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-    const phaseId = req.params.phaseId;
-    const files = req.files as Express.Multer.File[];
-    const formData = req.body;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
+// Submissions. The window, roster and version are decided by the database while it saves.
+eventRouter.post("/:eventId/deliverable/:phaseId", ...authenticated, acceptFiles, async (req: Request, res: Response) => {
     try {
-        const result = await uploadDeliverableFiles(files, userId, eventId, phaseId, formData);
-
-        res.status(201).json({
-            message: "Deliverables submitted successfully",
-            data: result,
-        });
-    } catch (error: any) {
-        console.error("Deliverable upload error:", error);
-        res.status(500).json({ error: error.message });
+        const { eventId, phaseId } = req.params;
+        const data = await saveSubmission(eventId, userIdOf(req), phaseId, req.body ?? {}, (req.files as Express.Multer.File[]) ?? []);
+        return res.status(201).json({ message: "Submission saved", data });
+    } catch (error) {
+        return sendError(res, error, "Submission save error");
     }
 });
 
 eventRouter.get("/:eventId/deliverable/:phaseId", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-    const phaseId = req.params.phaseId;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
-    if (!eventId) {
-        return res.status(400).json({ error: "Event ID is required" });
-    }
-
     try {
-        const result = await getDeliverable(userId, eventId, phaseId);
-
-        res.status(200).json(result);
-    } catch (error: any) {
-        console.error("Fetch deliverable error:", error);
-        res.status(500).json({ error: error.message });
+        return res.status(200).json(await getSubmission(req.params.eventId, userIdOf(req), req.params.phaseId));
+    } catch (error) {
+        return sendError(res, error, "Fetch submission error");
     }
 });
 
@@ -315,18 +288,9 @@ eventRouter.delete("/:eventId/team", ...authenticated, async (req: Request, res:
 });
 
 eventRouter.get("/:eventId/flags", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
     try {
-        const deliverables = await getEventDeliverableFlags(eventId);
-        return res.status(200).json(deliverables);
-    } catch (error: any) {
-        console.error("Get event deliverable error:", error);
-        return res.status(500).json({ error: error.message });
+        return res.status(200).json(await getPhases(req.params.eventId, userIdOf(req)));
+    } catch (error) {
+        return sendError(res, error, "Fetch phases error");
     }
 });
