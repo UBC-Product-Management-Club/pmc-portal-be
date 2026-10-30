@@ -1,21 +1,22 @@
 import { Request, Response, Router } from "express";
 import { authenticated } from "../../middleware/Session";
-import { Database } from "../../schema/v2/database.types";
-import { addAttendee, getAttendee } from "../../services/Attendee/AttendeeService";
+import { getAttendee, submitApplication } from "../../services/Attendee/AttendeeService";
+import { checkApplication, summarizeErrors } from "../../services/Attendee/applicationRules";
+import { ApiError, sendApiError } from "../../services/ApiError";
 import { getEvent, getEventDeliverableFlags, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
 import { createUserTeam, getUserTeam, joinTeamWithCode, leaveUserTeam } from "../../services/Team/TeamService";
 
 import multer from "multer";
 import { DraftService } from "../../services/Drafts/DraftService";
 import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
-import { getDeliverable, uploadDeliverableFiles, uploadSupabaseFiles } from "../../storage/Storage";
-
-type AttendeeInsert = Database["public"]["Tables"]["Attendee"]["Insert"];
+import { deleteSupabaseFile, getDeliverable, uploadDeliverableFiles, uploadSupabaseFiles } from "../../storage/Storage";
 
 export const eventRouter = Router();
 
 const memStorage = multer.memoryStorage();
 const upload = multer({ storage: memStorage });
+// Applications: a few files at most, none bigger than the largest allowed upload
+const applicationUpload = multer({ storage: memStorage, limits: { files: 5, fileSize: 25_000_000 } });
 
 eventRouter.get("/", ...authenticated, async (req, res) => {
     try {
@@ -59,49 +60,63 @@ eventRouter.get("/:eventId/attendee", ...authenticated, async (req: Request, res
     }
 });
 
-// Adds event attendee (payment not verified, payment id set to null)
-eventRouter.post("/:eventId/register", ...authenticated, upload.any(), async (req: Request, res: Response) => {
+// Submits an application. Answers and files are checked here, then the database
+// checks the window, duplicates and the cap while it saves (submit_application).
+eventRouter.post("/:eventId/register", ...authenticated, (req: Request, res: Response, next) => {
+    applicationUpload.any()(req, res, (err: unknown) => {
+        if (err instanceof multer.MulterError) {
+            const tooLarge = err.code === "LIMIT_FILE_SIZE";
+            return sendApiError(
+                res,
+                new ApiError(400, tooLarge ? "FILE_TOO_LARGE" : "VALIDATION_ERROR", tooLarge ? "That file is too large." : "Too many files.")
+            );
+        }
+        if (err) return next(err);
+        next();
+    });
+}, async (req: Request, res: Response) => {
     const userId = req.user?.user_id;
     const eventId = req.params.eventId;
     if (!userId) return res.status(401).json({ error: "User not authenticated" });
 
+    let uploaded: string[] = [];
+    const bucketName = process.env.SUPABASE_ATTENDEE_BUCKET_NAME!;
     try {
         const event = await getEvent(eventId);
+        if (!event) throw new ApiError(404, "NOT_FOUND", "This event doesn't exist.");
 
-        if (!event) {
-            throw new Error(`Failed to fetch event ${eventId}`);
+        const { answers, files, errors } = await checkApplication(
+            event.event_form_questions,
+            req.body,
+            (req.files as Express.Multer.File[]) ?? []
+        );
+        if (Object.keys(errors).length > 0) {
+            const { code, fields } = summarizeErrors(errors);
+            throw new ApiError(400, code, "Please fix the highlighted answers.", fields);
         }
 
-        const files = req.files as Express.Multer.File[];
-        const bucketName = process.env.SUPABASE_ATTENDEE_BUCKET_NAME!;
-        const parentPath = `attendee/${eventId}/`;
-
+        // Files go in a folder per student so two applicants' resumes never share a path
         const fileRefs = await uploadSupabaseFiles(files, {
-            parentPath,
+            parentPath: `attendee/${eventId}/${userId}/`,
             bucketName,
             isPublic: false,
         });
-        const eventFormAnswers = Object.assign(req.body, fileRefs);
+        uploaded = Object.values(fileRefs);
 
-        const insertData: AttendeeInsert = {
-            user_id: userId,
-            event_id: eventId,
-            payment_id: null,
-            is_payment_verified: false,
-            event_form_answers: eventFormAnswers,
-        };
-
-        const result = await addAttendee(event, insertData);
+        const attendee = await submitApplication(eventId, userId, { ...answers, ...fileRefs });
         sendEmail(userId, LoopsEvent.ApplicationReceived, {
             event_name: event.name!,
         });
-        res.status(201).json({
+        return res.status(201).json({
             message: "Registration successful",
-            attendee: result,
+            attendee,
         });
     } catch (error: any) {
+        // Nothing was saved, so don't keep the files
+        await Promise.allSettled(uploaded.map((path) => deleteSupabaseFile(path, bucketName)));
+        if (error instanceof ApiError) return sendApiError(res, error);
         console.error(error);
-        res.status(500).json(error);
+        return res.status(500).json({ error: { code: "SERVER_ERROR", message: "Couldn't submit. Please try again." } });
     }
 });
 

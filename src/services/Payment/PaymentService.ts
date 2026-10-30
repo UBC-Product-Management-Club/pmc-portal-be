@@ -10,6 +10,8 @@ import moment from "moment";
 import {
   deleteAttendee,
   getAttendee,
+  getAttendeeWithEvent,
+  registerIfSeatAvailable,
   updateAttendee,
 } from "../Attendee/AttendeeService";
 import { getEvent } from "../Event/EventService";
@@ -243,11 +245,7 @@ const handlePaymentIntent = async (stripeEvent: Stripe.Event) => {
         );
         sendEmail(userId, LoopsEvent.MembershipPayment);
       } else if (paymentType === "event" && attendeeId) {
-        updateAttendee(attendeeId, {
-          is_payment_verified: true,
-          payment_id: paymentId,
-          status: "REGISTERED",
-        });
+        await registerPaidAttendee(attendeeId, paymentId);
       }
       break;
     }
@@ -291,14 +289,15 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
   }
   switch (stripeEvent.type) {
     case "checkout.session.completed":
-      // work around for free events
+      // work around for free events: a $0 checkout claims a seat the same way
       if (checkoutSession.amount_total === 0) {
         await upsertPaymentTransaction(checkoutSession);
-        updateAttendee(attendeeId, {
-          is_payment_verified: true,
-          payment_id: paymentId,
-          status: "REGISTERED",
-        });
+        if (!(await registerIfSeatAvailable(attendeeId, paymentId))) {
+          logEvent("FREE_EVENT_FULL", { attendeeId, checkoutId: paymentId });
+          await deleteCheckoutSession(attendeeId);
+          await deleteAttendee(attendeeId);
+          return;
+        }
       }
 
       try {
@@ -317,6 +316,41 @@ const handleCheckoutSession = async (stripeEvent: Stripe.Event) => {
       break;
   }
 };
+
+// Events without review don't hold a seat while a payment is pending, so the seat
+// is claimed when the payment succeeds. If the event filled up meanwhile, the
+// payment is refunded once (the idempotency key makes a retried webhook a no-op)
+// and the application is removed so the student sees the event as full.
+// Reviewed events keep their seat from acceptance; the applicant review PR adds
+// their payment-hold checks.
+const registerPaidAttendee = async (attendeeId: string, paymentIntentId: string) => {
+  const attendee = await getAttendeeWithEvent(attendeeId);
+  if (!attendee) {
+    console.error(`Paid attendee ${attendeeId} not found`);
+    return;
+  }
+  if (attendee.Event.needs_review) {
+    await updateAttendee(attendeeId, {
+      is_payment_verified: true,
+      payment_id: paymentIntentId,
+      status: "REGISTERED",
+    });
+    return;
+  }
+  if (await registerIfSeatAvailable(attendeeId, paymentIntentId)) return;
+
+  await stripe.refunds.create(
+    { payment_intent: paymentIntentId },
+    { idempotencyKey: `refund-event-full-${paymentIntentId}` }
+  );
+  logEvent("NO_REVIEW_FULL", { attendeeId, paymentIntentId });
+  await deleteCheckoutSession(attendeeId);
+  await deleteAttendee(attendeeId);
+};
+
+// One JSON line per notable event, so Cloud Run log alerts can match on it
+const logEvent = (event: string, details: Record<string, string>) =>
+  console.error(JSON.stringify({ event, ...details }));
 
 // helper functions
 const mapTransactionStatus = (

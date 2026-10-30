@@ -734,6 +734,15 @@ export type Database = {
         }[]
       }
       get_deliverable_submissions: { Args: { event_id: string }; Returns: Json }
+      register_if_seat_available: {
+        Args: { p_attendee_id: string; p_payment_id?: string }
+        Returns: boolean
+      }
+      seats_taken: { Args: { p_event_id: string }; Returns: number }
+      submit_application: {
+        Args: { p_answers: Json; p_event_id: string; p_user_id: string }
+        Returns: Database["public"]["Tables"]["Attendee"]["Row"]
+      }
       get_todays_birthdays: {
         Args: never
         Returns: {

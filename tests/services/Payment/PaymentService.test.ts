@@ -9,6 +9,9 @@ jest.mock("../../../src/config/stripe", () => ({
     paymentIntents: {
       create: jest.fn(),
     },
+    refunds: {
+      create: jest.fn(),
+    },
     checkout: {
       sessions: {
         create: jest.fn(),
@@ -61,6 +64,9 @@ describe("PaymentService", () => {
   let mockDeleteCheckoutSession: jest.Mock;
   let mockDeleteAttendee: jest.Mock;
   let mockAddToMailingList: jest.Mock;
+  let mockGetAttendeeWithEvent: jest.Mock;
+  let mockRegisterIfSeatAvailable: jest.Mock;
+  let mockRefund: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -82,6 +88,10 @@ describe("PaymentService", () => {
       CheckoutSessionRepository.deleteCheckoutSession as jest.Mock;
     mockDeleteAttendee = AttendeeService.deleteAttendee as jest.Mock;
     mockAddToMailingList = addToMailingList as jest.Mock;
+    mockGetAttendeeWithEvent = AttendeeService.getAttendeeWithEvent as jest.Mock;
+    mockRegisterIfSeatAvailable = AttendeeService.registerIfSeatAvailable as jest.Mock;
+    mockRefund = stripe.refunds.create as jest.Mock;
+    mockDeleteCheckoutSession.mockResolvedValue({ error: null });
   });
 
   describe("createPaymentIntent", () => {
@@ -282,14 +292,10 @@ describe("PaymentService", () => {
       });
     });
 
-    it("check event payment succeeded", async () => {
-      mockUpdateAttendee.mockResolvedValueOnce({});
+    it("registers a paid attendee of a reviewed event", async () => {
+      mockGetAttendeeWithEvent.mockResolvedValueOnce({ attendee_id: "att-456", Event: { needs_review: true } });
       await PaymentService.handleStripeEvent(
-        makeEvent(
-          "payment_intent.succeeded",
-          "succeeded",
-          paymentIntentEventRegistration
-        )
+        makeEvent("payment_intent.succeeded", "succeeded", paymentIntentEventRegistration)
       );
 
       expect(mockTransactionLogger).toHaveBeenLastCalledWith(
@@ -307,6 +313,34 @@ describe("PaymentService", () => {
         payment_id: "pi_event_test",
         status: "REGISTERED",
       });
+      expect(mockRegisterIfSeatAvailable).not.toHaveBeenCalled();
+    });
+
+    it("claims a seat when a no-review event payment succeeds", async () => {
+      mockGetAttendeeWithEvent.mockResolvedValueOnce({ attendee_id: "att-456", Event: { needs_review: false } });
+      mockRegisterIfSeatAvailable.mockResolvedValueOnce(true);
+      await PaymentService.handleStripeEvent(
+        makeEvent("payment_intent.succeeded", "succeeded", paymentIntentEventRegistration)
+      );
+
+      expect(mockRegisterIfSeatAvailable).toHaveBeenCalledWith("att-456", "pi_event_test");
+      expect(mockRefund).not.toHaveBeenCalled();
+      expect(mockDeleteAttendee).not.toHaveBeenCalled();
+    });
+
+    it("refunds once and removes the application when a no-review event is already full", async () => {
+      mockGetAttendeeWithEvent.mockResolvedValueOnce({ attendee_id: "att-456", Event: { needs_review: false } });
+      mockRegisterIfSeatAvailable.mockResolvedValueOnce(false);
+      await PaymentService.handleStripeEvent(
+        makeEvent("payment_intent.succeeded", "succeeded", paymentIntentEventRegistration)
+      );
+
+      expect(mockRefund).toHaveBeenCalledWith(
+        { payment_intent: "pi_event_test" },
+        { idempotencyKey: "refund-event-full-pi_event_test" }
+      );
+      expect(mockDeleteAttendee).toHaveBeenCalledWith("att-456");
+      expect(mockUpdateAttendee).not.toHaveBeenCalled();
     });
 
     it("check event payment processing", async () => {
@@ -371,15 +405,10 @@ describe("PaymentService", () => {
       });
     });
 
-    it("check free event payment succeeded", async () => {
-      mockDeleteCheckoutSession.mockResolvedValueOnce({});
-      mockUpdateAttendee.mockResolvedValueOnce({});
+    it("claims a seat for a free event's $0 checkout", async () => {
+      mockRegisterIfSeatAvailable.mockResolvedValueOnce(true);
       await PaymentService.handleStripeEvent(
-        makeEvent(
-          "checkout.session.completed",
-          "complete",
-          checkoutSessionFreeEventRegistration
-        )
+        makeEvent("checkout.session.completed", "complete", checkoutSessionFreeEventRegistration)
       );
 
       expect(mockTransactionLogger).toHaveBeenLastCalledWith(
@@ -392,12 +421,19 @@ describe("PaymentService", () => {
           payment_date: expect.any(String),
         })
       );
-      expect(mockUpdateAttendee).toHaveBeenCalledWith("att-456", {
-        is_payment_verified: true,
-        payment_id: "cs_event_test",
-        status: "REGISTERED",
-      });
+      expect(mockRegisterIfSeatAvailable).toHaveBeenCalledWith("att-456", "cs_event_test");
       expect(mockAddToMailingList).toHaveBeenCalledWith("att-456");
+    });
+
+    it("removes a free event's application when it's already full", async () => {
+      mockRegisterIfSeatAvailable.mockResolvedValueOnce(false);
+      await PaymentService.handleStripeEvent(
+        makeEvent("checkout.session.completed", "complete", checkoutSessionFreeEventRegistration)
+      );
+
+      expect(mockDeleteAttendee).toHaveBeenCalledWith("att-456");
+      expect(mockAddToMailingList).not.toHaveBeenCalled();
+      expect(mockRefund).not.toHaveBeenCalled();
     });
 
     it("checkout session completed", async () => {

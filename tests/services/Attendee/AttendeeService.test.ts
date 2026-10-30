@@ -4,10 +4,11 @@ jest.mock("../../../src/services/Event/EventService", () => ({
 
 import { Tables, TablesInsert } from "../../../src/schema/v2/database.types";
 import {
-  createAttendee,
-  addAttendee,
   getAttendee,
+  registerIfSeatAvailable,
+  submitApplication,
 } from "../../../src/services/Attendee/AttendeeService";
+import { ApiError } from "../../../src/services/ApiError";
 import { getEvent } from "../../../src/services/Event/EventService";
 import { AttendeeRepository } from "../../../src/storage/AttendeeRepository";
 
@@ -47,89 +48,6 @@ describe("AttendeeService", () => {
     mailing_list: "",
   };
 
-  describe("addAttendee", () => {
-    it("should create attendee with full data", async () => {
-      const registrationData: AttendeeInsert = {
-        user_id: "user-123",
-        event_id: "event-456",
-        payment_id: "payment-789",
-        event_form_answers: { shirtSize: "M", meal: "vegetarian" },
-      };
-
-      const mockAttendee: AttendeeRow = {
-        attendee_id: "attendee-123",
-        user_id: "user-123",
-        event_id: "event-456",
-        payment_id: "payment-789",
-        event_form_answers: { shirtSize: "M", meal: "vegetarian" },
-        created_at: "2025-01-15T10:00:00.000Z",
-        last_updated: "2025-01-15T10:00:00.000Z",
-        status: "REGISTERED",
-        is_payment_verified: true,
-      };
-      (AttendeeRepository.addAttendee as jest.Mock).mockResolvedValueOnce({
-        data: mockAttendee,
-      });
-      (
-        AttendeeRepository.getRegisteredAttendee as jest.Mock
-      ).mockResolvedValueOnce({ data: null });
-      const result = await addAttendee(mockEvent, registrationData);
-
-      expect(result).toEqual(mockAttendee);
-    });
-
-    it("should handle free events and minimal data", async () => {
-      const registrationData: AttendeeInsert = {
-        user_id: "user-123",
-        event_id: "event-456",
-      };
-
-      const mockAttendee: AttendeeRow = {
-        attendee_id: "attendee-123",
-        user_id: "user-123",
-        event_id: "event-456",
-        payment_id: null,
-        event_form_answers: null,
-        created_at: "2025-01-15T10:00:00.000Z",
-        last_updated: "2025-01-15T10:00:00.000Z",
-        status: "REGISTERED",
-        is_payment_verified: true,
-      };
-      (AttendeeRepository.addAttendee as jest.Mock).mockResolvedValueOnce({
-        data: mockAttendee,
-      });
-      (
-        AttendeeRepository.getRegisteredAttendee as jest.Mock
-      ).mockResolvedValueOnce({ data: null });
-      const result = await addAttendee(mockEvent, registrationData);
-
-      expect(result.payment_id).toBeNull();
-      expect(result.event_form_answers).toBeNull();
-      expect(result.status).toBe("REGISTERED");
-    });
-
-    it("throws on insert error", async () => {
-      const registrationData: AttendeeInsert = {
-        user_id: "user-123",
-        event_id: "event-456",
-        payment_id: "payment-789",
-        event_form_answers: { shirtSize: "M", meal: "vegetarian" },
-      };
-
-      (
-        AttendeeRepository.getRegisteredAttendee as jest.Mock
-      ).mockResolvedValueOnce({ data: null });
-      (AttendeeRepository.addAttendee as jest.Mock).mockResolvedValueOnce({
-        data: null,
-        error: { message: "DB fail" },
-      });
-
-      await expect(addAttendee(mockEvent, registrationData)).rejects.toThrow(
-        "Failed to create attendee: DB fail"
-      );
-    });
-  });
-
   describe("getAttendee", () => {
     it("returns attendee", async () => {
       (AttendeeRepository.getAttendee as jest.Mock).mockResolvedValueOnce({
@@ -153,63 +71,55 @@ describe("AttendeeService", () => {
     });
   });
 
-  describe("createAttendee", () => {
-    it("should throw error for missing required fields", async () => {
-      const testCases = [
-        { user_id: "", event_id: "event-456" },
-        { user_id: "user-123", event_id: "" },
-      ];
+  describe("submitApplication", () => {
+    const answers = { name: "Simoon Song", email: "simoon@example.com" };
 
-      for (const registrationData of testCases) {
-        await expect(
-          createAttendee(mockEvent, registrationData)
-        ).rejects.toThrow("Missing required fields");
-      }
+    it("returns the saved attendee", async () => {
+      const saved = { attendee_id: "att-1", status: "APPLIED" };
+      (AttendeeRepository.submitApplication as jest.Mock).mockResolvedValueOnce({ data: saved, error: null });
+
+      await expect(submitApplication("event-456", "user-123", answers)).resolves.toEqual(saved);
+      expect(AttendeeRepository.submitApplication).toHaveBeenCalledWith("event-456", "user-123", answers);
     });
 
-    it("should throw error when event is full", async () => {
-      const registrationData = {
-        user_id: "user-123",
-        event_id: "event-456",
-      };
+    it.each([
+      ["NOT_OPEN", 403],
+      ["CLOSED", 403],
+      ["ALREADY_APPLIED", 409],
+      ["EVENT_FULL", 409],
+      ["NOT_FOUND", 404],
+    ])("turns the database's %s into an API error", async (code, status) => {
+      (AttendeeRepository.submitApplication as jest.Mock).mockResolvedValueOnce({ data: null, error: { message: code } });
 
-      await expect(
-        createAttendee(
-          { ...mockEvent, max_attendees: 1, registered: 1 },
-          registrationData
-        )
-      ).rejects.toThrow("Event event-456 is full");
+      const error = await submitApplication("event-456", "user-123", answers).catch((e) => e);
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error).toMatchObject({ code, status });
     });
 
-    it("should throw if already registered", async () => {
-      const registrationData = {
-        user_id: "user-123",
-        event_id: "event-456",
-      };
+    it("treats anything else as a server error", async () => {
+      (AttendeeRepository.submitApplication as jest.Mock).mockResolvedValueOnce({ data: null, error: { message: "connection reset" } });
 
-      (
-        AttendeeRepository.getRegisteredAttendee as jest.Mock
-      ).mockResolvedValueOnce({ data: registrationData });
+      const error = await submitApplication("event-456", "user-123", answers).catch((e) => e);
+      expect(error).not.toBeInstanceOf(ApiError);
+      expect(error.message).toContain("connection reset");
+    });
+  });
 
-      await expect(createAttendee(mockEvent, registrationData)).rejects.toThrow(
-        "User already registered for event"
-      );
+  describe("registerIfSeatAvailable", () => {
+    it("reports whether a seat was free", async () => {
+      (AttendeeRepository.registerIfSeatAvailable as jest.Mock)
+        .mockResolvedValueOnce({ data: true, error: null })
+        .mockResolvedValueOnce({ data: false, error: null });
+
+      await expect(registerIfSeatAvailable("att-1", "pi_1")).resolves.toBe(true);
+      await expect(registerIfSeatAvailable("att-2")).resolves.toBe(false);
+      expect(AttendeeRepository.registerIfSeatAvailable).toHaveBeenCalledWith("att-1", "pi_1");
     });
 
-    it("should not throw when all validations pass", async () => {
-      const registrationData = {
-        user_id: "user-123",
-        event_id: "event-456",
-      };
+    it("throws when the database call fails", async () => {
+      (AttendeeRepository.registerIfSeatAvailable as jest.Mock).mockResolvedValueOnce({ data: null, error: { message: "boom" } });
 
-      (
-        AttendeeRepository.getRegisteredAttendee as jest.Mock
-      ).mockResolvedValueOnce({ data: null });
-
-      expect(await createAttendee(mockEvent, registrationData)).toEqual({
-        ...registrationData,
-        status: "PROCESSING",
-      });
+      await expect(registerIfSeatAvailable("att-1")).rejects.toThrow("boom");
     });
   });
 });

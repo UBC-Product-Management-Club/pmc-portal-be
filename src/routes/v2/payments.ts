@@ -14,8 +14,9 @@ import {
 import { authenticated } from "../../middleware/Session";
 import {
   getAttendee,
-  updateAttendee
+  registerIfSeatAvailable,
 } from "../../services/Attendee/AttendeeService";
+import { ApiError, sendApiError } from "../../services/ApiError";
 import { getEventPriceId } from "../../services/Event/EventService";
 import { getUser } from "../../services/User/UserService";
 import { addToMailingList } from "../../services/Email/EmailService";
@@ -130,7 +131,10 @@ paymentRouter.get(
         );
         return res.status(200).json(session);
       }
-      await updateAttendee(attendee.attendee_id, { status: "REGISTERED" })
+      // Free event: the seat is claimed atomically
+      if (!(await registerIfSeatAvailable(attendee.attendee_id))) {
+        return sendApiError(res, new ApiError(409, "EVENT_FULL", "This event is full."));
+      }
       addToMailingList(attendee.attendee_id);
       return res.status(200).send();
     } catch (error) {

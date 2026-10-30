@@ -1,21 +1,7 @@
-import { Enums, Tables, TablesInsert } from "../../schema/v2/database.types";
+import { Enums, Tables } from "../../schema/v2/database.types";
 import { AttendeeRepository } from "../../storage/AttendeeRepository";
 import { TeamRepository } from "../../storage/TeamRepository";
-import { EventInformation } from "../Event/EventService";
-
-type Attendee = TablesInsert<"Attendee">;
-
-export const addAttendee = async (
-  event: EventInformation,
-  registrationData: Attendee
-): Promise<Tables<"Attendee">> => {
-  const attendee = await createAttendee(event, registrationData);
-  const { data, error } = await AttendeeRepository.addAttendee(attendee);
-  if (error) {
-    throw new Error(`Failed to create attendee: ${error.message}`);
-  }
-  return data;
-};
+import { ApiError } from "../ApiError";
 
 export const getAttendee = async (
   eventId: string,
@@ -58,30 +44,47 @@ export const deleteAttendee = async (
   return { message: `deleted attendee ${attendeeId}` };
 };
 
-export const createAttendee = async (
-  event: EventInformation,
-  registrationData: Attendee
-): Promise<Attendee> => {
-  const { user_id, event_id } = registrationData;
+// The database raises these by name; anything else is a server error
+const APPLICATION_ERRORS: Record<string, [number, string]> = {
+  NOT_FOUND: [404, "This event doesn't exist."],
+  NOT_OPEN: [403, "Applications aren't open yet."],
+  CLOSED: [403, "Applications for this event are closed."],
+  ALREADY_APPLIED: [409, "You've already applied to this event."],
+  EVENT_FULL: [409, "This event is full."],
+};
 
-  if (!user_id || !event_id) {
-    throw new Error("Missing required fields");
+export const submitApplication = async (
+  eventId: string,
+  userId: string,
+  answers: Record<string, string>
+): Promise<Tables<"Attendee">> => {
+  const { data, error } = await AttendeeRepository.submitApplication(eventId, userId, answers);
+  if (error) {
+    const code = Object.keys(APPLICATION_ERRORS).find((c) => error.message.includes(c));
+    if (code) {
+      const [status, message] = APPLICATION_ERRORS[code];
+      throw new ApiError(status, code, message);
+    }
+    throw new Error(`Failed to submit application: ${error.message}`);
   }
+  return data as Tables<"Attendee">;
+};
 
-  if (event.max_attendees === event.registered) {
-    throw new Error(`Event ${event_id} is full!`);
+// Free and no-review events: true when the student got a seat, false when the event was full
+export const registerIfSeatAvailable = async (attendeeId: string, paymentId?: string): Promise<boolean> => {
+  const { data, error } = await AttendeeRepository.registerIfSeatAvailable(attendeeId, paymentId);
+  if (error) {
+    throw new Error(`Failed to register attendee ${attendeeId}: ${error.message}`);
   }
+  return data === true;
+};
 
-  if (
-    (await AttendeeRepository.getRegisteredAttendee(event_id, user_id)).data
-  ) {
-    throw new Error(`User already registered for event`);
+export const getAttendeeWithEvent = async (attendeeId: string) => {
+  const { data, error } = await AttendeeRepository.getAttendeeWithEvent(attendeeId);
+  if (error) {
+    throw new Error(`Failed to load attendee ${attendeeId}: ${error.message}`);
   }
-
-  return {
-    ...registrationData,
-    status: event.needs_review ? "APPLIED" : "PROCESSING",
-  };
+  return data;
 };
 
 export const updateAttendeeStatus = async (
