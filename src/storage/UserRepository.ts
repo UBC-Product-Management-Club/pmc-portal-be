@@ -1,5 +1,5 @@
 import { supabase } from "../config/supabase";
-import { TablesInsert } from "../../src/schema/v2/database.types";
+import { TablesInsert, TablesUpdate } from "../../src/schema/v2/database.types";
 
 type UserInsert = TablesInsert<"User">;
 
@@ -12,6 +12,9 @@ export const UserRepository = {
 
   updateUser: (userId: string, updates: Record<string, any>) =>
     supabase.from("User").update(updates).eq("user_id", userId).single(),
+  // Only ever called with checked, allowlisted fields (profileRules)
+  updateProfile: (userId: string, update: TablesUpdate<"User">) =>
+    supabase.from("User").update(update).eq("user_id", userId).select().single(),
   findUserByEmail: (email: string) =>
     supabase.from("User").select("*").eq("email", email).single(),
 
