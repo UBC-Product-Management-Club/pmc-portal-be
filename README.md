@@ -45,7 +45,7 @@ each file before running it; some have a step to run on its own.
 | `20261025000000_register_checks.sql` | Window, duplicate and seat checks on applications |
 | `20261026000000_applicant_review.sql` | Review decisions, the payment hold, notification hooks, checkout fulfilment |
 | `20261027000000_ops_tooling.sql` | Review sheet, messages and payment issue queries |
-| `20261028000000_event_day_schema.sql` | Event day columns; one team per attendee |
+| `20261028000000_event_day_schema.sql` | Event day columns |
 | `20261029000000_team_rules.sql` | Create, join, leave and rename teams |
 | `20261030000000_submissions.sql` | The submission window and stale-save check |
 | `20261031000000_event_day_ops.sql` | Extensions, finalists and the submission export |
@@ -64,16 +64,21 @@ No code changes; everything is rows.
    `registration_opens` / `registration_closes`, `max_attendees` (student
    seats), `payment_hold_hours`, `schedule`, and `event_form_questions` in the
    format below. Name and email are fixed fields on every form.
-3. **Event day:** `min_team_size`, `max_team_size`, `discord_url`, `icon`, and
-   `page_content`:
+3. **Event day:** `min_team_size`, `max_team_size`, `discord_url`, `icon`,
+   optionally `roster_locks_at` (when joining and leaving teams stops; empty
+   means 24 hours after the submission window opens), and `page_content`:
    ```json
    { "mentors": [{ "name": "", "role": "", "photo": "https://…", "link": "https://…" }],
      "prep": ["Bring your laptop"],
      "faq": [{ "q": "", "a": "" }] }
    ```
-4. **Submission phase:** one `Deliverable_Flags` row with `starttime`,
-   `deadline`, `is_enabled` and `fields`. Make the schedule's submission
-   deadline the same time as `deadline`.
+4. **Submission phase:** exactly one `Deliverable_Flags` row per event; the form
+   only uses the first and `export-submissions` stops if there are more. It
+   needs a `starttime` (the frontend can't show a phase without one), the
+   `deadline`, `is_enabled`, and `fields` using only `file`, `url`,
+   `short-answer` or `long-answer`. Students get `NOT_OPEN` until `starttime`,
+   so it's safe to add early. Keep the schedule's "Submission Deadline" at the
+   same time as `deadline`; `ops extend` warns when they drift apart.
 
 Questions and submission fields share one format. `maxWords`, `accept` and
 `maxSizeMB` are optional; sizes are decimal (5 MB = 5,000,000 bytes).
@@ -102,7 +107,7 @@ npm run ops -- decide --event <id> --by <name> [--apply]
 npm run ops -- extend --event <id> --until 2026-11-22T12:15:00-08:00 [--team R4827]
 npm run ops -- finalists --event <id> --mark R4827,K1093
 npm run ops -- publish-finalists --event <id> --confirm R4827,K1093
-npm run ops -- export-submissions --event <id> --out ./exports
+npm run ops -- export-submissions --event <id>             # writes to output/ (gitignored)
 ```
 
 The review sheet and the full submissions CSV hold personal data: share them
