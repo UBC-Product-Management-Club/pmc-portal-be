@@ -15,7 +15,7 @@
 --   team_submission      the saved answers as the form shows them
 --
 -- Errors are raised by name: NOT_REGISTERED, NOT_ON_TEAM, NOT_FOUND, DISABLED,
--- NOT_OPEN, CLOSED, TEAM_TOO_SMALL, STALE.
+-- NOT_OPEN, CLOSED, TEAM_TOO_SMALL, STALE, EMPTY_SUBMISSION.
 --
 -- Hand-run in the Supabase SQL Editor (staging first), after
 -- 20261029000000_team_rules.sql. Safe to re-run.
@@ -127,11 +127,21 @@ create or replace function save_submission(
 returns jsonb language plpgsql as $$
 declare
   v_team_id uuid := member_team_id(p_event_id, p_user_id);
-  v_phase "Deliverable_Flags" := event_phase(p_event_id, p_phase_id);
+  v_phase "Deliverable_Flags";
   v_min int;
   v_row "Deliverable";
 begin
   perform 1 from "Team" where team_id = v_team_id for update;
+  -- Read again under the lock: a leave or an extension may have landed meanwhile
+  if member_team_id(p_event_id, p_user_id) <> v_team_id then
+    raise exception 'NOT_ON_TEAM';
+  end if;
+  v_phase := event_phase(p_event_id, p_phase_id);
+
+  -- An empty entry would still lock the roster
+  if p_submission = '{}'::jsonb then
+    raise exception 'EMPTY_SUBMISSION';
+  end if;
   -- clock_timestamp, not now(): now() is when the transaction began, and this
   -- may have waited on the lock
   perform check_submission_window(v_phase, v_team_id, clock_timestamp());

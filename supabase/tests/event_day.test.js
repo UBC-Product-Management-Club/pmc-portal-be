@@ -294,6 +294,13 @@ const tests = {
         await db.exec(`update "Deliverable_Flags" set is_enabled = false where id = '${paused}'`);
         await fails(save(db, 'u1', paused), 'DISABLED');
     },
+    async 'an empty entry is refused, so it never locks the roster'() {
+        const db = await fresh(); await eventWith(db, 2);
+        const t = await createTeam(db, 'u1');
+        const phase = await addPhase(db);
+        await fails(save(db, 'u1', phase, 0, {}), 'EMPTY_SUBMISSION');
+        assert.equal((await joinTeam(db, 'u2', t.Team.team_code)).Team.Team_Member.length, 2);
+    },
     async 'a team smaller than min_team_size is TEAM_TOO_SMALL'() {
         const db = await fresh(); await eventWith(db, 1, { min: 2 }); await createTeam(db, 'u1');
         const phase = await addPhase(db);
