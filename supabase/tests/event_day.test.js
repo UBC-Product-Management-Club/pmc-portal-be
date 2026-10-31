@@ -138,6 +138,14 @@ const tests = {
         await fails(createTeam(db, 'u2', 'bad\u0007name'), 'INVALID_TEAM_NAME');
         await fails(createTeam(db, 'u3', 'x'.repeat(80)), 'TEAM_NAME_TAKEN');
     },
+    async 'team names are unique ignoring case, but a team can recase its own'() {
+        const db = await fresh(); await eventWith(db, 2);
+        await createTeam(db, 'u1', 'Royal Flush');
+        await fails(createTeam(db, 'u2', 'royal FLUSH'), 'TEAM_NAME_TAKEN');
+        await createTeam(db, 'u2', 'Aces');
+        await fails(renameTeam(db, 'u2', 'ROYAL flush'), 'TEAM_NAME_TAKEN');
+        assert.equal((await renameTeam(db, 'u1', 'royal flush')).Team.team_name, 'royal flush');
+    },
     async 'joins with a lowercase, spaced code'() {
         const db = await fresh(); await eventWith(db, 2);
         const { Team: { team_code } } = await createTeam(db, 'u1');
@@ -163,15 +171,32 @@ const tests = {
         await fails(joinTeam(db, 'u3', t.Team.team_code), 'ROSTER_LOCKED');
         await fails(leaveTeam(db, 'u2'), 'ROSTER_LOCKED');
     },
-    async 'no joining, leaving or creating after the deadline, even with an extension'() {
+    async 'joining and leaving stop at roster_locks_at, even with an extension'() {
         const db = await fresh(); await eventWith(db, 3);
         const t = await createTeam(db, 'u1');
         await joinTeam(db, 'u2', t.Team.team_code);
-        await addPhase(db, "now() - interval '1 minute'");
+        await addPhase(db);
+        await db.exec(`update "Event" set roster_locks_at = now() - interval '1 minute'`);
         await db.exec(`update "Team" set extended_until = now() + interval '1 hour'`);
-        await fails(joinTeam(db, 'u3', t.Team.team_code), 'CLOSED');
-        await fails(leaveTeam(db, 'u2'), 'CLOSED');
-        await fails(createTeam(db, 'u3', 'Late'), 'CLOSED');
+        await fails(joinTeam(db, 'u3', t.Team.team_code), 'TEAM_CHANGES_CLOSED');
+        await fails(leaveTeam(db, 'u2'), 'TEAM_CHANGES_CLOSED');
+    },
+    async 'without roster_locks_at, the roster locks 24 hours after the window opens'() {
+        const db = await fresh(); await eventWith(db, 3);
+        const t = await createTeam(db, 'u1');
+        const phase = await addPhase(db, "now() + interval '1 day'", "now() - interval '23 hours'");
+        await joinTeam(db, 'u2', t.Team.team_code);
+        await db.exec(`update "Deliverable_Flags" set starttime = now() - interval '25 hours' where id = '${phase}'`);
+        await fails(joinTeam(db, 'u3', t.Team.team_code), 'TEAM_CHANGES_CLOSED');
+    },
+    async 'after the roster lock, a student with no team can still create a team of one'() {
+        const db = await fresh(); await eventWith(db, 2);
+        const phase = await addPhase(db);
+        await db.exec(`update "Event" set roster_locks_at = now() - interval '1 minute'`);
+        const solo = await createTeam(db, 'u1', 'Solo');
+        await fails(joinTeam(db, 'u2', solo.Team.team_code), 'TEAM_CHANGES_CLOSED');
+        await db.exec(`update "Deliverable_Flags" set deadline = now() - interval '1 second' where id = '${phase}'`);
+        await fails(createTeam(db, 'u2', 'Too Late'), 'CLOSED');
     },
     async 'renaming is allowed until the team deadline, extension included'() {
         const db = await fresh(); await eventWith(db, 1);
