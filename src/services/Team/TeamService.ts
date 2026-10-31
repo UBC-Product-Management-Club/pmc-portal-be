@@ -9,7 +9,8 @@ const TEAM_ERRORS: DatabaseErrors = {
   NOT_FOUND: [404, "No team has that code."],
   TEAM_FULL: [409, "That team is already full."],
   ROSTER_LOCKED: [409, "This team has already submitted, so its members can't change."],
-  CLOSED: [403, "The deadline has passed, so this team can no longer change."],
+  TEAM_CHANGES_CLOSED: [403, "Teams are locked now, so members can't join or leave."],
+  CLOSED: [403, "The submission deadline has passed."],
   TEAM_NAME_TAKEN: [409, "Another team already has that name.", undefined, { team_name: "That name is taken." }],
   INVALID_TEAM_NAME: [400, "Team names must be 1 to 80 characters.", "VALIDATION_ERROR", { team_name: "Use 1 to 80 characters." }],
 };
