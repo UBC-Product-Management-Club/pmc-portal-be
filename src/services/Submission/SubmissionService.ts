@@ -15,6 +15,7 @@ const SUBMISSION_ERRORS: DatabaseErrors = {
   CLOSED: [403, "Submissions closed before your save finished."],
   TEAM_TOO_SMALL: [409, "Your team doesn't have enough members to submit yet."],
   STALE: [409, "A teammate saved since you opened the form."],
+  EMPTY_SUBMISSION: [400, "Fill in the form before submitting.", "VALIDATION_ERROR"],
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -67,30 +68,30 @@ export const saveSubmission = async (
     throw new ApiError(400, code, "Please fix the highlighted fields.", fields);
   }
 
-  const uploaded = await uploadSupabaseFiles(files, {
-    parentPath: `events/${eventId}/teams/${context.team_id}/${phaseId}/${randomUUID()}/`,
-    bucketName: bucket(),
-    isPublic: false,
-  });
-  const submission: Record<string, string> = { ...answers };
-  for (const id of fileFields) {
-    const path = uploaded[id] ?? previous[id];
-    if (path) submission[id] = path;
-  }
-
-  let saved: Json;
+  let uploaded: Record<string, string> = {};
   try {
-    saved = await rpcResult<Json>(SubmissionRepository.save(eventId, userId, phaseId, submission, expectedVersion), SUBMISSION_ERRORS);
+    uploaded = await uploadSupabaseFiles(files, {
+      parentPath: `events/${eventId}/teams/${context.team_id}/${phaseId}/${randomUUID()}/`,
+      bucketName: bucket(),
+      isPublic: false,
+    });
+    const submission: Record<string, string> = { ...answers };
+    for (const id of fileFields) {
+      const path = uploaded[id] ?? previous[id];
+      if (path) submission[id] = path;
+    }
+
+    const saved = await rpcResult<Json>(SubmissionRepository.save(eventId, userId, phaseId, submission, expectedVersion), SUBMISSION_ERRORS);
+    await removeFiles(fileFields.filter((id) => uploaded[id] && previous[id]).map((id) => previous[id]));
+    return saved;
   } catch (error) {
     await removeFiles(Object.values(uploaded));
+    // Refusals (STALE, CLOSED, ...) are expected; a failed upload or save isn't
     if (!(error instanceof ApiError)) {
       logEvent("SUBMISSION_SAVE_FAILED", { event_id: eventId, team_id: context.team_id, phase_id: phaseId });
     }
     throw error;
   }
-
-  await removeFiles(fileFields.filter((id) => uploaded[id] && previous[id]).map((id) => previous[id]));
-  return saved;
 };
 
 // Best effort: a leftover file is harmless, a failed save or response isn't

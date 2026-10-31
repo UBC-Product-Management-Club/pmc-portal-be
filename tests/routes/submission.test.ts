@@ -181,6 +181,19 @@ describe("POST /events/:eventId/deliverable/:phaseId", () => {
     logged.mockRestore();
   });
 
+  it("logs SUBMISSION_SAVE_FAILED when the deck upload fails", async () => {
+    context();
+    (uploadSupabaseFiles as jest.Mock).mockRejectedValueOnce(new Error("storage unavailable"));
+    const logged = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    const res = await submit();
+
+    expect(res.status).toBe(500);
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining('"event":"SUBMISSION_SAVE_FAILED"'));
+    expect(SubmissionRepository.save).not.toHaveBeenCalled();
+    logged.mockRestore();
+  });
+
   it.each([[undefined], ["1.5"]])("needs a whole expected_version (got %s)", async (version) => {
     const { expected_version, ...rest } = valid;
     const res = await submit(version === undefined ? rest : { ...rest, expected_version: version });

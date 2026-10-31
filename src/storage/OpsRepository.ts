@@ -57,6 +57,7 @@ export const OpsRepository = {
         supabase.rpc("publish_finalists", { p_event_id: eventId, p_team_codes: teamCodes }),
     getFinalists: (eventId: string) =>
         supabase.from("Team").select("team_code, team_name").eq("event_id", eventId).eq("is_finalist", true).order("team_name"),
+    getSchedule: (eventId: string) => supabase.from("Event").select("schedule, timezone").eq("event_id", eventId).maybeSingle(),
     getPhases: (eventId: string) =>
         supabase.from("Deliverable_Flags").select("id").eq("event_id", eventId),
     submissionExport: (phaseId: string) => supabase.rpc("submission_export", { p_phase_id: phaseId }),

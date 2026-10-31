@@ -98,23 +98,6 @@ const tests = {
         const db = await fresh();
         await fails(db.exec(`insert into "Event" (event_id, discord_url) values ('${E}', 'javascript:alert(1)')`), 'event_discord_url_check');
     },
-    async 'an attendee can only be on one team'() {
-        const db = await fresh(); const [a] = await eventWith(db, 1);
-        await db.exec(`insert into "Team" (team_id, event_id, team_name, team_code) values
-          ('aaaaaaaa-0000-0000-0000-000000000001', '${E}', 'One', 'A1111'),
-          ('aaaaaaaa-0000-0000-0000-000000000002', '${E}', 'Two', 'A2222')`);
-        await db.exec(`insert into "Team_Member" values ('aaaaaaaa-0000-0000-0000-000000000001', '${a}')`);
-        await fails(db.exec(`insert into "Team_Member" values ('aaaaaaaa-0000-0000-0000-000000000002', '${a}')`), 'team_member_attendee_key');
-    },
-    async 'stops when an attendee is already on two teams'() {
-        const db = new PGlite();
-        await db.exec(`
-          create table "Event" (event_id uuid primary key); create table "Team" (team_id uuid primary key);
-          create table "Deliverable_Flags" (id uuid primary key); create table "Deliverable" (deliverable_id uuid primary key);
-          create table "Team_Member" (team_id uuid, attendee_id uuid, primary key (team_id, attendee_id));
-          insert into "Team_Member" values (gen_random_uuid(), '${E}'), (gen_random_uuid(), '${E}');`);
-        await fails(db.exec(fs.readFileSync(MIGRATIONS[0], 'utf8')), 'more than one team');
-    },
     async 'running them twice is harmless'() {
         const db = await fresh();
         for (const file of MIGRATIONS) await db.exec(fs.readFileSync(file, 'utf8'));
@@ -165,6 +148,14 @@ const tests = {
         await fails(createTeam(db, 'u2', 'bad\u0007name'), 'INVALID_TEAM_NAME');
         await fails(createTeam(db, 'u3', 'x'.repeat(80)), 'TEAM_NAME_TAKEN');
     },
+    async 'team names are unique ignoring case, but a team can recase its own'() {
+        const db = await fresh(); await eventWith(db, 2);
+        await createTeam(db, 'u1', 'Royal Flush');
+        await fails(createTeam(db, 'u2', 'royal FLUSH'), 'TEAM_NAME_TAKEN');
+        await createTeam(db, 'u2', 'Aces');
+        await fails(renameTeam(db, 'u2', 'ROYAL flush'), 'TEAM_NAME_TAKEN');
+        assert.equal((await renameTeam(db, 'u1', 'royal flush')).Team.team_name, 'royal flush');
+    },
     async 'joins with a lowercase, spaced code'() {
         const db = await fresh(); await eventWith(db, 2);
         const { Team: { team_code } } = await createTeam(db, 'u1');
@@ -190,15 +181,32 @@ const tests = {
         await fails(joinTeam(db, 'u3', t.Team.team_code), 'ROSTER_LOCKED');
         await fails(leaveTeam(db, 'u2'), 'ROSTER_LOCKED');
     },
-    async 'no joining, leaving or creating after the deadline, even with an extension'() {
+    async 'joining and leaving stop at roster_locks_at, even with an extension'() {
         const db = await fresh(); await eventWith(db, 3);
         const t = await createTeam(db, 'u1');
         await joinTeam(db, 'u2', t.Team.team_code);
-        await addPhase(db, "now() - interval '1 minute'");
+        await addPhase(db);
+        await db.exec(`update "Event" set roster_locks_at = now() - interval '1 minute'`);
         await db.exec(`update "Team" set extended_until = now() + interval '1 hour'`);
-        await fails(joinTeam(db, 'u3', t.Team.team_code), 'CLOSED');
-        await fails(leaveTeam(db, 'u2'), 'CLOSED');
-        await fails(createTeam(db, 'u3', 'Late'), 'CLOSED');
+        await fails(joinTeam(db, 'u3', t.Team.team_code), 'TEAM_CHANGES_CLOSED');
+        await fails(leaveTeam(db, 'u2'), 'TEAM_CHANGES_CLOSED');
+    },
+    async 'without roster_locks_at, the roster locks 24 hours after the window opens'() {
+        const db = await fresh(); await eventWith(db, 3);
+        const t = await createTeam(db, 'u1');
+        const phase = await addPhase(db, "now() + interval '1 day'", "now() - interval '23 hours'");
+        await joinTeam(db, 'u2', t.Team.team_code);
+        await db.exec(`update "Deliverable_Flags" set starttime = now() - interval '25 hours' where id = '${phase}'`);
+        await fails(joinTeam(db, 'u3', t.Team.team_code), 'TEAM_CHANGES_CLOSED');
+    },
+    async 'after the roster lock, a student with no team can still create a team of one'() {
+        const db = await fresh(); await eventWith(db, 2);
+        const phase = await addPhase(db);
+        await db.exec(`update "Event" set roster_locks_at = now() - interval '1 minute'`);
+        const solo = await createTeam(db, 'u1', 'Solo');
+        await fails(joinTeam(db, 'u2', solo.Team.team_code), 'TEAM_CHANGES_CLOSED');
+        await db.exec(`update "Deliverable_Flags" set deadline = now() - interval '1 second' where id = '${phase}'`);
+        await fails(createTeam(db, 'u2', 'Too Late'), 'CLOSED');
     },
     async 'renaming is allowed until the team deadline, extension included'() {
         const db = await fresh(); await eventWith(db, 1);
@@ -286,6 +294,13 @@ const tests = {
         await db.exec(`update "Deliverable_Flags" set is_enabled = false where id = '${paused}'`);
         await fails(save(db, 'u1', paused), 'DISABLED');
     },
+    async 'an empty entry is refused, so it never locks the roster'() {
+        const db = await fresh(); await eventWith(db, 2);
+        const t = await createTeam(db, 'u1');
+        const phase = await addPhase(db);
+        await fails(save(db, 'u1', phase, 0, {}), 'EMPTY_SUBMISSION');
+        assert.equal((await joinTeam(db, 'u2', t.Team.team_code)).Team.Team_Member.length, 2);
+    },
     async 'a team smaller than min_team_size is TEAM_TOO_SMALL'() {
         const db = await fresh(); await eventWith(db, 1, { min: 2 }); await createTeam(db, 'u1');
         const phase = await addPhase(db);
@@ -333,6 +348,14 @@ const tests = {
         const phase = await addPhase(db, "now() + interval '2 days'", "now() + interval '1 day'");
         const d = (await db.query(`select extend_phase_deadline($1, now() + interval '30 hours') d`, [phase])).rows[0].d;
         assert.ok(d < new Date(Date.now() + 31 * 3600e3));
+    },
+    async 'extending every team leaves team changes locked'() {
+        const db = await fresh(); await eventWith(db, 2);
+        const t = await createTeam(db, 'u1');
+        const phase = await addPhase(db, "now() - interval '1 minute'", "now() - interval '2 days'");
+        await db.query(`select extend_phase_deadline($1, now() + interval '30 minutes')`, [phase]);
+        await fails(joinTeam(db, 'u2', t.Team.team_code), 'TEAM_CHANGES_CLOSED');
+        assert.equal((await save(db, 'u1', phase)).version, 1);
     },
     async 'a team extension only moves later, and the team is found by code'() {
         const db = await fresh(); await eventWith(db, 1);

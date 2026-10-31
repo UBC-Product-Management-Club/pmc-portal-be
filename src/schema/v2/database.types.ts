@@ -463,6 +463,7 @@ export type Database = {
           payment_hold_hours: number
           registration_closes: string | null
           registration_opens: string | null
+          roster_locks_at: string | null
           schedule: Json | null
           start_time: string | null
           timezone: string
@@ -496,6 +497,7 @@ export type Database = {
           payment_hold_hours?: number
           registration_closes?: string | null
           registration_opens?: string | null
+          roster_locks_at?: string | null
           schedule?: Json | null
           start_time?: string | null
           timezone?: string
@@ -529,6 +531,7 @@ export type Database = {
           payment_hold_hours?: number
           registration_closes?: string | null
           registration_opens?: string | null
+          roster_locks_at?: string | null
           schedule?: Json | null
           start_time?: string | null
           timezone?: string
