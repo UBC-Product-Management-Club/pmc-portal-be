@@ -8,7 +8,6 @@
 --   Team                finalist flag and a per-team deadline extension
 --   Deliverable_Flags   the submission fields for each phase
 --   Deliverable         a version for the stale-save check
---   Team_Member         one team per attendee, as a rule of the table
 --
 -- Hand-run in the Supabase SQL Editor (staging first), after
 -- 20261027000000_ops_tooling.sql. Safe to re-run.
@@ -24,7 +23,10 @@ alter table "Event"
   -- Empty until tech publishes results after the on-stage reveal
   add column if not exists finalists_published_at timestamptz,
   -- Small square logo beside the event in the sidebar
-  add column if not exists icon text;
+  add column if not exists icon text,
+  -- When creating, joining and leaving teams stops. Empty means 24 hours after
+  -- the submission window opens. Extensions never move it.
+  add column if not exists roster_locks_at timestamptz;
 
 alter table "Event" drop constraint if exists event_team_size_check;
 alter table "Event" add constraint event_team_size_check
@@ -47,13 +49,3 @@ alter table "Deliverable_Flags"
 alter table "Deliverable"
   -- Goes up by one on every save; a save that sends an old version is STALE
   add column if not exists version int not null default 0;
-
--- Team_Member's key is (team_id, attendee_id), which lets one attendee sit on two
--- teams. If this fails, find them first with:
---   select attendee_id, count(*) from "Team_Member" group by 1 having count(*) > 1;
-do $$ begin
-  if exists (select 1 from "Team_Member" group by attendee_id having count(*) > 1) then
-    raise exception 'Some attendees are on more than one team; fix them before running this migration';
-  end if;
-end $$;
-create unique index if not exists team_member_attendee_key on "Team_Member" (attendee_id);

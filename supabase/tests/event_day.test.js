@@ -88,23 +88,6 @@ const tests = {
         const db = await fresh();
         await fails(db.exec(`insert into "Event" (event_id, discord_url) values ('${E}', 'javascript:alert(1)')`), 'event_discord_url_check');
     },
-    async 'an attendee can only be on one team'() {
-        const db = await fresh(); const [a] = await eventWith(db, 1);
-        await db.exec(`insert into "Team" (team_id, event_id, team_name, team_code) values
-          ('aaaaaaaa-0000-0000-0000-000000000001', '${E}', 'One', 'A1111'),
-          ('aaaaaaaa-0000-0000-0000-000000000002', '${E}', 'Two', 'A2222')`);
-        await db.exec(`insert into "Team_Member" values ('aaaaaaaa-0000-0000-0000-000000000001', '${a}')`);
-        await fails(db.exec(`insert into "Team_Member" values ('aaaaaaaa-0000-0000-0000-000000000002', '${a}')`), 'team_member_attendee_key');
-    },
-    async 'stops when an attendee is already on two teams'() {
-        const db = new PGlite();
-        await db.exec(`
-          create table "Event" (event_id uuid primary key); create table "Team" (team_id uuid primary key);
-          create table "Deliverable_Flags" (id uuid primary key); create table "Deliverable" (deliverable_id uuid primary key);
-          create table "Team_Member" (team_id uuid, attendee_id uuid, primary key (team_id, attendee_id));
-          insert into "Team_Member" values (gen_random_uuid(), '${E}'), (gen_random_uuid(), '${E}');`);
-        await fails(db.exec(fs.readFileSync(MIGRATIONS[0], 'utf8')), 'more than one team');
-    },
     async 'running them twice is harmless'() {
         const db = await fresh();
         for (const file of MIGRATIONS) await db.exec(fs.readFileSync(file, 'utf8'));
