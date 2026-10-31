@@ -50,7 +50,8 @@ begin
   return v_until;
 end $$;
 
--- Returns how many teams changed
+-- Returns how many teams changed. Like the team functions, this takes a "no key
+-- update" lock on the event so it can't deadlock with a submission save.
 create or replace function set_finalists(
   p_event_id uuid,
   p_team_codes text[],
@@ -60,7 +61,7 @@ create or replace function set_finalists(
 returns int language plpgsql as $$
 declare v_published timestamptz; v_codes text[]; v_missing text[]; v_done int;
 begin
-  select finalists_published_at into v_published from "Event" where event_id = p_event_id for update;
+  select finalists_published_at into v_published from "Event" where event_id = p_event_id for no key update;
   if not found then
     raise exception 'NOT_FOUND';
   end if;
@@ -87,7 +88,7 @@ create or replace function publish_finalists(p_event_id uuid, p_team_codes text[
 returns timestamptz language plpgsql as $$
 declare v_published timestamptz; v_marked text[]; v_confirmed text[];
 begin
-  select finalists_published_at into v_published from "Event" where event_id = p_event_id for update;
+  select finalists_published_at into v_published from "Event" where event_id = p_event_id for no key update;
   if not found then
     raise exception 'NOT_FOUND';
   end if;
