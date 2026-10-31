@@ -134,10 +134,13 @@ begin
   return v_name;
 end $$;
 
--- Locks the event's row so team changes in it run one at a time
+-- Locks the event's row so team changes in it run one at a time. "No key
+-- update" rather than "update": saving a submission takes the team row, then a
+-- key-share lock on the event row for the Deliverable's foreign key. A full
+-- update lock here would block that while waiting on the team row: a deadlock.
 create or replace function lock_event_teams(p_event_id uuid)
 returns void language sql as $$
-  select 1 from "Event" where event_id = p_event_id for update;
+  select 1 from "Event" where event_id = p_event_id for no key update;
 $$;
 
 -- Raises TEAM_NAME_TAKEN if another team in the event has this name, ignoring case
