@@ -7,11 +7,13 @@ export const spreadsheetSafe = (value: unknown): string => {
 };
 
 // e.g. "2026-11-04 12:00 PT"; blank for no time
-export const pacific = (iso: string | null | undefined): string => {
-  if (!iso) return "";
+export const pacific = (iso: string | null | undefined): string => (iso ? `${localTime(iso, "America/Vancouver")} PT` : "");
+
+// e.g. "2026-11-04 12:00" in the given time zone
+export const localTime = (iso: string, timeZone: string): string => {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Vancouver",
+      timeZone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -22,7 +24,7 @@ export const pacific = (iso: string | null | undefined): string => {
       .formatToParts(new Date(iso))
       .map((p) => [p.type, p.value])
   );
-  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute} PT`;
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
 };
 
 export const yesNo = (value: boolean | null | undefined) => (value ? "Yes" : "No");

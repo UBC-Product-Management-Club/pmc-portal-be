@@ -7,6 +7,7 @@ import {
   parseCodes,
   parseTime,
   resolvePhase,
+  scheduleMismatch,
   setFinalists,
 } from "../../src/ops/eventDay";
 import { OpsRepository } from "../../src/storage/OpsRepository";
@@ -51,6 +52,27 @@ describe("extensions", () => {
     await expect(resolvePhase("e1")).rejects.toThrow("--phase");
 
     await expect(resolvePhase("e1", "p2")).resolves.toBe("p2");
+  });
+});
+
+describe("scheduleMismatch", () => {
+  const schedule = {
+    days: [
+      { date: "2026-11-21", items: [{ time: "10:00", title: "Kickoff" }] },
+      { date: "2026-11-22", items: [{ time: "12:00", title: "Submission Deadline" }] },
+    ],
+  };
+
+  it("is quiet while the schedule matches the deadline", () => {
+    expect(scheduleMismatch(schedule, "America/Vancouver", "2026-11-22T20:00:00Z")).toBeNull();
+  });
+
+  it("warns once an extension moves the deadline", () => {
+    expect(scheduleMismatch(schedule, "America/Vancouver", "2026-11-22T20:30:00Z")).toContain("2026-11-22 12:00; the real one is 2026-11-22 12:30");
+  });
+
+  it("has nothing to compare without a schedule", () => {
+    expect(scheduleMismatch(null, "America/Vancouver", "2026-11-22T20:30:00Z")).toBeNull();
   });
 });
 

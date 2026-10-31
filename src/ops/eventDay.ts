@@ -1,6 +1,6 @@
 import { normalizeQuestions } from "../services/Attendee/applicationRules";
 import { OpsRepository } from "../storage/OpsRepository";
-import { pacific, spreadsheetSafe } from "./cells";
+import { localTime, pacific, spreadsheetSafe } from "./cells";
 
 // Event day scripts (4.5, Event day). Every change goes through a database
 // function that only moves deadlines later and guards the finalist reveal.
@@ -36,6 +36,27 @@ export const extendTeam = async (eventId: string, teamCode: string, until: strin
   const { data, error } = await OpsRepository.extendTeam(eventId, teamCode, parseTime(until));
   if (error) throw fail(`Couldn't extend ${teamCode}`, error);
   return data as string;
+};
+
+type Schedule = { days?: { date: string; items?: { time: string; title: string }[] }[] };
+
+// The schedule's "Submission Deadline" is display text, separate from the
+// enforced deadline. Returns a warning when they no longer match.
+export const scheduleMismatch = (schedule: unknown, timezone: string, deadline: string) => {
+  const actual = localTime(deadline, timezone);
+  for (const day of (schedule as Schedule | null)?.days ?? []) {
+    const item = day.items?.find((i) => /submission deadline/i.test(i.title));
+    if (!item) continue;
+    const shown = `${day.date} ${item.time}`;
+    return shown === actual ? null : `The schedule still shows the submission deadline as ${shown}; the real one is ${actual}. Update Event.schedule if the page should show it.`;
+  }
+  return null;
+};
+
+export const checkSchedule = async (eventId: string, deadline: string) => {
+  const { data, error } = await OpsRepository.getSchedule(eventId);
+  if (error) throw fail("Couldn't load the schedule", error);
+  return data ? scheduleMismatch(data.schedule, data.timezone, deadline) : null;
 };
 
 export const listFinalists = async (eventId: string) => {

@@ -349,6 +349,14 @@ const tests = {
         const d = (await db.query(`select extend_phase_deadline($1, now() + interval '30 hours') d`, [phase])).rows[0].d;
         assert.ok(d < new Date(Date.now() + 31 * 3600e3));
     },
+    async 'extending every team leaves team changes locked'() {
+        const db = await fresh(); await eventWith(db, 2);
+        const t = await createTeam(db, 'u1');
+        const phase = await addPhase(db, "now() - interval '1 minute'", "now() - interval '2 days'");
+        await db.query(`select extend_phase_deadline($1, now() + interval '30 minutes')`, [phase]);
+        await fails(joinTeam(db, 'u2', t.Team.team_code), 'TEAM_CHANGES_CLOSED');
+        assert.equal((await save(db, 'u1', phase)).version, 1);
+    },
     async 'a team extension only moves later, and the team is found by code'() {
         const db = await fresh(); await eventWith(db, 1);
         const { Team: { team_code } } = await createTeam(db, 'u1');

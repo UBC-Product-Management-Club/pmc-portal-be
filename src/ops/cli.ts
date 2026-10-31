@@ -16,15 +16,16 @@
 //   npm run ops -- finalists     --event <id>                                 read the list back
 //   npm run ops -- finalists     --event <id> --mark <codes> | --unmark <codes> [--correction]
 //   npm run ops -- publish-finalists --event <id> --confirm <codes|none>      after the reveal
-//   npm run ops -- export-submissions --event <id> [--phase <id>] [--out <dir>]
+//   npm run ops -- export-submissions --event <id> [--phase <id>] [--out <dir>]   default output/
 //
 // Needs the backend's .secret/.env plus REVIEW_SHEET_ID and
 // GOOGLE_APPLICATION_CREDENTIALS (a service account the sheet is shared with as
 // an editor). --event defaults to OPS_EVENT_ID.
-import { writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { runDecisions } from "./decisions";
 import {
+  checkSchedule,
   exportSubmissions,
   extendPhase,
   extendTeam,
@@ -148,7 +149,10 @@ export const main = async (argv: string[]) => {
         console.log(`${flags.team.toUpperCase()} now closes ${pacific(await extendTeam(event(), flags.team, until))}.`);
       } else {
         const phase = await resolvePhase(event(), typeof flags.phase === "string" ? flags.phase : undefined);
-        console.log(`Every team now closes ${pacific(await extendPhase(phase, until))} (teams with a later extension keep theirs).`);
+        const deadline = await extendPhase(phase, until);
+        console.log(`Every team now closes ${pacific(deadline)} (teams with a later extension keep theirs).`);
+        const mismatch = await checkSchedule(event(), deadline);
+        if (mismatch) console.log(mismatch);
       }
       break;
     }
@@ -173,7 +177,9 @@ export const main = async (argv: string[]) => {
     }
     case "export-submissions": {
       const phase = await resolvePhase(event(), typeof flags.phase === "string" ? flags.phase : undefined);
-      const out = typeof flags.out === "string" ? flags.out : ".";
+      // output/ is gitignored, so these files (emails, signed links) never get committed
+      const out = typeof flags.out === "string" ? flags.out : "output";
+      mkdirSync(out, { recursive: true });
       const result = await exportSubmissions(phase);
       const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
       const fullPath = join(out, `submissions-${stamp}.csv`);
