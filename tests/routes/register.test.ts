@@ -1,7 +1,8 @@
+let mockUserId = "user-123";
 jest.mock("../../src/middleware/Session", () => ({
   authenticated: [
     (req: any, _res: any, next: any) => {
-      req.user = { user_id: "user-123" };
+      req.user = { user_id: mockUserId };
       next();
     },
   ],
@@ -140,6 +141,18 @@ describe("POST /events/:eventId/register", () => {
     expect(first).toMatch(/^attendee\/event-456\/user-123\/[0-9a-f-]{36}\/$/);
     expect(second).toMatch(/^attendee\/event-456\/user-123\/[0-9a-f-]{36}\/$/);
     expect(first).not.toBe(second);
+  });
+
+  it("keeps Auth0 ids path-safe, since Supabase Storage rejects \"|\"", async () => {
+    mockUserId = "auth0|6ae9f7158fca95cf1307fe4c";
+    try {
+      await submit(valid, pdf);
+    } finally {
+      mockUserId = "user-123";
+    }
+
+    const [, options] = (uploadSupabaseFiles as jest.Mock).mock.calls[0];
+    expect(options.parentPath).toMatch(/^attendee\/event-456\/auth0_6ae9f7158fca95cf1307fe4c\/[0-9a-f-]{36}\/$/);
   });
 
   it("returns 404 for an unknown event", async () => {

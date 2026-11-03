@@ -143,9 +143,11 @@ eventRouter.post("/:eventId/register", ...authenticated, perUserRateLimit(20, 60
         }
 
         // A fresh folder per attempt: a retried or duplicate submit must never
-        // overwrite (and then clean up) the files of an application already saved
+        // overwrite (and then clean up) the files of an application already saved.
+        // Auth0 ids contain "|", which Supabase Storage rejects in a path
+        const userFolder = userId.replace(/[^A-Za-z0-9_-]/g, "_");
         const fileRefs = await uploadSupabaseFiles(files, {
-            parentPath: `attendee/${eventId}/${userId}/${randomUUID()}/`,
+            parentPath: `attendee/${eventId}/${userFolder}/${randomUUID()}/`,
             bucketName,
             isPublic: false,
         });
