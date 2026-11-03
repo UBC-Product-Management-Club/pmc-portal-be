@@ -94,7 +94,7 @@ export const EventRepository = {
   getRegisteredContent: (eventId: string) =>
     supabase
       .from("Event")
-      .select("page_content, discord_url, min_team_size, max_team_size")
+      .select("page_content, slack_url, min_team_size, max_team_size")
       .eq("event_id", eventId)
       .maybeSingle(),
 };

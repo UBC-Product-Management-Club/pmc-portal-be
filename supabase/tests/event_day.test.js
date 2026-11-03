@@ -5,7 +5,7 @@ const path = require('path');
 const assert = require('assert');
 const { PGlite } = require('@electric-sql/pglite');
 
-const MIGRATIONS = ['20261028000000_event_day_schema.sql', '20261029000000_team_rules.sql', '20261030000000_submissions.sql', '20261031000000_event_day_ops.sql'].map((f) => path.join(__dirname, '../migrations', f));
+const MIGRATIONS = ['20261028000000_event_day_schema.sql', '20261029000000_team_rules.sql', '20261030000000_submissions.sql', '20261031000000_event_day_ops.sql', '20261102000000_slack_url.sql'].map((f) => path.join(__dirname, '../migrations', f));
 
 // A minimal copy of the tables as they are on staging before these migrations
 async function fresh() {
@@ -94,9 +94,25 @@ const tests = {
         await fails(db.exec(`insert into "Event" (event_id, min_team_size, max_team_size) values ('${E}', 3, 2)`), 'event_team_size_check');
         await fails(db.exec(`insert into "Event" (event_id, min_team_size) values ('${E}', 0)`), 'event_team_size_check');
     },
-    async 'the Discord link must be https'() {
+    async 'the Slack link must be https'() {
         const db = await fresh();
-        await fails(db.exec(`insert into "Event" (event_id, discord_url) values ('${E}', 'javascript:alert(1)')`), 'event_discord_url_check');
+        await fails(db.exec(`insert into "Event" (event_id, slack_url) values ('${E}', 'javascript:alert(1)')`), 'event_slack_url_check');
+    },
+    async 'a database still on discord_url keeps its links as slack_url'() {
+        const db = await fresh();
+        // Put the Event table back the way the older event day schema left it
+        await db.exec(`
+          alter table "Event" drop constraint event_slack_url_check;
+          alter table "Event" rename column slack_url to discord_url;
+          alter table "Event" add constraint event_discord_url_check check (discord_url is null or discord_url ~ '^https://');
+          insert into "Event" (event_id, discord_url) values ('${E}', 'https://ubcpmc.slack.com/archives/pj');`);
+        const rename = path.join(__dirname, '../migrations/20261102000000_slack_url.sql');
+        await db.exec(fs.readFileSync(rename, 'utf8'));
+        await db.exec(fs.readFileSync(rename, 'utf8'));
+        const { rows } = await db.query(`select slack_url from "Event" where event_id = '${E}'`);
+        assert.equal(rows[0].slack_url, 'https://ubcpmc.slack.com/archives/pj');
+        const { rows: checks } = await db.query(`select conname from pg_constraint where conname like 'event_%_url_check'`);
+        assert.deepEqual(checks.map((c) => c.conname), ['event_slack_url_check']);
     },
     async 'running them twice is harmless'() {
         const db = await fresh();
