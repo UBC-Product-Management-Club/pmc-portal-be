@@ -1,21 +1,60 @@
-import { Request, Response, Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import { authenticated } from "../../middleware/Session";
-import { Database } from "../../schema/v2/database.types";
-import { addAttendee, getAttendee } from "../../services/Attendee/AttendeeService";
-import { getEvent, getEventDeliverableFlags, getEvents, getRegisteredEvents } from "../../services/Event/EventService";
-import { createUserTeam, getUserTeam, joinTeamWithCode, leaveUserTeam } from "../../services/Team/TeamService";
+import { getAttendee, submitApplication } from "../../services/Attendee/AttendeeService";
+import { checkApplication, summarizeErrors } from "../../services/Attendee/applicationRules";
+import { ApiError, sendApiError } from "../../services/ApiError";
+import { getEvent, getEvents, getPublicEvent, getRegisteredContent, getRegisteredEvents } from "../../services/Event/EventService";
+import { createUserTeam, getUserTeam, joinTeamWithCode, leaveUserTeam, renameUserTeam } from "../../services/Team/TeamService";
+import { perUserRateLimit } from "../../middleware/rateLimit";
+import { HomeRepository } from "../../storage/HomeRepository";
 
 import multer from "multer";
+import { randomUUID } from "crypto";
 import { DraftService } from "../../services/Drafts/DraftService";
 import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
-import { getDeliverable, uploadDeliverableFiles, uploadSupabaseFiles } from "../../storage/Storage";
-
-type AttendeeInsert = Database["public"]["Tables"]["Attendee"]["Insert"];
+import { deliverApplicationReceipt } from "../../services/Email/EventEmailService";
+import { deleteSupabaseFile, uploadSupabaseFiles } from "../../storage/Storage";
+import { getPhases, getSubmission, saveSubmission } from "../../services/Submission/SubmissionService";
 
 export const eventRouter = Router();
 
-const memStorage = multer.memoryStorage();
-const upload = multer({ storage: memStorage });
+// Applications and submissions: a few files at most, none bigger than the largest
+// allowed upload (a 25 MB deck). Each question's own limit is checked afterwards.
+const formUpload = multer({ storage: multer.memoryStorage(), limits: { files: 5, fileSize: 25_000_000 } });
+
+const acceptFiles = (req: Request, res: Response, next: NextFunction) => {
+    formUpload.any()(req, res, (err: unknown) => {
+        if (err instanceof multer.MulterError) {
+            const tooLarge = err.code === "LIMIT_FILE_SIZE";
+            return sendApiError(
+                res,
+                new ApiError(400, tooLarge ? "FILE_TOO_LARGE" : "VALIDATION_ERROR", tooLarge ? "That file is too large." : "Too many files.")
+            );
+        }
+        if (err) return next(err);
+        next();
+    });
+};
+
+// The signed-in student's id; a login that hasn't finished onboarding has no User row
+const userIdOf = (req: Request) => {
+    const userId = req.user?.user_id;
+    if (!userId) throw new ApiError(401, "UNAUTHENTICATED", "Sign in to continue.");
+    return userId;
+};
+
+// A JSON body field that must be a string; type is checked before anything else
+const textField = (value: unknown, field: string) => {
+    if (typeof value !== "string") throw new ApiError(400, "VALIDATION_ERROR", `${field} is required.`, { [field]: "Required." });
+    return value;
+};
+
+// ApiErrors go back as they are; anything else is logged and hidden behind a 500
+const sendError = (res: Response, error: unknown, context: string) => {
+    if (error instanceof ApiError) return sendApiError(res, error);
+    console.error(`${context}:`, error);
+    return res.status(500).json({ error: { code: "SERVER_ERROR", message: "Something went wrong. Please try again." } });
+};
 
 eventRouter.get("/", ...authenticated, async (req, res) => {
     try {
@@ -28,7 +67,7 @@ eventRouter.get("/", ...authenticated, async (req, res) => {
 
 eventRouter.get("/:id", async (req, res) => {
     try {
-        const eventByID = await getEvent(req.params.id);
+        const eventByID = await getPublicEvent(req.params.id);
         res.status(200).json(eventByID);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -47,6 +86,17 @@ eventRouter.get("/events/registered", ...authenticated, async (req, res) => {
     }
 });
 
+// Home's status badges: one row per event with a draft or an application
+eventRouter.get("/events/statuses", ...authenticated, async (req: Request, res: Response) => {
+    try {
+        const { data, error } = await HomeRepository.eventStatuses(userIdOf(req));
+        if (error) throw new Error(error.message);
+        return res.status(200).json(data ?? []);
+    } catch (error) {
+        return sendError(res, error, "Event statuses error");
+    }
+});
+
 eventRouter.get("/:eventId/attendee", ...authenticated, async (req: Request, res: Response) => {
     const userId = req.user?.user_id;
     const eventId = req.params.eventId;
@@ -59,49 +109,68 @@ eventRouter.get("/:eventId/attendee", ...authenticated, async (req: Request, res
     }
 });
 
-// Adds event attendee (payment not verified, payment id set to null)
-eventRouter.post("/:eventId/register", ...authenticated, upload.any(), async (req: Request, res: Response) => {
+eventRouter.get("/:eventId/registered-content", ...authenticated, async (req: Request, res: Response) => {
+    try {
+        const content = await getRegisteredContent(req.params.eventId, userIdOf(req));
+        return res.status(200).json(content);
+    } catch (error) {
+        return sendError(res, error, "Registered content error");
+    }
+});
+
+// 20 tries a minute per student: each request holds its files in memory
+// Submits an application. Answers and files are checked here, then the database
+// checks the window, duplicates and the cap while it saves (submit_application).
+eventRouter.post("/:eventId/register", ...authenticated, perUserRateLimit(20, 60_000), acceptFiles, async (req: Request, res: Response) => {
     const userId = req.user?.user_id;
     const eventId = req.params.eventId;
     if (!userId) return res.status(401).json({ error: "User not authenticated" });
 
+    let uploaded: string[] = [];
+    const bucketName = process.env.SUPABASE_ATTENDEE_BUCKET_NAME!;
     try {
         const event = await getEvent(eventId);
+        if (!event) throw new ApiError(404, "NOT_FOUND", "This event doesn't exist.");
 
-        if (!event) {
-            throw new Error(`Failed to fetch event ${eventId}`);
+        const { answers, files, errors } = await checkApplication(
+            event.event_form_questions,
+            req.body,
+            (req.files as Express.Multer.File[]) ?? []
+        );
+        if (Object.keys(errors).length > 0) {
+            const { code, fields } = summarizeErrors(errors);
+            throw new ApiError(400, code, "Please fix the highlighted answers.", fields);
         }
 
-        const files = req.files as Express.Multer.File[];
-        const bucketName = process.env.SUPABASE_ATTENDEE_BUCKET_NAME!;
-        const parentPath = `attendee/${eventId}/`;
-
+        // A fresh folder per attempt: a retried or duplicate submit must never
+        // overwrite (and then clean up) the files of an application already saved
         const fileRefs = await uploadSupabaseFiles(files, {
-            parentPath,
+            parentPath: `attendee/${eventId}/${userId}/${randomUUID()}/`,
             bucketName,
             isPublic: false,
         });
-        const eventFormAnswers = Object.assign(req.body, fileRefs);
+        uploaded = Object.values(fileRefs);
 
-        const insertData: AttendeeInsert = {
-            user_id: userId,
-            event_id: eventId,
-            payment_id: null,
-            is_payment_verified: false,
-            event_form_answers: eventFormAnswers,
-        };
-
-        const result = await addAttendee(event, insertData);
-        sendEmail(userId, LoopsEvent.ApplicationReceived, {
-            event_name: event.name!,
-        });
-        res.status(201).json({
+        const attendee = await submitApplication(eventId, userId, { ...answers, ...fileRefs });
+        // Reviewed events send their receipt from the application_received hook, so
+        // it's never sent twice; events without review keep the old Loops event
+        if (event.needs_review) {
+            deliverApplicationReceipt(attendee.attendee_id);
+        } else {
+            sendEmail(userId, LoopsEvent.ApplicationReceived, {
+                event_name: event.name!,
+            });
+        }
+        return res.status(201).json({
             message: "Registration successful",
-            attendee: result,
+            attendee,
         });
     } catch (error: any) {
+        // Nothing was saved, so don't keep the files
+        await Promise.allSettled(uploaded.map((path) => deleteSupabaseFile(path, bucketName)));
+        if (error instanceof ApiError) return sendApiError(res, error);
         console.error(error);
-        res.status(500).json(error);
+        return res.status(500).json({ error: { code: "SERVER_ERROR", message: "Couldn't submit. Please try again." } });
     }
 });
 
@@ -127,19 +196,23 @@ eventRouter.get("/drafts/:eventId", ...authenticated, async (req, res) => {
 eventRouter.post("/drafts/:eventId", ...authenticated, async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { draft } = req.body;
+        const { draft, version } = req.body;
 
         const userId = req.user?.user_id;
 
         if (!userId || !draft) {
             return res.status(400).json({ error: "userId and draft are required" });
         }
+        if (version !== undefined && !(Number.isInteger(version) && version >= 0)) {
+            return sendApiError(res, new ApiError(400, "VALIDATION_ERROR", "version must be a whole number."));
+        }
 
         const draftService = new DraftService();
-        const savedDraft = await draftService.saveDraft(eventId, userId, draft);
+        const savedDraft = await draftService.saveDraft(eventId, userId, draft, version);
 
         res.status(200).json(savedDraft);
     } catch (error: any) {
+        if (error instanceof ApiError) return sendApiError(res, error);
         console.error("Error saving draft:", error);
         res.status(500).json({ error: error.message });
     }
@@ -164,159 +237,76 @@ eventRouter.delete("/drafts/:eventId", ...authenticated, async (req, res) => {
     }
 });
 
-// submit deliverables for team member
-eventRouter.post("/:eventId/deliverable/:phaseId", ...authenticated, upload.any(), async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-    const phaseId = req.params.phaseId;
-    const files = req.files as Express.Multer.File[];
-    const formData = req.body;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
+// Submissions. The window, roster and version are decided by the database while it saves.
+// 20 tries a minute per student: each request holds its files in memory
+eventRouter.post("/:eventId/deliverable/:phaseId", ...authenticated, perUserRateLimit(20, 60_000), acceptFiles, async (req: Request, res: Response) => {
     try {
-        const result = await uploadDeliverableFiles(files, userId, eventId, phaseId, formData);
-
-        res.status(201).json({
-            message: "Deliverables submitted successfully",
-            data: result,
-        });
-    } catch (error: any) {
-        console.error("Deliverable upload error:", error);
-        res.status(500).json({ error: error.message });
+        const { eventId, phaseId } = req.params;
+        const data = await saveSubmission(eventId, userIdOf(req), phaseId, req.body ?? {}, (req.files as Express.Multer.File[]) ?? []);
+        return res.status(201).json({ message: "Submission saved", data });
+    } catch (error) {
+        return sendError(res, error, "Submission save error");
     }
 });
 
 eventRouter.get("/:eventId/deliverable/:phaseId", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-    const phaseId = req.params.phaseId;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
-    if (!eventId) {
-        return res.status(400).json({ error: "Event ID is required" });
-    }
-
     try {
-        const result = await getDeliverable(userId, eventId, phaseId);
-
-        res.status(200).json(result);
-    } catch (error: any) {
-        console.error("Fetch deliverable error:", error);
-        res.status(500).json({ error: error.message });
+        return res.status(200).json(await getSubmission(req.params.eventId, userIdOf(req), req.params.phaseId));
+    } catch (error) {
+        return sendError(res, error, "Fetch submission error");
     }
 });
 
+// Team routes. The rules live in the database functions; these only read the request.
 eventRouter.get("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
     try {
-        const team = await getUserTeam(eventId, userId);
-        return res.status(200).json(team);
-    } catch (error: any) {
-        console.error("Fetch team error:", error);
-        return res.status(500).json({ error: error.message });
+        return res.status(200).json(await getUserTeam(req.params.eventId, userIdOf(req)));
+    } catch (error) {
+        return sendError(res, error, "Fetch team error");
     }
 });
 
 eventRouter.post("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-    const { team_name } = req.body;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
-    if (!team_name || typeof team_name !== "string") {
-        return res.status(400).json({ error: "team_name is required" });
-    }
-
     try {
-        const team = await createUserTeam(eventId, userId, team_name);
-        return res.status(201).json(team);
-    } catch (error: any) {
-        if (error.code === "23505") {
-            const msg = error.message || "";
-
-            if (msg.includes("Team_event_id_team_name_idx")) {
-                return res.status(409).json({
-                    error: "A team with that name already exists in this event.",
-                });
-            }
-
-            if (msg.includes("Team_Member_pkey")) {
-                return res.status(409).json({ error: "User is already in a team for this event." });
-            }
-
-            return res.status(409).json({ error: "Duplicate value violates a unique rule." });
-        }
-        return res.status(500).json({ error: error.message });
+        const teamName = textField(req.body?.team_name, "team_name");
+        return res.status(201).json(await createUserTeam(req.params.eventId, userIdOf(req), teamName));
+    } catch (error) {
+        return sendError(res, error, "Create team error");
     }
 });
 
-eventRouter.post("/:eventId/team/join", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-    const { team_code } = req.body;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
-    if (!team_code || typeof team_code !== "string") {
-        return res.status(400).json({ error: "team_code is required" });
-    }
-
+// 10 tries a minute per student, so codes can't be guessed
+eventRouter.post("/:eventId/team/join", ...authenticated, perUserRateLimit(10, 60_000), async (req: Request, res: Response) => {
     try {
-        const team = await joinTeamWithCode(eventId, userId, team_code);
-        return res.status(200).json(team);
-    } catch (error: any) {
-        console.error("Join team error:", error);
-        return res.status(500).json({ error: error.message });
+        const teamCode = textField(req.body?.team_code, "team_code");
+        return res.status(200).json(await joinTeamWithCode(req.params.eventId, userIdOf(req), teamCode));
+    } catch (error) {
+        return sendError(res, error, "Join team error");
+    }
+});
+
+eventRouter.patch("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
+    try {
+        const teamName = textField(req.body?.team_name, "team_name");
+        return res.status(200).json(await renameUserTeam(req.params.eventId, userIdOf(req), teamName));
+    } catch (error) {
+        return sendError(res, error, "Rename team error");
     }
 });
 
 eventRouter.delete("/:eventId/team", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
     try {
-        await leaveUserTeam(eventId, userId);
+        await leaveUserTeam(req.params.eventId, userIdOf(req));
         return res.status(200).json({ message: "Left team successfully" });
-    } catch (error: any) {
-        console.error("Leave team error:", error);
-        return res.status(500).json({ error: error.message });
+    } catch (error) {
+        return sendError(res, error, "Leave team error");
     }
 });
 
 eventRouter.get("/:eventId/flags", ...authenticated, async (req: Request, res: Response) => {
-    const userId = req.user?.user_id;
-    const eventId = req.params.eventId;
-
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-    }
-
     try {
-        const deliverables = await getEventDeliverableFlags(eventId);
-        return res.status(200).json(deliverables);
-    } catch (error: any) {
-        console.error("Get event deliverable error:", error);
-        return res.status(500).json({ error: error.message });
+        return res.status(200).json(await getPhases(req.params.eventId, userIdOf(req)));
+    } catch (error) {
+        return sendError(res, error, "Fetch phases error");
     }
 });

@@ -11,9 +11,12 @@ import {
   addEvent,
   getEvent,
   getEvents,
+  getPublicEvent,
+  getRegisteredContent,
   getRegisteredEvents,
 } from "../../../src/services/Event/EventService";
 import { EventRepository } from "../../../src/storage/EventRepository";
+import { AttendeeRepository } from "../../../src/storage/AttendeeRepository";
 
 describe("EventService", () => {
   beforeEach(() => {
@@ -247,6 +250,61 @@ describe("EventService", () => {
       });
       const result = await getRegisteredEvents("user-id");
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("getPublicEvent", () => {
+    it("leaves out the registered-only fields", async () => {
+      (EventRepository.getEvent as jest.Mock).mockResolvedValueOnce({
+        data: {
+          event_id: "1",
+          name: "Product Jackpot",
+          page_content: { mentors: [], prep: [], faq: [] },
+          discord_url: "https://discord.gg/pmc",
+          Attendee: [{ count: 0 }],
+        },
+      });
+
+      const event = await getPublicEvent("1");
+
+      expect(event).toMatchObject({ event_id: "1", name: "Product Jackpot" });
+      expect(event).not.toHaveProperty("page_content");
+      expect(event).not.toHaveProperty("discord_url");
+    });
+  });
+
+  describe("getRegisteredContent", () => {
+    const content = {
+      page_content: { mentors: [], prep: ["Bring your laptop"], faq: [] },
+      discord_url: "https://discord.gg/pmc",
+      min_team_size: 1,
+      max_team_size: 4,
+    };
+
+    it("returns the content to a registered student", async () => {
+      (AttendeeRepository.getAttendee as jest.Mock).mockResolvedValueOnce({ data: { status: "REGISTERED" } });
+      (EventRepository.getRegisteredContent as jest.Mock).mockResolvedValueOnce({ data: content });
+
+      await expect(getRegisteredContent("e1", "u1")).resolves.toEqual(content);
+    });
+
+    it.each([
+      ["an accepted student", { status: "ACCEPTED" }],
+      ["a student who hasn't applied", null],
+    ])("refuses %s", async (_label, attendee) => {
+      (AttendeeRepository.getAttendee as jest.Mock).mockResolvedValueOnce({ data: attendee });
+
+      await expect(getRegisteredContent("e1", "u1")).rejects.toMatchObject({ status: 403, code: "NOT_REGISTERED" });
+      expect(EventRepository.getRegisteredContent).not.toHaveBeenCalled();
+    });
+
+    it("sends empty lists before the content is seeded", async () => {
+      (AttendeeRepository.getAttendee as jest.Mock).mockResolvedValueOnce({ data: { status: "REGISTERED" } });
+      (EventRepository.getRegisteredContent as jest.Mock).mockResolvedValueOnce({ data: { ...content, page_content: null } });
+
+      const result = await getRegisteredContent("e1", "u1");
+
+      expect(result.page_content).toEqual({ mentors: [], prep: [], faq: [] });
     });
   });
 });

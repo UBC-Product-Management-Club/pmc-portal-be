@@ -1,9 +1,11 @@
 import { Router } from "express";
 import {
   getAttendee,
+  getAttendeeStatus,
   deleteAttendee,
   getTeam,
 } from "../../services/Attendee/AttendeeService";
+import { isCheckoutAwaitingFulfillment } from "../../services/Payment/PaymentService";
 import { authenticated } from "../../middleware/Session";
 
 export const attendeeRouter = Router();
@@ -17,7 +19,16 @@ attendeeRouter.get("/:eventId", ...authenticated, async (req, res) => {
   }
 
   try {
-    const attendee = await getAttendee(eventId, userId);
+    const attendee = await getAttendeeStatus(eventId, userId);
+    // Back from Stripe (?session_id=): show the payment as processing until the webhook registers them
+    const sessionId = req.query.session_id;
+    if (
+      attendee?.status === "ACCEPTED" &&
+      typeof sessionId === "string" &&
+      (await isCheckoutAwaitingFulfillment(attendee.attendee_id, sessionId))
+    ) {
+      attendee.workflow_state = "PAYMENT_PROCESSING";
+    }
     return res.status(200).json(attendee);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

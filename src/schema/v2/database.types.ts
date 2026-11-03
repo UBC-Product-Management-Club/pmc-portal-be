@@ -128,37 +128,85 @@ export type Database = {
           },
         ]
       }
+      Announcement: {
+        Row: {
+          announcement_id: string
+          audience: string
+          body: string
+          created_at: string
+          display_order: number
+          ends_at: string | null
+          is_active: boolean
+          starts_at: string | null
+          title: string
+        }
+        Insert: {
+          announcement_id?: string
+          audience?: string
+          body: string
+          created_at?: string
+          display_order?: number
+          ends_at?: string | null
+          is_active?: boolean
+          starts_at?: string | null
+          title: string
+        }
+        Update: {
+          announcement_id?: string
+          audience?: string
+          body?: string
+          created_at?: string
+          display_order?: number
+          ends_at?: string | null
+          is_active?: boolean
+          starts_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       Attendee: {
         Row: {
+          acceptance_version: number
           attendee_id: string
           created_at: string
           event_form_answers: Json | null
           event_id: string
           is_payment_verified: boolean
           last_updated: string
+          payment_due_at: string | null
           payment_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
           user_id: string
         }
         Insert: {
+          acceptance_version?: number
           attendee_id?: string
           created_at?: string
           event_form_answers?: Json | null
           event_id: string
           is_payment_verified?: boolean
           last_updated?: string
+          payment_due_at?: string | null
           payment_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
           user_id: string
         }
         Update: {
+          acceptance_version?: number
           attendee_id?: string
           created_at?: string
           event_form_answers?: Json | null
           event_id?: string
           is_payment_verified?: boolean
           last_updated?: string
+          payment_due_at?: string | null
           payment_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
           user_id?: string
         }
@@ -209,19 +257,40 @@ export type Database = {
       }
       Checkout_Session: {
         Row: {
+          acceptance_version: number | null
           attendee_id: string
+          attention_reason: string | null
+          attention_resolved_at: string | null
           checkout_id: string
           expires_at: string
+          fulfilled_at: string | null
+          fulfilled_event_id: string | null
+          payment_id: string | null
+          refund_id: string | null
         }
         Insert: {
+          acceptance_version?: number | null
           attendee_id?: string
+          attention_reason?: string | null
+          attention_resolved_at?: string | null
           checkout_id: string
           expires_at?: string
+          fulfilled_at?: string | null
+          fulfilled_event_id?: string | null
+          payment_id?: string | null
+          refund_id?: string | null
         }
         Update: {
+          acceptance_version?: number | null
           attendee_id?: string
+          attention_reason?: string | null
+          attention_resolved_at?: string | null
           checkout_id?: string
           expires_at?: string
+          fulfilled_at?: string | null
+          fulfilled_event_id?: string | null
+          payment_id?: string | null
+          refund_id?: string | null
         }
         Relationships: [
           {
@@ -238,31 +307,37 @@ export type Database = {
           created_at: string | null
           deliverable_id: string
           event_id: string
+          phase_id: string
           submission: Json | null
           submitted_at: string | null
           submitted_by: string | null
           team_id: string
           title: string | null
+          version: number
         }
         Insert: {
           created_at?: string | null
           deliverable_id?: string
           event_id: string
+          phase_id?: string
           submission?: Json | null
           submitted_at?: string | null
           submitted_by?: string | null
           team_id: string
           title?: string | null
+          version?: number
         }
         Update: {
           created_at?: string | null
           deliverable_id?: string
           event_id?: string
+          phase_id?: string
           submission?: Json | null
           submitted_at?: string | null
           submitted_by?: string | null
           team_id?: string
           title?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -292,6 +367,7 @@ export type Database = {
         Row: {
           deadline: string
           event_id: string
+          fields: Json
           id: string
           is_enabled: boolean
           starttime: string | null
@@ -299,6 +375,7 @@ export type Database = {
         Insert: {
           deadline: string
           event_id: string
+          fields?: Json
           id?: string
           is_enabled: boolean
           starttime?: string | null
@@ -306,6 +383,7 @@ export type Database = {
         Update: {
           deadline?: string
           event_id?: string
+          fields?: Json
           id?: string
           is_enabled?: boolean
           starttime?: string | null
@@ -325,16 +403,19 @@ export type Database = {
           draft_data: Json | null
           event_id: string
           user_id: string
+          version: number
         }
         Insert: {
           draft_data?: Json | null
           event_id?: string
           user_id?: string
+          version?: number
         }
         Update: {
           draft_data?: Json | null
           event_id?: string
           user_id?: string
+          version?: number
         }
         Relationships: [
           {
@@ -358,75 +439,171 @@ export type Database = {
           blurb: string
           date: string | null
           description: string | null
+          discord_url: string | null
           end_time: string | null
           event_form_questions: Json
           event_id: string
           external_page: string | null
+          finalists_published_at: string | null
+          icon: string | null
           is_disabled: boolean | null
           location: string | null
           mailing_list: string | null
           max_attendees: number | null
+          max_team_size: number
           media: string[] | null
           member_price: number | null
           member_price_id: string | null
+          min_team_size: number
           name: string
           needs_review: boolean
           non_member_price: number | null
           non_member_price_id: string | null
+          page_content: Json | null
+          payment_hold_hours: number
           registration_closes: string | null
           registration_opens: string | null
+          roster_locks_at: string | null
+          schedule: Json | null
           start_time: string | null
+          timezone: string
           waitlist_form: string | null
         }
         Insert: {
           blurb?: string
           date?: string | null
           description?: string | null
+          discord_url?: string | null
           end_time?: string | null
           event_form_questions: Json
           event_id?: string
           external_page?: string | null
+          finalists_published_at?: string | null
+          icon?: string | null
           is_disabled?: boolean | null
           location?: string | null
           mailing_list?: string | null
           max_attendees?: number | null
+          max_team_size?: number
           media?: string[] | null
           member_price?: number | null
           member_price_id?: string | null
+          min_team_size?: number
           name: string
           needs_review?: boolean
           non_member_price?: number | null
           non_member_price_id?: string | null
+          page_content?: Json | null
+          payment_hold_hours?: number
           registration_closes?: string | null
           registration_opens?: string | null
+          roster_locks_at?: string | null
+          schedule?: Json | null
           start_time?: string | null
+          timezone?: string
           waitlist_form?: string | null
         }
         Update: {
           blurb?: string
           date?: string | null
           description?: string | null
+          discord_url?: string | null
           end_time?: string | null
           event_form_questions?: Json
           event_id?: string
           external_page?: string | null
+          finalists_published_at?: string | null
+          icon?: string | null
           is_disabled?: boolean | null
           location?: string | null
           mailing_list?: string | null
           max_attendees?: number | null
+          max_team_size?: number
           media?: string[] | null
           member_price?: number | null
           member_price_id?: string | null
+          min_team_size?: number
           name?: string
           needs_review?: boolean
           non_member_price?: number | null
           non_member_price_id?: string | null
+          page_content?: Json | null
+          payment_hold_hours?: number
           registration_closes?: string | null
           registration_opens?: string | null
+          roster_locks_at?: string | null
+          schedule?: Json | null
           start_time?: string | null
+          timezone?: string
           waitlist_form?: string | null
         }
         Relationships: []
+      }
+      Notification_Hook: {
+        Row: {
+          acceptance_version: number
+          attendee_id: string
+          cancel_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          eligible_at: string
+          event_id: string
+          notification_id: string
+          payload: Json
+          provider: string | null
+          provider_message_id: string | null
+          sent_at: string | null
+          sent_by: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          acceptance_version?: number
+          attendee_id: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          eligible_at: string
+          event_id: string
+          notification_id?: string
+          payload: Json
+          provider?: string | null
+          provider_message_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          acceptance_version?: number
+          attendee_id?: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          eligible_at?: string
+          event_id?: string
+          notification_id?: string
+          payload?: Json
+          provider?: string | null
+          provider_message_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Notification_Hook_attendee_id_fkey"
+            columns: ["attendee_id"]
+            isOneToOne: false
+            referencedRelation: "Attendee"
+            referencedColumns: ["attendee_id"]
+          },
+          {
+            foreignKeyName: "Notification_Hook_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Event"
+            referencedColumns: ["event_id"]
+          },
+        ]
       }
       Payment: {
         Row: {
@@ -567,18 +744,24 @@ export type Database = {
       Team: {
         Row: {
           event_id: string
+          extended_until: string | null
+          is_finalist: boolean
           team_code: string | null
           team_id: string
           team_name: string
         }
         Insert: {
           event_id?: string
+          extended_until?: string | null
+          is_finalist?: boolean
           team_code?: string | null
           team_id?: string
           team_name: string
         }
         Update: {
           event_id?: string
+          extended_until?: string | null
+          is_finalist?: boolean
           team_code?: string | null
           team_id?: string
           team_name?: string
@@ -733,7 +916,193 @@ export type Database = {
           team_name: string
         }[]
       }
+      create_team: {
+        Args: { p_event_id: string; p_team_name: string; p_user_id: string }
+        Returns: Json
+      }
+      join_team: {
+        Args: { p_event_id: string; p_team_code: string; p_user_id: string }
+        Returns: Json
+      }
+      leave_team: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      my_team: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: Json
+      }
+      rename_team: {
+        Args: { p_event_id: string; p_team_name: string; p_user_id: string }
+        Returns: Json
+      }
+      save_submission: {
+        Args: {
+          p_event_id: string
+          p_expected_version: number
+          p_phase_id: string
+          p_submission: Json
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      submission_context: {
+        Args: { p_event_id: string; p_phase_id: string; p_user_id: string }
+        Returns: Json
+      }
+      submission_phases: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: Json
+      }
+      team_submission: {
+        Args: { p_event_id: string; p_phase_id: string; p_user_id: string }
+        Returns: Json
+      }
+      extend_phase_deadline: {
+        Args: { p_phase_id: string; p_until: string }
+        Returns: string
+      }
+      extend_team: {
+        Args: { p_event_id: string; p_team_code: string; p_until: string }
+        Returns: string
+      }
+      publish_finalists: {
+        Args: { p_event_id: string; p_team_codes: string[] }
+        Returns: string
+      }
+      set_finalists: {
+        Args: {
+          p_correction?: boolean
+          p_event_id: string
+          p_is_finalist: boolean
+          p_team_codes: string[]
+        }
+        Returns: number
+      }
+      submission_export: {
+        Args: { p_phase_id: string }
+        Returns: {
+          effective_deadline: string
+          fields: Json
+          is_finalist: boolean
+          member_emails: string[]
+          member_names: string[]
+          submission: Json | null
+          submitted_at: string | null
+          submitted_by: string | null
+          team_code: string
+          team_id: string
+          team_name: string
+          team_size: number
+          version: number | null
+        }[]
+      }
+      active_announcements: {
+        Args: { p_is_member: boolean }
+        Returns: Database["public"]["Tables"]["Announcement"]["Row"][]
+      }
+      event_statuses: {
+        Args: { p_user_id: string }
+        Returns: {
+          event_id: string
+          has_draft: boolean
+          payment_due_at: string | null
+          status: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
+        }[]
+      }
+      accept_applicants: {
+        Args: { p_attendee_ids: string[]; p_event_id: string; p_reviewer: string }
+        Returns: number
+      }
+      cancel_pending_hooks: {
+        Args: { p_attendee_id: string; p_reason: string }
+        Returns: undefined
+      }
+      fulfill_event_checkout: {
+        Args: {
+          p_checkout_id: string
+          p_completed_at: string
+          p_paid: boolean
+          p_payment_id?: string
+          p_stripe_event_id: string
+        }
+        Returns: string
+      }
       get_deliverable_submissions: { Args: { event_id: string }; Returns: Json }
+      messages_due: {
+        Args: { p_event_id: string }
+        Returns: {
+          acceptance_version: number
+          amount_due: string | null
+          attendee_id: string
+          eligible_at: string
+          email: string | null
+          name: string | null
+          notification_id: string
+          payment_due_at: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+        }[]
+      }
+      payment_issues: {
+        Args: { p_event_id: string }
+        Returns: {
+          amount_cents: number | null
+          attendee_id: string
+          attention_reason: string
+          checkout_id: string
+          email: string | null
+          handled_at: string | null
+          name: string | null
+          payment_id: string | null
+          refund_id: string | null
+        }[]
+      }
+      record_hook: {
+        Args: {
+          p_attendee_id: string
+          p_type: Database["public"]["Enums"]["notification_type"]
+        }
+        Returns: undefined
+      }
+      register_if_seat_available: {
+        Args: { p_attendee_id: string; p_payment_id?: string }
+        Returns: boolean
+      }
+      review_sheet_rows: {
+        Args: { p_event_id: string }
+        Returns: {
+          acceptance_sent_at: string | null
+          attendee_id: string
+          email: string | null
+          experience: string | null
+          is_member: boolean
+          name: string | null
+          payment_due_at: string | null
+          phone: string | null
+          rejection_sent_at: string | null
+          reminder_due: boolean
+          reminder_sent_at: string | null
+          reopen_from: string | null
+          resume_path: string | null
+          status: Database["public"]["Enums"]["ATTENDEE_STATUS"] | null
+          submitted_at: string
+          why_event: string | null
+          why_pm: string | null
+        }[]
+      }
+      reject_applicants: {
+        Args: { p_attendee_ids: string[]; p_event_id: string; p_reviewer: string }
+        Returns: number
+      }
+      reopen_payment_window: {
+        Args: { p_attendee_ids: string[]; p_event_id: string; p_reviewer: string }
+        Returns: number
+      }
+      seats_taken: { Args: { p_event_id: string }; Returns: number }
+      submit_application: {
+        Args: { p_answers: Json; p_event_id: string; p_user_id: string }
+        Returns: Database["public"]["Tables"]["Attendee"]["Row"]
+      }
       get_todays_birthdays: {
         Args: never
         Returns: {
@@ -771,6 +1140,12 @@ export type Database = {
         | "APPLIED"
         | "REGISTERED"
         | "ACCEPTED"
+        | "REJECTED"
+      notification_type:
+        | "application_received"
+        | "accepted"
+        | "rejected"
+        | "reminder"
       PAYMENT_STATUS: "PROCESSING" | "VERIFIED"
       RECRUITING_TEAM:
         | "TECH"
@@ -930,7 +1305,9 @@ export const Constants = {
         "APPLIED",
         "REGISTERED",
         "ACCEPTED",
+        "REJECTED",
       ],
+      notification_type: ["application_received", "accepted", "rejected", "reminder"],
       PAYMENT_STATUS: ["PROCESSING", "VERIFIED"],
       RECRUITING_TEAM: [
         "TECH",

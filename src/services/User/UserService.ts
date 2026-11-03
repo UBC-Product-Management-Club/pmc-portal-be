@@ -2,6 +2,7 @@ import { User } from "../../schema/v1/User";
 import { Database, Tables } from "../../schema/v2/database.types";
 import { mapToSupabaseUser } from "./utils";
 import { UserRepository } from "../../storage/UserRepository";
+import { checkProfileUpdate } from "./profileRules";
 
 export const addUser = async (userInfo: User): Promise<{ message: string }> => {
   try {
@@ -84,4 +85,12 @@ export const getUser = async (userId: string): Promise<Tables<"User"> | null> =>
     console.error("Error fetching user: ", error);
     throw error;
   }
+};
+
+// Saves only the editable Profile fields in the body, after checking all of them
+export const updateProfile = async (userId: string, body: unknown): Promise<Tables<"User">> => {
+  const update = checkProfileUpdate(body);
+  const { data, error } = await UserRepository.updateProfile(userId, update);
+  if (error) throw new Error("Failed to update profile: " + error.message);
+  return data;
 };
