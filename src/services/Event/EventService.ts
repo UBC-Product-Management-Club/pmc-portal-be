@@ -37,7 +37,7 @@ export const getEvent = async (
 };
 
 // Registered students only, so these never go in the public event response
-const REGISTERED_ONLY_FIELDS = ["page_content", "discord_url"] as const;
+const REGISTERED_ONLY_FIELDS = ["page_content", "slack_url"] as const;
 
 export const getPublicEvent = async (id: string) => {
   const event = await getEvent(id);
@@ -46,14 +46,14 @@ export const getPublicEvent = async (id: string) => {
 
 type RegisteredContent = {
   page_content: Json;
-  discord_url: string | null;
+  slack_url: string | null;
   min_team_size: number;
   max_team_size: number;
 };
 
 const EMPTY_PAGE_CONTENT = { mentors: [], prep: [], faq: [] };
 
-// Getting Ready content and the Discord link, only for Registered attendees
+// Getting Ready content and the Slack link, only for Registered attendees
 export const getRegisteredContent = async (eventId: string, userId: string): Promise<RegisteredContent> => {
   const { data: attendee, error: attendeeError } = await AttendeeRepository.getAttendee(eventId, userId);
   if (attendeeError) throw new Error(attendeeError.message);

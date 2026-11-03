@@ -439,7 +439,7 @@ export type Database = {
           blurb: string
           date: string | null
           description: string | null
-          discord_url: string | null
+          slack_url: string | null
           end_time: string | null
           event_form_questions: Json
           event_id: string
@@ -473,7 +473,7 @@ export type Database = {
           blurb?: string
           date?: string | null
           description?: string | null
-          discord_url?: string | null
+          slack_url?: string | null
           end_time?: string | null
           event_form_questions: Json
           event_id?: string
@@ -507,7 +507,7 @@ export type Database = {
           blurb?: string
           date?: string | null
           description?: string | null
-          discord_url?: string | null
+          slack_url?: string | null
           end_time?: string | null
           event_form_questions?: Json
           event_id?: string

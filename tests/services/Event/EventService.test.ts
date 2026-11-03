@@ -260,7 +260,7 @@ describe("EventService", () => {
           event_id: "1",
           name: "Product Jackpot",
           page_content: { mentors: [], prep: [], faq: [] },
-          discord_url: "https://discord.gg/pmc",
+          slack_url: "https://ubcpmc.slack.com/archives/pmc",
           Attendee: [{ count: 0 }],
         },
       });
@@ -269,14 +269,14 @@ describe("EventService", () => {
 
       expect(event).toMatchObject({ event_id: "1", name: "Product Jackpot" });
       expect(event).not.toHaveProperty("page_content");
-      expect(event).not.toHaveProperty("discord_url");
+      expect(event).not.toHaveProperty("slack_url");
     });
   });
 
   describe("getRegisteredContent", () => {
     const content = {
       page_content: { mentors: [], prep: ["Bring your laptop"], faq: [] },
-      discord_url: "https://discord.gg/pmc",
+      slack_url: "https://ubcpmc.slack.com/archives/pmc",
       min_team_size: 1,
       max_team_size: 4,
     };

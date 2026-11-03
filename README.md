@@ -64,7 +64,7 @@ No code changes; everything is rows.
    `registration_opens` / `registration_closes`, `max_attendees` (student
    seats), `payment_hold_hours`, `schedule`, and `event_form_questions` in the
    format below. Name and email are fixed fields on every form.
-3. **Event day:** `min_team_size`, `max_team_size`, `discord_url`, `icon`,
+3. **Event day:** `min_team_size`, `max_team_size`, `slack_url`, `icon`,
    optionally `roster_locks_at` (when joining and leaving teams stops; empty
    means 24 hours after the submission window opens), and `page_content`:
    ```json

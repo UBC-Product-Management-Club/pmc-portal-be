@@ -2,7 +2,7 @@
 --
 -- The columns event day needs, so a new event is set up with rows, not code:
 --
---   Event               Getting Ready content and Discord link (registered
+--   Event               Getting Ready content and Slack link (registered
 --                       students only), team sizes, when finalists were
 --                       published, and an optional sidebar icon
 --   Team                finalist flag and a per-team deadline extension
@@ -19,7 +19,7 @@ alter table "Event"
   add column if not exists min_team_size int not null default 1,
   add column if not exists max_team_size int not null default 4,
   -- Registered students only, like page_content
-  add column if not exists discord_url text,
+  add column if not exists slack_url text,
   -- Empty until tech publishes results after the on-stage reveal
   add column if not exists finalists_published_at timestamptz,
   -- Small square logo beside the event in the sidebar
@@ -32,9 +32,9 @@ alter table "Event" drop constraint if exists event_team_size_check;
 alter table "Event" add constraint event_team_size_check
   check (min_team_size >= 1 and max_team_size >= min_team_size);
 
-alter table "Event" drop constraint if exists event_discord_url_check;
-alter table "Event" add constraint event_discord_url_check
-  check (discord_url is null or discord_url ~ '^https://');
+alter table "Event" drop constraint if exists event_slack_url_check;
+alter table "Event" add constraint event_slack_url_check
+  check (slack_url is null or slack_url ~ '^https://');
 
 alter table "Team"
   -- Hidden from students until Event.finalists_published_at
