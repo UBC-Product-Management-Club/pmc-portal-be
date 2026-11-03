@@ -9,6 +9,7 @@ import { perUserRateLimit } from "../../middleware/rateLimit";
 import { HomeRepository } from "../../storage/HomeRepository";
 
 import multer from "multer";
+import { randomUUID } from "crypto";
 import { DraftService } from "../../services/Drafts/DraftService";
 import { LoopsEvent, sendEmail } from "../../services/Email/EmailService";
 import { deliverApplicationReceipt } from "../../services/Email/EventEmailService";
@@ -117,9 +118,10 @@ eventRouter.get("/:eventId/registered-content", ...authenticated, async (req: Re
     }
 });
 
+// 20 tries a minute per student: each request holds its files in memory
 // Submits an application. Answers and files are checked here, then the database
 // checks the window, duplicates and the cap while it saves (submit_application).
-eventRouter.post("/:eventId/register", ...authenticated, acceptFiles, async (req: Request, res: Response) => {
+eventRouter.post("/:eventId/register", ...authenticated, perUserRateLimit(20, 60_000), acceptFiles, async (req: Request, res: Response) => {
     const userId = req.user?.user_id;
     const eventId = req.params.eventId;
     if (!userId) return res.status(401).json({ error: "User not authenticated" });
@@ -140,9 +142,10 @@ eventRouter.post("/:eventId/register", ...authenticated, acceptFiles, async (req
             throw new ApiError(400, code, "Please fix the highlighted answers.", fields);
         }
 
-        // Files go in a folder per student so two applicants' resumes never share a path
+        // A fresh folder per attempt: a retried or duplicate submit must never
+        // overwrite (and then clean up) the files of an application already saved
         const fileRefs = await uploadSupabaseFiles(files, {
-            parentPath: `attendee/${eventId}/${userId}/`,
+            parentPath: `attendee/${eventId}/${userId}/${randomUUID()}/`,
             bucketName,
             isPublic: false,
         });
@@ -235,7 +238,8 @@ eventRouter.delete("/drafts/:eventId", ...authenticated, async (req, res) => {
 });
 
 // Submissions. The window, roster and version are decided by the database while it saves.
-eventRouter.post("/:eventId/deliverable/:phaseId", ...authenticated, acceptFiles, async (req: Request, res: Response) => {
+// 20 tries a minute per student: each request holds its files in memory
+eventRouter.post("/:eventId/deliverable/:phaseId", ...authenticated, perUserRateLimit(20, 60_000), acceptFiles, async (req: Request, res: Response) => {
     try {
         const { eventId, phaseId } = req.params;
         const data = await saveSubmission(eventId, userIdOf(req), phaseId, req.body ?? {}, (req.files as Express.Multer.File[]) ?? []);

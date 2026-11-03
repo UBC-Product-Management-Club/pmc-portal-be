@@ -172,13 +172,16 @@ begin
   end if;
   perform check_team_name_free(p_event_id, v_name);
 
-  -- 240,000 possible codes; on the rare clash, draw again
+  -- About a billion possible codes (6 of 32 characters, no 0/O/1/I) from
+  -- gen_random_uuid's secure random bytes, so a code can't be guessed or
+  -- predicted; on the rare clash, draw again
   for attempt in 1..20 loop
     begin
       insert into "Team" (event_id, team_name, team_code)
       values (p_event_id, v_name,
-              substr('ABCDEFGHJKLMNPQRSTUVWXYZ', 1 + floor(random() * 24)::int, 1)
-                || lpad(floor(random() * 10000)::int::text, 4, '0'))
+              (select string_agg(substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
+                                        1 + get_byte(uuid_send(gen_random_uuid()), 0) % 32, 1), '')
+               from generate_series(1, 6)))
       returning team_id into v_team_id;
       exit;
     exception when unique_violation then

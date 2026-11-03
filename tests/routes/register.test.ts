@@ -129,6 +129,19 @@ describe("POST /events/:eventId/register", () => {
     expect(deleteSupabaseFile).toHaveBeenCalledWith("attendee/event-456/user-123/resume.pdf", process.env.SUPABASE_ATTENDEE_BUCKET_NAME);
   });
 
+  it("uploads each attempt to its own folder, so a duplicate submit can't overwrite or delete saved files", async () => {
+    const duplicate = new ApiError(409, "ALREADY_APPLIED", "You've already applied to this event.");
+    (submitApplication as jest.Mock).mockRejectedValueOnce(duplicate).mockRejectedValueOnce(duplicate);
+
+    await submit(valid, pdf);
+    await submit(valid, pdf);
+
+    const [first, second] = (uploadSupabaseFiles as jest.Mock).mock.calls.map(([, options]) => options.parentPath);
+    expect(first).toMatch(/^attendee\/event-456\/user-123\/[0-9a-f-]{36}\/$/);
+    expect(second).toMatch(/^attendee\/event-456\/user-123\/[0-9a-f-]{36}\/$/);
+    expect(first).not.toBe(second);
+  });
+
   it("returns 404 for an unknown event", async () => {
     (getEvent as jest.Mock).mockResolvedValueOnce(null);
 

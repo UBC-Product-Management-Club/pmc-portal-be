@@ -97,7 +97,7 @@ paymentRouter.get(
     } catch (error) {
       if (error instanceof ApiError) return sendApiError(res, error);
       console.log(error);
-      return res.status(500).json(error);
+      return res.status(500).json({ message: "Something went wrong. Please try again." });
     }
   }
 );
@@ -137,7 +137,7 @@ paymentRouter.get(
       return res.status(200).send();
     } catch (error) {
       console.log(error);
-      return res.status(500).json(error);
+      return res.status(500).json({ message: "Something went wrong. Please try again." });
     }
   }
 );
@@ -162,7 +162,7 @@ paymentRouter.delete(
         message: `Deleted checkout session for user ${userId} and event ${eventId}`,
       });
     } catch (error) {
-      return res.status(500).json(error);
+      return res.status(500).json({ message: "Something went wrong. Please try again." });
     }
   }
 );
@@ -187,7 +187,7 @@ paymentRouter.delete(
         message: `Deleted checkout session for user ${userId} and event ${eventId}`,
       });
     } catch (error) {
-      return res.status(500).json(error);
+      return res.status(500).json({ message: "Something went wrong. Please try again." });
     }
   }
 );

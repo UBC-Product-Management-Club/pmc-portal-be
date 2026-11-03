@@ -104,10 +104,10 @@ const tests = {
     },
 
     // Teams
-    async 'a registered student creates a team with a letter-and-four-digits code'() {
+    async 'a registered student creates a team with a six-character code'() {
         const db = await fresh(); await eventWith(db, 1);
         const t = await createTeam(db, 'u1', '  Royal Flush ');
-        assert.match(t.Team.team_code, /^[A-HJ-NP-Z][0-9]{4}$/);
+        assert.match(t.Team.team_code, /^[A-HJ-NP-Z2-9]{6}$/);
         assert.equal(t.Team.team_name, 'Royal Flush');
         assert.equal(t.Team.Team_Member.length, 1);
     },
