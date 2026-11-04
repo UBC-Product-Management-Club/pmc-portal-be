@@ -26,6 +26,7 @@ production. Never commit them.
 | `SUPABASE_ATTENDEE_BUCKET_NAME` | Private bucket for application files (resumes) |
 | `SUPABASE_DELIVERABLES_BUCKET` | Private bucket for submission files (decks) |
 | `SUPABASE_BUCKET_NAME` | Public bucket for event images |
+| `ADMIN_EMAIL_DOMAINS` | Comma-separated email domains allowed on `/v2/admin`. If unset, every admin request gets a 403 |
 | `AUTH0_DOMAIN`, `JWT_AUDIENCE` | Student login |
 | `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET` | Checkout and the `/webhook` endpoint |
 | `LOOPS_API_KEY` | Loops (signup, membership and mailing-list calls) |
