@@ -30,7 +30,26 @@ jobs:
 
       - name: Run Cloud Build
         run: |
-          gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.APP_NAME }}
+          # Start the build in the background and check on it every 15 seconds. gcloud's own
+          # wait checks once a second, which trips the project's 60-a-minute Cloud Build quota
+          BUILD_ID=$(gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.APP_NAME }} --async --format='value(id)')
+          echo "Cloud Build $BUILD_ID"
+          for attempt in $(seq 1 120); do
+              sleep 15
+              # A failed check (such as a rate limit) just waits for the next one
+              STATUS=$(gcloud builds describe "$BUILD_ID" --format='value(status)') || continue
+              echo "$STATUS"
+              case "$STATUS" in
+                  SUCCESS) exit 0 ;;
+                  QUEUED | PENDING | WORKING) ;;
+                  *)
+                      gcloud builds log "$BUILD_ID" | tail -n 50 || true
+                      exit 1
+                      ;;
+              esac
+          done
+          echo "Cloud Build $BUILD_ID did not finish within 30 minutes"
+          exit 1
 
       - name: Deploy to Cloud Run
         run: |
