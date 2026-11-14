@@ -271,7 +271,8 @@ export const syncMessages = async (sheet: Sheet, eventId: string) => {
       spreadsheetSafe(m.name),
       spreadsheetSafe(m.email),
       pacific(m.payment_due_at),
-      m.amount_due ? `$${Number(m.amount_due).toFixed(2)}` : "",
+      // Blank for free acceptances, which have nothing to pay
+      Number(m.amount_due) > 0 ? `$${Number(m.amount_due).toFixed(2)}` : "",
       pacific(m.eligible_at),
       "FALSE",
     ]),

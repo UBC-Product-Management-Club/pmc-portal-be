@@ -92,6 +92,27 @@ paymentRouter.get(
       const user = await getUser(userId);
       const isMember = user?.is_payment_verified;
       const priceId = await getEventPriceId(eventId, !!isMember);
+      // Free for this student: the RSVP. Same rules as paying (accepted, inside the
+      // window that holds their seat), then register them and send them back to the
+      // event page instead of Stripe.
+      if (!priceId) {
+        if (attendee.status === "REGISTERED") {
+          return sendApiError(res, new ApiError(409, "ALREADY_REGISTERED", "You're already registered."));
+        }
+        if (event.needs_review) {
+          if (attendee.status !== "ACCEPTED") {
+            return sendApiError(res, new ApiError(409, "NOT_ACCEPTED", "There's nothing to confirm yet."));
+          }
+          if (!attendee.payment_due_at || new Date() >= new Date(attendee.payment_due_at)) {
+            return sendApiError(res, new ApiError(409, "HOLD_EXPIRED", "Your RSVP window has closed."));
+          }
+        }
+        if (!(await registerIfSeatAvailable(attendee.attendee_id))) {
+          return sendApiError(res, new ApiError(409, "EVENT_FULL", "This event is full."));
+        }
+        addToMailingList(attendee.attendee_id);
+        return res.status(200).json({ url: `${process.env.ORIGIN}/events/${eventId}` });
+      }
       const session = await getOrCreateEventCheckoutSession(attendee, event, userId, priceId);
       return res.status(200).json(session);
     } catch (error) {
@@ -120,6 +141,13 @@ paymentRouter.get(
       const user = await getUser(userId);
       const isMember = user?.is_payment_verified;
       const priceId = await getEventPriceId(eventId, !!isMember);
+      // Reviewed events go through the event checkout, which registers only accepted
+      // students and checks the payment window; RSVP would skip both
+      const event = await getEvent(eventId);
+      if (!event) return sendApiError(res, new ApiError(404, "NOT_FOUND", "This event doesn't exist."));
+      if (event.needs_review) {
+        return sendApiError(res, new ApiError(409, "NOT_ACCEPTED", "There's nothing to confirm yet."));
+      }
       if (priceId) {
         const session = await getOrCreateRSVPCheckoutSession(
           attendee.attendee_id,
