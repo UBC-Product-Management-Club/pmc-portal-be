@@ -13,6 +13,7 @@ import {
 import { authenticated } from "../../middleware/Session";
 import {
   getAttendee,
+  registerAcceptedInWindow,
   registerIfSeatAvailable,
 } from "../../services/Attendee/AttendeeService";
 import { ApiError, sendApiError } from "../../services/ApiError";
@@ -92,10 +93,11 @@ paymentRouter.get(
       const user = await getUser(userId);
       const isMember = user?.is_payment_verified;
       const priceId = await getEventPriceId(eventId, !!isMember);
-      // Free for this student: the RSVP. Same rules as paying (accepted, inside the
-      // window that holds their seat), then register them and send them back to the
-      // event page instead of Stripe.
-      if (!priceId) {
+      const price = isMember ? event.member_price : event.non_member_price;
+      // Free for this student (no Stripe price, or a $0 one): the RSVP. Same rules as
+      // paying (accepted, inside the window that holds their seat), then register them
+      // and send them back to the event page instead of Stripe.
+      if (!priceId || Number(price) === 0) {
         if (attendee.status === "REGISTERED") {
           return sendApiError(res, new ApiError(409, "ALREADY_REGISTERED", "You're already registered."));
         }
@@ -107,7 +109,16 @@ paymentRouter.get(
             return sendApiError(res, new ApiError(409, "HOLD_EXPIRED", "Your RSVP window has closed."));
           }
         }
-        if (!(await registerIfSeatAvailable(attendee.attendee_id))) {
+        if (event.needs_review) {
+          // Their seat is already held; false means the window closed (or they were
+          // registered by a second click) since the checks above
+          if (!(await registerAcceptedInWindow(attendee.attendee_id))) {
+            const latest = await getAttendee(eventId, userId);
+            if (latest?.status !== "REGISTERED") {
+              return sendApiError(res, new ApiError(409, "HOLD_EXPIRED", "Your RSVP window has closed."));
+            }
+          }
+        } else if (!(await registerIfSeatAvailable(attendee.attendee_id))) {
           return sendApiError(res, new ApiError(409, "EVENT_FULL", "This event is full."));
         }
         addToMailingList(attendee.attendee_id);

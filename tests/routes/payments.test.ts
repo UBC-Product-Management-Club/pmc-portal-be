@@ -16,7 +16,11 @@ import express from "express";
 import request from "supertest";
 import { paymentRouter } from "../../src/routes/v2/payments";
 import { getEvent, getEventPriceId } from "../../src/services/Event/EventService";
-import { getAttendee, registerIfSeatAvailable } from "../../src/services/Attendee/AttendeeService";
+import {
+  getAttendee,
+  registerAcceptedInWindow,
+  registerIfSeatAvailable,
+} from "../../src/services/Attendee/AttendeeService";
 import { getUser } from "../../src/services/User/UserService";
 import {
   getOrCreateEventCheckoutSession,
@@ -35,6 +39,7 @@ beforeEach(() => {
   (getUser as jest.Mock).mockResolvedValue({ is_payment_verified: false });
   (getEvent as jest.Mock).mockResolvedValue(reviewed);
   (registerIfSeatAvailable as jest.Mock).mockResolvedValue(true);
+  (registerAcceptedInWindow as jest.Mock).mockResolvedValue(true);
 });
 
 describe("GET /payments/checkout-session/event/:eventId", () => {
@@ -46,7 +51,44 @@ describe("GET /payments/checkout-session/event/:eventId", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ url: "https://portal.example/events/event-456" });
-    expect(registerIfSeatAvailable).toHaveBeenCalledWith("att-1");
+    // Their seat is already held, so no cap check that would count it against them
+    expect(registerAcceptedInWindow).toHaveBeenCalledWith("att-1");
+    expect(registerIfSeatAvailable).not.toHaveBeenCalled();
+    expect(getOrCreateEventCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("refuses the RSVP if the window closes between the checks and the update", async () => {
+    (getAttendee as jest.Mock).mockResolvedValue({ attendee_id: "att-1", status: "ACCEPTED", payment_due_at: inAnHour() });
+    (getEventPriceId as jest.Mock).mockResolvedValue(null);
+    (registerAcceptedInWindow as jest.Mock).mockResolvedValue(false);
+
+    const res = await request(app).get("/payments/checkout-session/event/event-456");
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("HOLD_EXPIRED");
+  });
+
+  it("treats a second click that lost the race as already done", async () => {
+    (getAttendee as jest.Mock)
+      .mockResolvedValueOnce({ attendee_id: "att-1", status: "ACCEPTED", payment_due_at: inAnHour() })
+      .mockResolvedValueOnce({ attendee_id: "att-1", status: "REGISTERED" });
+    (getEventPriceId as jest.Mock).mockResolvedValue(null);
+    (registerAcceptedInWindow as jest.Mock).mockResolvedValue(false);
+
+    const res = await request(app).get("/payments/checkout-session/event/event-456");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ url: "https://portal.example/events/event-456" });
+  });
+
+  it("treats a $0 Stripe price as free instead of opening Stripe", async () => {
+    (getAttendee as jest.Mock).mockResolvedValue({ attendee_id: "att-1", status: "ACCEPTED", payment_due_at: inAnHour() });
+    (getEvent as jest.Mock).mockResolvedValue({ ...reviewed, member_price: 0, non_member_price: 0 });
+    (getEventPriceId as jest.Mock).mockResolvedValue("price_zero");
+
+    const res = await request(app).get("/payments/checkout-session/event/event-456");
+
+    expect(res.body).toEqual({ url: "https://portal.example/events/event-456" });
     expect(getOrCreateEventCheckoutSession).not.toHaveBeenCalled();
   });
 
@@ -62,7 +104,7 @@ describe("GET /payments/checkout-session/event/:eventId", () => {
 
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("HOLD_EXPIRED");
-    expect(registerIfSeatAvailable).not.toHaveBeenCalled();
+    expect(registerAcceptedInWindow).not.toHaveBeenCalled();
   });
 
   it("never registers a student who hasn't been accepted, even when free", async () => {
@@ -73,7 +115,7 @@ describe("GET /payments/checkout-session/event/:eventId", () => {
 
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("NOT_ACCEPTED");
-    expect(registerIfSeatAvailable).not.toHaveBeenCalled();
+    expect(registerAcceptedInWindow).not.toHaveBeenCalled();
   });
 
   it("still sends a paid student to Stripe", async () => {

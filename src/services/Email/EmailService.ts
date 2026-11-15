@@ -68,6 +68,8 @@ const sendEmail = async (
   }
 };
 
+// Callers don't wait for this, so it logs failures instead of throwing: a rejection
+// nobody handles crashes the server
 const addToMailingList = async (attendeeId: string) => {
   try {
     const { data, error } =
@@ -79,9 +81,8 @@ const addToMailingList = async (attendeeId: string) => {
       );
     }
 
-    if (!data.Event.mailing_list) {
-      throw new Error("Event does not have a mailing list configured.");
-    }
+    // Not every event has a mailing list, and that's fine
+    if (!data.Event.mailing_list) return;
 
     const resp = await loops.updateContact(
       data.User.email,
@@ -92,7 +93,6 @@ const addToMailingList = async (attendeeId: string) => {
     console.log("Added to mailing list successfully:", resp);
   } catch (error) {
     console.error("Error adding to mailing list:", error);
-    throw new Error("Failed to add to mailing list");
   }
 };
 

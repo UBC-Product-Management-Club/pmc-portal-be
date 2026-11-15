@@ -147,7 +147,8 @@ describe("addToMailingList", () => {
     );
   });
 
-  it("throws if attendee not found", async () => {
+  it("logs instead of throwing if attendee not found", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
     (
       AttendeeRepository.getEmailAndMailingListByAttendee as jest.Mock
     ).mockResolvedValue({
@@ -155,12 +156,11 @@ describe("addToMailingList", () => {
       error: new Error("Missing"),
     });
 
-    await expect(addToMailingList(mockAttendeeId)).rejects.toThrow(
-      "Failed to add to mailing list"
-    );
+    await expect(addToMailingList(mockAttendeeId)).resolves.toBeUndefined();
+    expect(console.error).toHaveBeenCalled();
   });
 
-  it("throws if event has no mailing list configured", async () => {
+  it("does nothing if event has no mailing list configured", async () => {
     (
       AttendeeRepository.getEmailAndMailingListByAttendee as jest.Mock
     ).mockResolvedValue({
@@ -171,8 +171,7 @@ describe("addToMailingList", () => {
       error: null,
     });
 
-    await expect(addToMailingList(mockAttendeeId)).rejects.toThrow(
-      "Failed to add to mailing list"
-    );
+    await expect(addToMailingList(mockAttendeeId)).resolves.toBeUndefined();
+    expect(loops.updateContact).not.toHaveBeenCalled();
   });
 });

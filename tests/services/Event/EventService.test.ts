@@ -2,6 +2,10 @@ jest.mock("../../../src/config/stripe", () => ({
   stripe: {
     prices: {
       retrieve: jest.fn(),
+      create: jest.fn(),
+    },
+    products: {
+      create: jest.fn(),
     },
   },
 }));
@@ -14,6 +18,7 @@ import {
   getPublicEvent,
   getRegisteredContent,
   getRegisteredEvents,
+  updateEvent,
 } from "../../../src/services/Event/EventService";
 import { EventRepository } from "../../../src/storage/EventRepository";
 import { AttendeeRepository } from "../../../src/storage/AttendeeRepository";
@@ -305,6 +310,23 @@ describe("EventService", () => {
       const result = await getRegisteredContent("e1", "u1");
 
       expect(result.page_content).toEqual({ mentors: [], prep: [], faq: [] });
+    });
+  });
+  describe("updateEvent prices", () => {
+    it("clears the Stripe price for a $0 price instead of creating one", async () => {
+      (EventRepository.getEventPricing as jest.Mock).mockResolvedValueOnce({
+        data: { name: "PJ", member_price_id: "price_9", non_member_price_id: "price_15" },
+        error: null,
+      });
+      (EventRepository.updateEvent as jest.Mock).mockResolvedValueOnce({ data: null, error: null });
+
+      await updateEvent("event-1", { member_price: 0, non_member_price: 0 } as any);
+
+      expect(stripe.prices.create).not.toHaveBeenCalled();
+      expect(EventRepository.updateEvent).toHaveBeenCalledWith(
+        "event-1",
+        expect.objectContaining({ member_price: 0, member_price_id: null, non_member_price: 0, non_member_price_id: null })
+      );
     });
   });
 });
