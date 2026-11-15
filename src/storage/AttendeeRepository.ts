@@ -10,6 +10,19 @@ export const AttendeeRepository = {
     // Registers only if a seat is free (free and no-review events)
     registerIfSeatAvailable: (attendeeId: string, paymentId?: string) =>
         supabase.rpc("register_if_seat_available", { p_attendee_id: attendeeId, ...(paymentId && { p_payment_id: paymentId }) }),
+    // Accepted and still inside the window, in one update: their seat is already held,
+    // so there's no cap check. Returns the row only if it changed.
+    registerAcceptedInWindow: (attendeeId: string, nowIso: string) =>
+        supabase
+            .from("Attendee")
+            .update({ status: "REGISTERED" })
+            .eq("attendee_id", attendeeId)
+            .eq("status", "ACCEPTED")
+            .gt("payment_due_at", nowIso)
+            .select("attendee_id"),
+    // Same tidy-up as paying: drops the unsent acceptance and reminder emails
+    cancelPendingHooks: (attendeeId: string, reason: string) =>
+        supabase.rpc("cancel_pending_hooks", { p_attendee_id: attendeeId, p_reason: reason }),
     // The attendee plus what the status API needs: today's prices and membership
     getAttendeeForStatus: (eventId: string, userId: string) =>
         supabase

@@ -18,7 +18,8 @@ export const EventRepository = {
       .from("Event")
       .select("*, Attendee(count)")
       .eq("event_id", eventId)
-      .eq("Attendee.is_payment_verified", true)
+      // Paid or Registered: a free registration has no payment, and some older rows are paid without the status
+      .or("is_payment_verified.eq.true,status.eq.REGISTERED", { referencedTable: "Attendee" })
       .maybeSingle(),
   getRegisteredEvents: (userId: string) =>
     supabase

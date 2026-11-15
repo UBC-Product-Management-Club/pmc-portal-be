@@ -6,6 +6,7 @@ import { Tables, TablesInsert } from "../../../src/schema/v2/database.types";
 import {
   getAttendee,
   getAttendeeStatus,
+  registerAcceptedInWindow,
   registerIfSeatAvailable,
   submitApplication,
 } from "../../../src/services/Attendee/AttendeeService";
@@ -121,6 +122,40 @@ describe("AttendeeService", () => {
       (AttendeeRepository.registerIfSeatAvailable as jest.Mock).mockResolvedValueOnce({ data: null, error: { message: "boom" } });
 
       await expect(registerIfSeatAvailable("att-1")).rejects.toThrow("boom");
+    });
+  });
+
+  describe("registerAcceptedInWindow", () => {
+    const now = new Date("2026-11-20T20:00:00Z");
+
+    it("registers an accepted student inside the window and tidies their pending emails", async () => {
+      (AttendeeRepository.registerAcceptedInWindow as jest.Mock).mockResolvedValueOnce({ data: [{ attendee_id: "att-1" }], error: null });
+      (AttendeeRepository.cancelPendingHooks as jest.Mock).mockResolvedValueOnce({ error: null });
+
+      await expect(registerAcceptedInWindow("att-1", now)).resolves.toBe(true);
+      expect(AttendeeRepository.registerAcceptedInWindow).toHaveBeenCalledWith("att-1", now.toISOString());
+      expect(AttendeeRepository.cancelPendingHooks).toHaveBeenCalledWith("att-1", "registered");
+    });
+
+    it("is false when nothing changed (window closed or no longer Accepted)", async () => {
+      (AttendeeRepository.registerAcceptedInWindow as jest.Mock).mockResolvedValueOnce({ data: [], error: null });
+
+      await expect(registerAcceptedInWindow("att-1", now)).resolves.toBe(false);
+      expect(AttendeeRepository.cancelPendingHooks).not.toHaveBeenCalled();
+    });
+
+    it("still counts as registered if tidying the emails fails", async () => {
+      jest.spyOn(console, "error").mockImplementation(() => {});
+      (AttendeeRepository.registerAcceptedInWindow as jest.Mock).mockResolvedValueOnce({ data: [{ attendee_id: "att-1" }], error: null });
+      (AttendeeRepository.cancelPendingHooks as jest.Mock).mockResolvedValueOnce({ error: { message: "boom" } });
+
+      await expect(registerAcceptedInWindow("att-1", now)).resolves.toBe(true);
+    });
+
+    it("throws when the update fails", async () => {
+      (AttendeeRepository.registerAcceptedInWindow as jest.Mock).mockResolvedValueOnce({ data: null, error: { message: "boom" } });
+
+      await expect(registerAcceptedInWindow("att-1", now)).rejects.toThrow("boom");
     });
   });
 

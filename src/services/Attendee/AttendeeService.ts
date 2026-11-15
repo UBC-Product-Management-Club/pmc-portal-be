@@ -109,6 +109,22 @@ export const registerIfSeatAvailable = async (attendeeId: string, paymentId?: st
   return data === true;
 };
 
+// Free reviewed events: an accepted student RSVPing inside their window. Their seat was
+// held when they were accepted, so this doesn't re-check the cap (registerIfSeatAvailable
+// would count their own held seat and turn them away once accepted students fill the
+// event). False when they're no longer Accepted or the window has closed.
+export const registerAcceptedInWindow = async (attendeeId: string, now = new Date()): Promise<boolean> => {
+  const { data, error } = await AttendeeRepository.registerAcceptedInWindow(attendeeId, now.toISOString());
+  if (error) {
+    throw new Error(`Failed to register attendee ${attendeeId}: ${error.message}`);
+  }
+  if (!data?.length) return false;
+  // The emails' sender and the Messages tab already skip registered students; this keeps the rows tidy
+  const { error: hookError } = await AttendeeRepository.cancelPendingHooks(attendeeId, "registered");
+  if (hookError) console.error(`Failed to cancel pending emails for ${attendeeId}:`, hookError.message);
+  return true;
+};
+
 export const getAttendeeWithEvent = async (attendeeId: string) => {
   const { data, error } = await AttendeeRepository.getAttendeeWithEvent(attendeeId);
   if (error) {

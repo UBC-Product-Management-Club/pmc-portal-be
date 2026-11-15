@@ -96,8 +96,10 @@ const syncStripePrice = async (
   label: "Member" | "Non-Member",
   existingPriceId: string | null,
   newAmountDollars: number
-): Promise<string> => {
+): Promise<string | null> => {
   const unitAmount = Math.round(newAmountDollars * 100);
+  // Free: no Stripe price (Stripe can't charge $0), which is how the portal knows it's free
+  if (unitAmount === 0) return null;
 
   if (existingPriceId) {
     const existingPrice = await stripe.prices.retrieve(existingPriceId);
